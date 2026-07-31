@@ -1,0 +1,24 @@
+name: "Code Rabbit"
+description: "코드래빗 리뷰 반영 이슈 템플릿"
+title: "[CODERABBIT] "
+labels: ["CodeRabbit"]
+assignees: []
+
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: "🐰 리뷰 사항"
+      value: |
+        -
+    validations:
+      required: true
+
+  - type: textarea
+    id: location
+    attributes:
+      label: "🐇 수정 내용"
+      value: |
+        -
+    validations:
+      required: true
