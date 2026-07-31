@@ -1,0 +1,13 @@
+.git
+.gitignore
+.next
+node_modules
+README.md
+.env
+.env.*
+.env*.local
+.env.local
+*.log
+.DS_Store
+.github
+build
