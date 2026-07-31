@@ -10,7 +10,7 @@ body:
     attributes:
       label: "🐛 발생한 문제"
       value: |
-      - 
+        -
     validations:
       required: true
 
@@ -19,6 +19,6 @@ body:
     attributes:
       label: "📍 문제 지점"
       value: |
-      - 
+        -
     validations:
       required: true

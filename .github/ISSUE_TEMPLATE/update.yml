@@ -10,7 +10,7 @@ body:
     attributes:
       label: "🛠️ 수정 할 내용"
       value: |
-      - 
+        -
     validations:
       required: true
 
@@ -19,6 +19,6 @@ body:
     attributes:
       label: "📍 수정 할 지점"
       value: |
-      - [ ] 
+        - [ ]
     validations:
       required: true

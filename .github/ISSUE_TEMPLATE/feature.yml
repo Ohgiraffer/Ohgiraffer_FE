@@ -10,7 +10,7 @@ body:
     attributes:
       label: "📌 구현할 기능 내용"
       value: |
-      - 
+        -
     validations:
       required: true
 
@@ -19,7 +19,7 @@ body:
     attributes:
       label: "✅ 작업 할 내용"
       value: |
-      - [ ] 
+        - [ ]
     validations:
       required: true
 
