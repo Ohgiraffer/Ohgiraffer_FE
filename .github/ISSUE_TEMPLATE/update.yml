@@ -1,7 +1,7 @@
 name: "Update"
 description: "수정 내용 이슈 템플릿"
 title: "[UPDATE] "
-labels: ["update"]
+labels: ["Update"]
 assignees: []
 
 body:
