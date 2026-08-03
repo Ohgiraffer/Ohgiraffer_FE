@@ -4,6 +4,15 @@ const nextConfig: NextConfig = {
    /* config options here */
    output: 'standalone',
    poweredByHeader: false,
+   images: {
+      remotePatterns: [
+         {
+            protocol: 'https',
+            hostname: 'be.campflow.co.kr',
+            pathname: '/**',
+         },
+      ],
+   },
    async headers() {
       return [
          {
