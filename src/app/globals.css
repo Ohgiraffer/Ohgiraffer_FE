@@ -138,3 +138,59 @@
       @apply font-sans;
    }
 }
+
+/* 로딩 컴포넌트 전용 애니메이션 (src/components/ui/loading/) */
+@keyframes softGlow {
+   0% {
+      opacity: 0.28;
+      transform: scale(0.88);
+   }
+   50% {
+      opacity: 1;
+      transform: scale(1.02);
+   }
+   100% {
+      opacity: 0.28;
+      transform: scale(0.88);
+   }
+}
+
+@keyframes sweep {
+   0% {
+      left: -40%;
+   }
+   100% {
+      left: 100%;
+   }
+}
+
+@keyframes shimmer {
+   0% {
+      transform: translateX(-100%);
+   }
+   100% {
+      transform: translateX(100%);
+   }
+}
+
+.dot-glow {
+   animation: softGlow 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+   animation-delay: var(--dot-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .dot-glow {
+      animation: none;
+      opacity: 1;
+   }
+}
+
+.progress-sweep {
+   animation: sweep 1.2s ease-in-out infinite;
+}
+
+.skeleton-shimmer {
+   background: linear-gradient(90deg, transparent, rgba(46, 74, 61, 0.15), transparent);
+   animation: shimmer 1.3s linear infinite;
+   animation-delay: var(--row-delay, 0s);
+}
