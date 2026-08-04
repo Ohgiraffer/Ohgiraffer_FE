@@ -125,3 +125,11 @@ disallow: '/',
 ## 18. 클릭 커서 처리
 
 클릭 이벤트(`onClick` 등)가 있는 요소는 예외 상황(`disabled` 상태, 드래그 핸들처럼 다른 커서가 필요한 경우 등)이 아니면 무조건 `cursor-pointer`를 명시한다.
+
+## 19. 테두리 둥글기(rounded) 사용 규칙
+
+부트캠프 그룹웨어 특성상 정적이고 정돈된 분위기를 유지하기 위해, `rounded-*`를 사용할 때는 기본적으로 `rounded-xs`, `rounded-sm` 위주로 사용한다. `rounded-lg` 이상의 큰 둥글기는 디자인상 특별히 필요한 경우에만 예외적으로 사용한다.
+
+## 20. shadcn 생성 파일 위치
+
+`npx shadcn add`(또는 CLI)로 생성된 `ui/` 컴포넌트 파일은 `src/components/ui/shadcn/` 폴더에 모아둔다. 직접 작성한 커스텀 컴포넌트(`date-picker.tsx` 등)와 shadcn이 자동 생성한 파일을 구분해서, 어떤 파일이 CLI로 재생성·업데이트될 수 있는 파일인지 한눈에 알아볼 수 있게 하기 위함이다. `src/components/ui/` 바로 아래에는 프로젝트에서 직접 작성한 컴포넌트만 둔다.

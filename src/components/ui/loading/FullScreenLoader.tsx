@@ -14,7 +14,9 @@ export default function FullScreenLoader() {
                <span
                   key={dot.color}
                   className="dot-glow h-[13px] w-[13px] rounded-full"
-                  style={{ backgroundColor: dot.color, '--dot-delay': dot.delay } as React.CSSProperties}
+                  style={
+                     { backgroundColor: dot.color, '--dot-delay': dot.delay } as React.CSSProperties
+                  }
                />
             ))}
          </div>
