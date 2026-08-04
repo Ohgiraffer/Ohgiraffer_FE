@@ -25,7 +25,7 @@ ohgiraffer_fe/
 │ ├── components/ # 전역 공통 요소만
 │ │ ├── layout/ # 헤더/사이드바/푸터 등 공통 레이아웃
 │ │ ├── modals/ # 전역에서 재사용하는 공통 모달
-│ │ └── ui/ # shadcn으로 받은 UI 컴포넌트
+│ │ └── ui/ # shadcn으로 받은 UI 컴포넌트 + 검색창 등 직접 만든 공용 UI 컴포넌트
 │ ├── features/ # 도메인/페이지별 기능 단위
 │ │ └── {도메인}/
 │ │ ├── components/ # 이 도메인 전용 컴포넌트 (~~~Client.tsx 포함)
@@ -105,14 +105,14 @@ disallow: '/',
 
 `src/app/globals.css`의 `@theme inline`에 아래 브랜드 컬러를 기본값으로 등록해두고, `bg-brand-*` / `text-brand-*` 등 Tailwind 유틸리티로 사용한다. 디자인상 예외가 필요한 경우 개발자가 별도로 컬러 코드를 지정하며, 그 전까지는 아래 팔레트를 기본으로 한다.
 
-| 이름 | HEX |
-|---|---|
+| 이름           | HEX       |
+| -------------- | --------- |
 | `brand-maroon` | `#6A2424` |
-| `brand-red` | `#C0392B` |
-| `brand-green` | `#2E4A3D` |
-| `brand-sage` | `#8FA888` |
-| `brand-gold` | `#E8B84B` |
-| `brand-cream` | `#F4E4A6` |
+| `brand-red`    | `#C0392B` |
+| `brand-green`  | `#2E4A3D` |
+| `brand-sage`   | `#8FA888` |
+| `brand-gold`   | `#E8B84B` |
+| `brand-cream`  | `#F4E4A6` |
 
 카드/드롭다운 등의 기본 외곽선(border) 컬러는 `#E5E7EB`(Tailwind `border-gray-200`)를 기본으로 한다.
 
