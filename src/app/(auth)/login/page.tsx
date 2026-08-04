@@ -1,3 +1,5 @@
+import LoginPageClient from '@/features/auth/components/LoginPageClient';
+
 export default function LoginPage() {
-   return <div>LoginPage</div>;
+   return <LoginPageClient />;
 }
