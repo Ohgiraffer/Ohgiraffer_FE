@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/shadcn/button';
 import ErrorState from '@/components/ui/ErrorState';
 
 export default function NotFound() {

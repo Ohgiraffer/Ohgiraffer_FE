@@ -2,7 +2,7 @@
 
 import { Check, Eye, EyeOff, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/shadcn/button';
 
 export default function ResetPasswordPageClient() {
    const [password, setPassword] = useState('');
@@ -34,9 +34,7 @@ export default function ResetPasswordPageClient() {
       <div className="w-full max-w-md rounded-sm bg-white p-10 shadow-sm">
          <div className="text-center">
             <h1 className="text-xl font-bold text-gray-900">비밀번호 재설정</h1>
-            <p className="mt-1 text-sm text-gray-500">
-               영문+특수기호 포함 8~16자로 입력해주세요.
-            </p>
+            <p className="mt-1 text-sm text-gray-500">영문+특수기호 포함 8~16자로 입력해주세요.</p>
          </div>
 
          <form onSubmit={handleSubmit} className="mt-10 flex flex-col gap-5">

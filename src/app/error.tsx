@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/shadcn/button';
 import ErrorState from '@/components/ui/ErrorState';
 
 export default function Error({
