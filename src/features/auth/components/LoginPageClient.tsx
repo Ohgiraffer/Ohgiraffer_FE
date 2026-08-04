@@ -26,7 +26,7 @@ export default function LoginPageClient() {
    };
 
    return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#F7F8FA] px-4">
+      <>
          <div className="w-full max-w-md rounded-sm bg-white p-10 shadow-sm">
             <div className="mb-8 flex justify-center mr-7">
                <Image src="/logo/AuthLogo.png" alt="CampFlow" width={220} height={76} priority />
@@ -104,6 +104,6 @@ export default function LoginPageClient() {
          <p className="mt-6 text-sm text-gray-400">
             © 2026 캠플로우 CampFlow. All rights reserved.
          </p>
-      </div>
+      </>
    );
 }
