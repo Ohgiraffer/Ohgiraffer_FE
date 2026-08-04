@@ -100,3 +100,28 @@ disallow: '/',
 - 로그인은 했지만 필요한 권한이 없는 사용자의 접근 차단(role 값이 요구 조건과 다른 경우, 예: 학생이 `/admin` 접근)
 
 이 파일은 **모든 요청에 영향을 주는 보안 관련 파일**이라, 수정이 필요한 경우 작업을 시작하기 전에 반드시 개발자에게 변경 내용을 먼저 설명하고 확인을 받은 뒤 진행한다. 확인 없이 임의로 경로 목록이나 조건을 바꾸지 않는다.
+
+## 16. 기본 컬러 팔레트
+
+`src/app/globals.css`의 `@theme inline`에 아래 브랜드 컬러를 기본값으로 등록해두고, `bg-brand-*` / `text-brand-*` 등 Tailwind 유틸리티로 사용한다. 디자인상 예외가 필요한 경우 개발자가 별도로 컬러 코드를 지정하며, 그 전까지는 아래 팔레트를 기본으로 한다.
+
+| 이름 | HEX |
+|---|---|
+| `brand-maroon` | `#6A2424` |
+| `brand-red` | `#C0392B` |
+| `brand-green` | `#2E4A3D` |
+| `brand-sage` | `#8FA888` |
+| `brand-gold` | `#E8B84B` |
+| `brand-cream` | `#F4E4A6` |
+
+카드/드롭다운 등의 기본 외곽선(border) 컬러는 `#E5E7EB`(Tailwind `border-gray-200`)를 기본으로 한다.
+
+## 17. 아이콘 사용 규칙
+
+아이콘은 기본적으로 `lucide-react`에서 가져와 사용한다. `currentColor` 기반이라 `className`(Tailwind `text-*`)이나 `color`/`size` prop으로 색상·크기를 바로 바꿀 수 있다.
+
+`lucide-react`에 없는 아이콘만 예외적으로 `<path>` 기반 SVG로 직접 만들어 `public/icons/` 폴더에 파일로 추가하고, 컴포넌트에서 그 경로를 `next/image` 등으로 import해서 사용한다.
+
+## 18. 클릭 커서 처리
+
+클릭 이벤트(`onClick` 등)가 있는 요소는 예외 상황(`disabled` 상태, 드래그 핸들처럼 다른 커서가 필요한 경우 등)이 아니면 무조건 `cursor-pointer`를 명시한다.
