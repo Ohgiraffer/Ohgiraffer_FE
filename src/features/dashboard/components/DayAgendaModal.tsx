@@ -21,7 +21,7 @@ function formatTimeRange(startTime?: string, endTime?: string) {
 }
 
 export default function DayAgendaModal({ date, events, onClose, onDelete }: DayAgendaModalProps) {
-   const [checkedIds, setCheckedIds] = useState<string[]>(() => events.map((event) => event.id));
+   const [checkedIds, setCheckedIds] = useState<string[]>([]);
    const isDeletingRef = useRef(false);
 
    const toggleChecked = (id: string) => {
