@@ -1,26 +1,295 @@
 @import 'tailwindcss';
-
-:root {
-   --background: #ffffff;
-   --foreground: #171717;
-}
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
 @theme inline {
    --color-background: var(--background);
    --color-foreground: var(--foreground);
-   --font-sans: var(--font-geist-sans);
+   --font-sans: var(--font-sans);
    --font-mono: var(--font-geist-mono);
+
+   /* 기본 브랜드 컬러 팔레트 (docs/CLAUDE_conventions.md 참고) */
+   --color-brand-maroon: #6a2424;
+   --color-brand-red: #c0392b;
+   --color-brand-green: #2e4a3d;
+   --color-brand-sage: #8fa888;
+   --color-brand-gold: #e8b84b;
+   --color-brand-cream: #f4e4a6;
+   --font-heading: var(--font-sans);
+   --color-sidebar-ring: var(--sidebar-ring);
+   --color-sidebar-border: var(--sidebar-border);
+   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+   --color-sidebar-accent: var(--sidebar-accent);
+   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+   --color-sidebar-primary: var(--sidebar-primary);
+   --color-sidebar-foreground: var(--sidebar-foreground);
+   --color-sidebar: var(--sidebar);
+   --color-chart-5: var(--chart-5);
+   --color-chart-4: var(--chart-4);
+   --color-chart-3: var(--chart-3);
+   --color-chart-2: var(--chart-2);
+   --color-chart-1: var(--chart-1);
+   --color-ring: var(--ring);
+   --color-input: var(--input);
+   --color-border: var(--border);
+   --color-destructive: var(--destructive);
+   --color-accent-foreground: var(--accent-foreground);
+   --color-accent: var(--accent);
+   --color-muted-foreground: var(--muted-foreground);
+   --color-muted: var(--muted);
+   --color-secondary-foreground: var(--secondary-foreground);
+   --color-secondary: var(--secondary);
+   --color-primary-foreground: var(--primary-foreground);
+   --color-primary: var(--primary);
+   --color-popover-foreground: var(--popover-foreground);
+   --color-popover: var(--popover);
+   --color-card-foreground: var(--card-foreground);
+   --color-card: var(--card);
+   --radius-sm: calc(var(--radius) * 0.6);
+   --radius-md: calc(var(--radius) * 0.8);
+   --radius-lg: var(--radius);
+   --radius-xl: calc(var(--radius) * 1.4);
+   --radius-2xl: calc(var(--radius) * 1.8);
+   --radius-3xl: calc(var(--radius) * 2.2);
+   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@media (prefers-color-scheme: dark) {
-   :root {
-      --background: #0a0a0a;
-      --foreground: #ededed;
+:root {
+   --background: oklch(1 0 0);
+   --foreground: oklch(0.145 0 0);
+   --card: oklch(1 0 0);
+   --card-foreground: oklch(0.145 0 0);
+   --popover: oklch(1 0 0);
+   --popover-foreground: oklch(0.145 0 0);
+   --primary: oklch(0.205 0 0);
+   --primary-foreground: oklch(0.985 0 0);
+   --secondary: oklch(0.97 0 0);
+   --secondary-foreground: oklch(0.205 0 0);
+   --muted: oklch(0.97 0 0);
+   --muted-foreground: oklch(0.556 0 0);
+   --accent: oklch(0.97 0 0);
+   --accent-foreground: oklch(0.205 0 0);
+   --destructive: oklch(0.577 0.245 27.325);
+   --border: oklch(0.922 0 0);
+   --input: oklch(0.922 0 0);
+   --ring: oklch(0.708 0 0);
+   --chart-1: oklch(0.87 0 0);
+   --chart-2: oklch(0.556 0 0);
+   --chart-3: oklch(0.439 0 0);
+   --chart-4: oklch(0.371 0 0);
+   --chart-5: oklch(0.269 0 0);
+   --radius: 0.625rem;
+   --sidebar: oklch(0.985 0 0);
+   --sidebar-foreground: oklch(0.145 0 0);
+   --sidebar-primary: oklch(0.205 0 0);
+   --sidebar-primary-foreground: oklch(0.985 0 0);
+   --sidebar-accent: oklch(0.97 0 0);
+   --sidebar-accent-foreground: oklch(0.205 0 0);
+   --sidebar-border: oklch(0.922 0 0);
+   --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+   --background: oklch(0.145 0 0);
+   --foreground: oklch(0.985 0 0);
+   --card: oklch(0.205 0 0);
+   --card-foreground: oklch(0.985 0 0);
+   --popover: oklch(0.205 0 0);
+   --popover-foreground: oklch(0.985 0 0);
+   --primary: oklch(0.922 0 0);
+   --primary-foreground: oklch(0.205 0 0);
+   --secondary: oklch(0.269 0 0);
+   --secondary-foreground: oklch(0.985 0 0);
+   --muted: oklch(0.269 0 0);
+   --muted-foreground: oklch(0.708 0 0);
+   --accent: oklch(0.269 0 0);
+   --accent-foreground: oklch(0.985 0 0);
+   --destructive: oklch(0.704 0.191 22.216);
+   --border: oklch(1 0 0 / 10%);
+   --input: oklch(1 0 0 / 15%);
+   --ring: oklch(0.556 0 0);
+   --chart-1: oklch(0.87 0 0);
+   --chart-2: oklch(0.556 0 0);
+   --chart-3: oklch(0.439 0 0);
+   --chart-4: oklch(0.371 0 0);
+   --chart-5: oklch(0.269 0 0);
+   --sidebar: oklch(0.205 0 0);
+   --sidebar-foreground: oklch(0.985 0 0);
+   --sidebar-primary: oklch(0.488 0.243 264.376);
+   --sidebar-primary-foreground: oklch(0.985 0 0);
+   --sidebar-accent: oklch(0.269 0 0);
+   --sidebar-accent-foreground: oklch(0.985 0 0);
+   --sidebar-border: oklch(1 0 0 / 10%);
+   --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+   * {
+      @apply border-border outline-ring/50;
+   }
+   body {
+      @apply bg-background text-foreground;
+   }
+   button:not(:disabled),
+   [role='button']:not(:disabled) {
+      cursor: pointer;
+   }
+   html {
+      @apply font-sans;
    }
 }
 
-body {
-   background: var(--background);
-   color: var(--foreground);
-   font-family: Arial, Helvetica, sans-serif;
+/* 로딩 컴포넌트 전용 애니메이션 (src/components/ui/loading/) */
+@keyframes softGlow {
+   0% {
+      opacity: 0.28;
+      transform: scale(0.88);
+   }
+   50% {
+      opacity: 1;
+      transform: scale(1.02);
+   }
+   100% {
+      opacity: 0.28;
+      transform: scale(0.88);
+   }
+}
+
+@keyframes sweep {
+   0% {
+      left: -40%;
+   }
+   100% {
+      left: 100%;
+   }
+}
+
+@keyframes shimmer {
+   0% {
+      transform: translateX(-100%);
+   }
+   100% {
+      transform: translateX(100%);
+   }
+}
+
+.dot-glow {
+   animation: softGlow 1.6s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+   animation-delay: var(--dot-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+   .dot-glow {
+      animation: none;
+      opacity: 1;
+   }
+}
+
+.progress-sweep {
+   animation: sweep 1.2s ease-in-out infinite;
+}
+
+.skeleton-shimmer {
+   background: linear-gradient(90deg, transparent, rgba(46, 74, 61, 0.15), transparent);
+   animation: shimmer 1.3s linear infinite;
+   animation-delay: var(--row-delay, 0s);
+}
+
+/* 대시보드 캘린더 (react-big-calendar) 커스텀 스타일 */
+.campflow-calendar .rbc-month-view {
+   border: none;
+}
+.campflow-calendar .rbc-month-row + .rbc-month-row {
+   border-top: none;
+}
+.campflow-calendar .rbc-day-bg + .rbc-day-bg {
+   border-left: none;
+}
+.campflow-calendar .rbc-header {
+   border-bottom: none;
+   padding: 8px 0;
+   font-weight: 600;
+   font-size: 13px;
+   color: #6b7280;
+}
+.campflow-calendar .rbc-header + .rbc-header {
+   border-left: none;
+}
+.campflow-calendar .rbc-off-range-bg {
+   background: transparent;
+}
+.campflow-calendar .rbc-off-range {
+   visibility: hidden;
+}
+/* 지난달/다음달 날짜 칸은 hover도 클릭도 반응하지 않도록 완전히 비활성화 */
+.campflow-calendar .group:has(.rbc-off-range-bg) {
+   pointer-events: none;
+}
+.campflow-calendar .rbc-today {
+   background-color: transparent;
+}
+.campflow-calendar .rbc-date-cell {
+   padding: 8px 0 0 10px;
+   text-align: left;
+   font-size: 13px;
+   color: #111827;
+}
+.campflow-calendar .rbc-now .rbc-button-link {
+   font-weight: 700;
+   text-decoration: underline;
+}
+.campflow-calendar .rbc-day-bg {
+   cursor: pointer;
+}
+.campflow-calendar .rbc-day-bg:hover {
+   background-color: #f9fafb;
+}
+/* 날짜 숫자 줄은 배경 위에 별도로 얹힌 레이어라 기본적으로 마우스 이벤트를 가로챈다.
+   카드 전체가 균일하게 hover에 반응하도록 이 레이어는 클릭을 통과시키고,
+   실제로 눌러야 하는 요소(이벤트, 더보기)만 다시 활성화한다. */
+.campflow-calendar .rbc-row-content {
+   pointer-events: none;
+}
+.campflow-calendar .rbc-event,
+.campflow-calendar .rbc-show-more {
+   pointer-events: auto;
+}
+.campflow-calendar .rbc-event {
+   border: none;
+   background: none;
+   padding: 0;
+}
+.campflow-calendar .rbc-row-segment {
+   padding: 0 4px 2px;
+}
+.campflow-calendar .rbc-show-more {
+   font-size: 11px;
+   color: #6b7280;
+   background: transparent;
+}
+
+/* 대시보드 카드 반응형 그리드: 모바일에서는 카드 4개가 캘린더 위로 쌓이고,
+   데스크톱에서는 캘린더 옆에 2x2로 배치된다 */
+.dashboard-grid {
+   grid-template-areas:
+      'today'
+      'attendance'
+      'notice'
+      'todo'
+      'calendar';
+}
+@media (min-width: 640px) {
+   .dashboard-grid {
+      grid-template-areas:
+         'today attendance'
+         'notice todo'
+         'calendar calendar';
+   }
+}
+@media (min-width: 1024px) {
+   .dashboard-grid {
+      grid-template-areas:
+         'calendar today attendance'
+         'calendar notice todo';
+   }
 }

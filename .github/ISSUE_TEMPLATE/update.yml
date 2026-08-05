@@ -1,24 +1,24 @@
-name: "Update"
-description: "수정 내용 이슈 템플릿"
-title: "[UPDATE] "
-labels: ["Update"]
+name: 'Update'
+description: '수정 내용 이슈 템플릿'
+title: '[UPDATE] '
+labels: ['Update']
 assignees: []
 
 body:
-  - type: textarea
-    id: content
-    attributes:
-      label: "🛠️ 수정 할 내용"
-      value: |
-        -
-    validations:
-      required: true
+   - type: textarea
+     id: content
+     attributes:
+        label: '🛠️ 수정 할 내용'
+        value: |
+           -
+     validations:
+        required: true
 
-  - type: textarea
-    id: location
-    attributes:
-      label: "📍 수정 할 지점"
-      value: |
-        - [ ]
-    validations:
-      required: true
+   - type: textarea
+     id: location
+     attributes:
+        label: '📍 수정 할 지점'
+        value: |
+           - [ ]
+     validations:
+        required: true
