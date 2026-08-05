@@ -194,3 +194,102 @@
    animation: shimmer 1.3s linear infinite;
    animation-delay: var(--row-delay, 0s);
 }
+
+/* 대시보드 캘린더 (react-big-calendar) 커스텀 스타일 */
+.campflow-calendar .rbc-month-view {
+   border: none;
+}
+.campflow-calendar .rbc-month-row + .rbc-month-row {
+   border-top: none;
+}
+.campflow-calendar .rbc-day-bg + .rbc-day-bg {
+   border-left: none;
+}
+.campflow-calendar .rbc-header {
+   border-bottom: none;
+   padding: 8px 0;
+   font-weight: 600;
+   font-size: 13px;
+   color: #6b7280;
+}
+.campflow-calendar .rbc-header + .rbc-header {
+   border-left: none;
+}
+.campflow-calendar .rbc-off-range-bg {
+   background: transparent;
+}
+.campflow-calendar .rbc-off-range {
+   visibility: hidden;
+}
+/* 지난달/다음달 날짜 칸은 hover도 클릭도 반응하지 않도록 완전히 비활성화 */
+.campflow-calendar .group:has(.rbc-off-range-bg) {
+   pointer-events: none;
+}
+.campflow-calendar .rbc-today {
+   background-color: transparent;
+}
+.campflow-calendar .rbc-date-cell {
+   padding: 8px 0 0 10px;
+   text-align: left;
+   font-size: 13px;
+   color: #111827;
+}
+.campflow-calendar .rbc-now .rbc-button-link {
+   font-weight: 700;
+   text-decoration: underline;
+}
+.campflow-calendar .rbc-day-bg {
+   cursor: pointer;
+}
+.campflow-calendar .rbc-day-bg:hover {
+   background-color: #f9fafb;
+}
+/* 날짜 숫자 줄은 배경 위에 별도로 얹힌 레이어라 기본적으로 마우스 이벤트를 가로챈다.
+   카드 전체가 균일하게 hover에 반응하도록 이 레이어는 클릭을 통과시키고,
+   실제로 눌러야 하는 요소(이벤트, 더보기)만 다시 활성화한다. */
+.campflow-calendar .rbc-row-content {
+   pointer-events: none;
+}
+.campflow-calendar .rbc-event,
+.campflow-calendar .rbc-show-more {
+   pointer-events: auto;
+}
+.campflow-calendar .rbc-event {
+   border: none;
+   background: none;
+   padding: 0;
+}
+.campflow-calendar .rbc-row-segment {
+   padding: 0 4px 2px;
+}
+.campflow-calendar .rbc-show-more {
+   font-size: 11px;
+   color: #6b7280;
+   background: transparent;
+}
+
+/* 대시보드 카드 반응형 그리드: 모바일에서는 카드 4개가 캘린더 위로 쌓이고,
+   데스크톱에서는 캘린더 옆에 2x2로 배치된다 */
+.dashboard-grid {
+   grid-template-areas:
+      'today'
+      'attendance'
+      'notice'
+      'todo'
+      'calendar';
+}
+@media (min-width: 640px) {
+   .dashboard-grid {
+      grid-template-areas:
+         'today attendance'
+         'notice todo'
+         'calendar calendar';
+   }
+}
+@media (min-width: 1024px) {
+   .dashboard-grid {
+      grid-template-areas:
+         'calendar today attendance'
+         'calendar notice todo';
+   }
+}
