@@ -13,7 +13,7 @@ export default function Header() {
    return (
       <header className="sticky top-0 z-50 flex h-14 items-center justify-between bg-brand-green px-4 text-white">
          <Link href="/" className="flex items-center">
-            <Image src="/logo/MainLogo.png" alt="CampFlow" width={68} height={24} priority />
+            <Image src="/logo/Main-Logo.png" alt="CampFlow" width={100} height={60} priority />
          </Link>
 
          <div className="flex items-center gap-2">
