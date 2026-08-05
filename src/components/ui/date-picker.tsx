@@ -36,9 +36,14 @@ export function DatePicker({
             mask="0000-00-00"
             value={value}
             unmask={false}
-            onAccept={(maskedValue: string) => onChange(maskedValue)}
+            onAccept={(maskedValue: string) => {
+               // 마운트 시 react-imask가 초기값을 한 번 정규화하며 onAccept를 호출하는데,
+               // 값이 실제로 바뀐 게 아니면 onChange를 부르지 않아 불필요한 dirty 처리를 막는다
+               if (maskedValue === value) return;
+               onChange(maskedValue);
+            }}
             placeholder={placeholder}
-            className="w-full rounded-sm border border-[#E5E7EB] px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
+            className="w-full rounded-xs border border-[#E5E7EB] px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
          />
 
          <Popover open={open} onOpenChange={setOpen}>
