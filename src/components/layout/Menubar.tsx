@@ -38,7 +38,7 @@ export default function Menubar() {
    const pathname = usePathname();
 
    return (
-      <aside className="sticky top-12 flex h-[calc(100vh-3rem)] w-22.5 shrink-0 flex-col gap-0.5 border-r border-gray-200 bg-white p-2">
+      <aside className="sticky top-14 flex h-[calc(100vh-3rem)] w-22.5 shrink-0 flex-col gap-0.5 border-r border-gray-200 bg-white p-2">
          {MANAGER_MENU_ITEMS.map(({ label, href, icon: Icon }) => {
             const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
 
