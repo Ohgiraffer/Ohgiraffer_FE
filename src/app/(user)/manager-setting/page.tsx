@@ -1,3 +1,5 @@
+import ManagerSettingClient from '@/features/manager-setting/components/ManagerSettingClient';
+
 export default function ManagerSettingPage() {
-   return <div>ManagerSettingPage</div>;
+   return <ManagerSettingClient />;
 }
