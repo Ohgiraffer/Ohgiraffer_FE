@@ -1,5 +1,9 @@
+'use client';
+
+import { useState } from 'react';
 import { CalendarClock } from 'lucide-react';
 import { EVENT_TYPE_COLORS, type EventType } from '../types';
+import TodayScheduleModal from './TodayScheduleModal';
 
 interface ScheduleItem {
    time: string;
@@ -15,6 +19,8 @@ const TODAY_SCHEDULE: ScheduleItem[] = [
 ];
 
 export default function TodayScheduleCard() {
+   const [showModal, setShowModal] = useState(false);
+
    return (
       <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-4">
          <div className="mb-4 flex items-center justify-between lg:mb-2">
@@ -22,7 +28,13 @@ export default function TodayScheduleCard() {
                <CalendarClock size={16} className="text-gray-400" />
                오늘 일정
             </h2>
-            <span className="text-xs text-gray-400">더보기</span>
+            <button
+               type="button"
+               onClick={() => setShowModal(true)}
+               className="cursor-pointer text-xs text-gray-400 hover:text-gray-600"
+            >
+               더보기
+            </button>
          </div>
 
          {TODAY_SCHEDULE.length === 0 ? (
@@ -44,6 +56,8 @@ export default function TodayScheduleCard() {
                ))}
             </ul>
          )}
+
+         {showModal && <TodayScheduleModal items={TODAY_SCHEDULE} onClose={() => setShowModal(false)} />}
       </div>
    );
 }
