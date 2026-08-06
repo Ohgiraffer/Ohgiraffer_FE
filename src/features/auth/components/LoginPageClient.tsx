@@ -2,17 +2,43 @@
 
 import Image from 'next/image';
 import { Eye, EyeOff, TriangleAlert } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/shadcn/button';
+import { useAuth } from '@/components/auth/AuthContext';
+import { ApiError } from '@/lib/http';
+import { toast } from '@/lib/toast';
+
+// 최초 로그인 여부를 알려주는 백엔드 필드(needResetPw)가 아직 없어서 임시로 쓰는 값.
+// "1234"는 비밀번호 정책(영문+특수기호 포함 8~16자)에 애초에 어긋나 실제 영구 비밀번호로는
+// 나올 수 없으므로, 로그인 시 입력한 값이 이거면 아직 임시 비밀번호 상태라고 판단한다.
+// TODO: 백엔드가 needResetPw 필드를 내려주면 이 값 비교 대신 그 필드로 판단하도록 교체
+const TEMP_PASSWORD = '1234';
 
 export default function LoginPageClient() {
+   const router = useRouter();
+   const { login, isAuthenticated, isInitializing } = useAuth();
    const [email, setEmail] = useState('');
    const [password, setPassword] = useState('');
    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
    const [emailError, setEmailError] = useState('');
    const [passwordError, setPasswordError] = useState('');
+   const [isSubmitting, setIsSubmitting] = useState(false);
+   // 최초 진입 시 "이미 로그인된 상태인지"를 한 번만 확인하기 위한 가드.
+   // 없으면 방금 로그인 폼으로 로그인했을 때도 isAuthenticated가 true로 바뀌면서
+   // 이 effect가 다시 돌아 handleSubmit의 목적지(예: /reset-password)를 '/'로 덮어써버린다.
+   const hasCheckedInitialAuthRef = useRef(false);
 
-   const handleSubmit = (e: React.FormEvent) => {
+   // 이미 로그인된 상태로 로그인 페이지에 들어오면 대시보드로 보냄
+   useEffect(() => {
+      if (isInitializing || hasCheckedInitialAuthRef.current) return;
+      hasCheckedInitialAuthRef.current = true;
+      if (isAuthenticated) {
+         router.replace('/');
+      }
+   }, [isInitializing, isAuthenticated, router]);
+
+   const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
 
       const nextEmailError = email.trim() ? '' : '이메일을 입력해주세요';
@@ -22,7 +48,27 @@ export default function LoginPageClient() {
 
       if (nextEmailError || nextPasswordError) return;
 
-      // TODO: 백엔드 API 연동 시 로그인 요청 처리
+      setIsSubmitting(true);
+      try {
+         await login(email, password);
+         router.push(password === TEMP_PASSWORD ? '/reset-password' : '/');
+      } catch (err) {
+         if (err instanceof ApiError) {
+            if (err.status === 400) {
+               setEmailError(err.errors.email ?? '');
+               setPasswordError(err.errors.password ?? '');
+            } else {
+               // 401(비밀번호 불일치/존재하지 않는 계정)
+               // 403(자퇴·제적 등) 
+               // 모두 서버가 내려주는 message를 그대로 보여준다
+               toast.error(err.message);
+            }
+         } else {
+            toast.error('로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+         }
+      } finally {
+         setIsSubmitting(false);
+      }
    };
 
    return (
@@ -94,9 +140,10 @@ export default function LoginPageClient() {
 
                <Button
                   type="submit"
-                  className="mt-2 h-12 w-full bg-brand-green text-base hover:bg-[#4D655A]"
+                  disabled={isSubmitting}
+                  className="mt-2 h-12 w-full bg-brand-green text-base hover:bg-[#4D655A] disabled:opacity-70"
                >
-                  로그인
+                  {isSubmitting ? '로그인 중...' : '로그인'}
                </Button>
             </form>
          </div>

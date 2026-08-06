@@ -1,14 +1,23 @@
 'use client';
 
 import { Check, Eye, EyeOff, TriangleAlert } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/shadcn/button';
+import { resetPassword } from '@/services/auth.service';
+import { setAccessToken } from '@/lib/auth/token-store';
+import { ApiError } from '@/lib/http';
+import { toast } from '@/lib/toast';
 
 export default function ResetPasswordPageClient() {
+   const router = useRouter();
    const [password, setPassword] = useState('');
    const [passwordConfirm, setPasswordConfirm] = useState('');
    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
    const [isPasswordConfirmVisible, setIsPasswordConfirmVisible] = useState(false);
+   const [isSubmitting, setIsSubmitting] = useState(false);
+   // disabled만으로는 연타(더블클릭)를 막지 못해 useRef 기반 동기 가드를 함께 둔다
+   const isSubmittingRef = useRef(false);
 
    const isLengthValid = password.length >= 8 && password.length <= 16;
    const hasLetter = /[a-zA-Z]/.test(password);
@@ -24,10 +33,34 @@ export default function ResetPasswordPageClient() {
 
    const isAllValid = checklist.every((item) => item.valid);
 
-   const handleSubmit = (e: React.FormEvent) => {
+   const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!isAllValid) return;
-      // TODO: 백엔드 API 연동 시 비밀번호 재설정 요청 처리
+      if (!isAllValid || isSubmittingRef.current) return;
+
+      isSubmittingRef.current = true;
+      setIsSubmitting(true);
+      try {
+         const data = await resetPassword(password);
+         toast.success(data.message);
+         // 응답 메시지가 재로그인을 안내하므로 로컬 세션을 정리하고 로그인 페이지로 보낸다
+         setAccessToken(null);
+         router.push('/login');
+      } catch (err) {
+         if (err instanceof ApiError) {
+            toast.error(err.message);
+            if (err.status === 403) {
+               // 이미 최초 비밀번호를 변경한 계정 — 더 이상 이 페이지에 머물 이유가 없다
+               router.push('/');
+            } else if (err.status === 401) {
+               router.push('/login');
+            }
+         } else {
+            toast.error('비밀번호 변경 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+         }
+      } finally {
+         isSubmittingRef.current = false;
+         setIsSubmitting(false);
+      }
    };
 
    return (
@@ -116,14 +149,14 @@ export default function ResetPasswordPageClient() {
 
             <Button
                type="submit"
-               disabled={!isAllValid}
+               disabled={!isAllValid || isSubmitting}
                className={`h-12 w-full text-base ${
                   isAllValid
-                     ? 'bg-brand-green text-white hover:bg-[#4D655A]'
+                     ? 'bg-brand-green text-white hover:bg-[#4D655A] disabled:opacity-70'
                      : 'bg-gray-200 text-gray-400'
                }`}
             >
-               비밀번호 변경하기
+               {isSubmitting ? '변경 중...' : '비밀번호 변경하기'}
             </Button>
          </form>
       </div>
