@@ -268,6 +268,48 @@
    background: transparent;
 }
 
+/* 공지 작성 에디터 본문 스타일 - Tiptap이 뱉는 순수 HTML을 꾸며줌 */
+.notice-editor-content p {
+   margin: 0 0 0.5rem;
+   line-height: 1.4;
+   color: #374151;
+}
+.notice-editor-content h1 {
+   margin: 0.25rem 0 0.75rem;
+   font-size: 1.25rem;
+   font-weight: 700;
+   color: #111827;
+}
+.notice-editor-content h3 {
+   margin: 0.25rem 0 0.5rem;
+   font-size: 1rem;
+   font-weight: 700;
+   color: #111827;
+}
+.notice-editor-content ul,
+.notice-editor-content ol {
+   margin: 0 0 0.5rem;
+   padding-left: 1.25rem;
+}
+.notice-editor-content ul {
+   list-style: disc;
+}
+.notice-editor-content ol {
+   list-style: decimal;
+}
+.notice-editor-content img {
+   max-width: 100%;
+   margin: 0.5rem 0;
+   border-radius: 4px;
+}
+.notice-editor-content p.is-editor-empty:first-child::before {
+   content: attr(data-placeholder);
+   float: left;
+   height: 0;
+   color: #9ca3af;
+   pointer-events: none;
+}
+
 /* 대시보드 카드 반응형 그리드: 모바일에서는 카드 4개가 캘린더 위로 쌓이고,
    데스크톱에서는 캘린더 옆에 2x2로 배치된다 */
 .dashboard-grid {
