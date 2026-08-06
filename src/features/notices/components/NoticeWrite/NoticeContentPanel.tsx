@@ -18,7 +18,7 @@ export default function NoticeContentPanel({
 }: Props) {
    return (
       // 제목(103px) + 에디터 툴바(47px) + 본문(375px) + 테두리(2px) 고정 합계 - 오른쪽 설정 패널이 이 높이에 맞춰 늘어나다 넘치면 내부 스크롤됨
-      <div className="h-[527px] min-w-0 flex-1 rounded-sm border border-[#E5E7EB] bg-white">
+      <div className="h-131.75 min-w-0 flex-1 rounded-sm border border-[#E5E7EB] bg-white">
          <div className="border-b border-[#E5E7EB] px-4 py-3">
             <label htmlFor="notice-title" className="text-[15px] font-semibold text-gray-900">
                제목<span className="font-bold text-[16px] text-brand-gold">*</span>

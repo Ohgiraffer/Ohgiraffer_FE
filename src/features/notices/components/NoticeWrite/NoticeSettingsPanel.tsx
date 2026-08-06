@@ -46,7 +46,7 @@ export default function NoticeSettingsPanel({
       // 왼쪽 제목/본문 편집 패널과 동일한 고정 높이(NoticeContentPanel의 h-[527px]) - align-items:stretch는
       // 자기보다 작은 항목만 늘려줄 뿐 큰 항목을 줄이지 못하므로, 파일이 많아 내용이 넘칠 때도 이 높이로
       // 고정되고 아래 파일 목록 영역만 내부 스크롤되도록 직접 명시함
-      <div className="flex h-[527px] min-h-0 w-90 shrink-0 flex-col overflow-hidden rounded-sm border border-[#E5E7EB] bg-white p-6">
+      <div className="flex h-131.75 min-h-0 w-90 shrink-0 flex-col overflow-hidden rounded-sm border border-[#E5E7EB] bg-white p-6">
          <div className="shrink-0">
             <label className="text-[15px] font-semibold text-gray-900">
                카테고리<span className="font-bold text-[16px] text-brand-gold">*</span>
