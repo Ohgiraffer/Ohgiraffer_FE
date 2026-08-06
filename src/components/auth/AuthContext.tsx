@@ -42,21 +42,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    const [isInitializing, setIsInitializing] = useState(true);
    const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-   const scheduleRefresh = useCallback((token: string) => {
-      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+   const logout = useCallback(async () => {
       try {
-         const { exp } = jwtDecode<{ exp: number }>(token);
-         const delay = exp * 1000 - Date.now() - 60_000; // 만료 1분 전 갱신
-         refreshTimerRef.current = setTimeout(() => {
-            authService.refresh().catch(() => {
-               setRole(null);
-               setStatus(null);
-            });
-         }, Math.max(delay, 0));
-      } catch {
-         // 토큰 형식이 이상할 때, 타이머 없이 401 재시도
+         await authService.logout();
+      } finally {
+         setAccessToken(null);
+         setRole(null);
+         setStatus(null);
+         setMe(null);
       }
    }, []);
+
+   // /user/me 조회 실패(네트워크 오류 등) 또는 role 불일치, 어느 쪽이든 로컬 인증 상태를
+   // 정리(logout)한 뒤 원래 오류를 그대로 다시 던진다. logout() 자체가 실패해도(예: 이미
+   // 만료된 토큰으로 /auth/logout 호출) 로컬 상태는 이미 정리됐으므로 그 오류는 무시하고
+   // 호출부에는 항상 원래 원인(getMe 실패 또는 RoleMismatchError)이 전달되게 한다.
+   const verifyAndSetMe = useCallback(
+      async (expectedRole: UserRole) => {
+         let meData: Me;
+         try {
+            meData = await getMe();
+         } catch (err) {
+            await logout().catch(() => {});
+            throw err;
+         }
+         if (meData.role !== expectedRole) {
+            await logout().catch(() => {});
+            throw new RoleMismatchError('로그인 정보와 계정 정보가 일치하지 않습니다.');
+         }
+         setMe(meData);
+         return meData;
+      },
+      [logout],
+   );
+
+   const scheduleRefresh = useCallback(
+      (token: string) => {
+         if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+         try {
+            const { exp } = jwtDecode<{ exp: number }>(token);
+            const delay = exp * 1000 - Date.now() - 60_000; // 만료 1분 전 갱신
+            refreshTimerRef.current = setTimeout(async () => {
+               let data;
+               try {
+                  data = await authService.refresh();
+               } catch {
+                  // 리프레시 토큰 만료 등 — 토큰/role/status/me 모두 정리
+                  await logout().catch(() => {});
+                  return;
+               }
+               setRole(data.role);
+               setStatus(data.status);
+               // 실패 시 verifyAndSetMe 내부에서 이미 logout까지 처리하므로 여기선 조용히 종료
+               await verifyAndSetMe(data.role).catch(() => {});
+            }, Math.max(delay, 0));
+         } catch {
+            // 토큰 형식이 이상할 때, 타이머 없이 401 재시도
+         }
+      },
+      [verifyAndSetMe, logout],
+   );
 
    useEffect(() => {
       const unsubscribe = subscribeAccessToken((token) => {
@@ -69,31 +114,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       return unsubscribe;
    }, [scheduleRefresh]);
-
-   const logout = useCallback(async () => {
-      try {
-         await authService.logout();
-      } finally {
-         setAccessToken(null);
-         setRole(null);
-         setStatus(null);
-         setMe(null);
-      }
-   }, []);
-
-   // role이 서로 다르면 강제 로그아웃한다.
-   const verifyAndSetMe = useCallback(
-      async (expectedRole: UserRole) => {
-         const meData = await getMe();
-         if (meData.role !== expectedRole) {
-            await logout();
-            throw new RoleMismatchError('로그인 정보와 계정 정보가 일치하지 않습니다.');
-         }
-         setMe(meData);
-         return meData;
-      },
-      [logout],
-   );
 
    useEffect(() => {
       authService
