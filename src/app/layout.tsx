@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
-import { Check, TriangleAlert, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { Toaster } from 'sonner';
+import { AuthProvider } from '@/components/auth/AuthContext';
 import './globals.css';
 
 const geistSans = Geist({
@@ -27,31 +28,18 @@ export default function RootLayout({
    return (
       <html lang="ko" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
          <body className="min-h-full flex flex-col">
-            {children}
+            <AuthProvider>{children}</AuthProvider>
             <Toaster
                position="top-center"
                closeButton
-               icons={{
-                  success: (
-                     <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-white">
-                        <Check size={12} strokeWidth={3.5} className="ml-0! text-brand-green" />
-                     </span>
-                  ),
-                  error: (
-                     <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-white">
-                        <X size={12} strokeWidth={3.5} className="ml-0! text-brand-maroon" />
-                     </span>
-                  ),
-                  warning: (
-                     <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-white">
-                        <TriangleAlert size={12} strokeWidth={3.5} className="ml-0! text-brand-gold" />
-                     </span>
-                  ),
-                  close: <X size={15} />,
-               }}
+               gap={8}
+               duration={5000}
+               icons={{ close: <X size={13} strokeWidth={2.5} /> }}
                toastOptions={{
                   classNames: {
-                     toast: '!py-2.5 !pr-5 !shadow-none !rounded-sm',
+                     toast: '!items-start !py-2.5 !px-3 !pl-5 !shadow-none !rounded-sm',
+                     title: '!leading-snug !break-words !break-keep !whitespace-pre-line',
+                     icon: '!hidden', // 앞에 붙던 success/error/warning 타입 아이콘을 숨김
                      success: '!bg-brand-sage !text-white !border-brand-green',
                      error: '!bg-[#F5DFDC] !text-brand-maroon !border-brand-maroon',
                      warning: '!bg-brand-cream !text-black !border-brand-gold',
