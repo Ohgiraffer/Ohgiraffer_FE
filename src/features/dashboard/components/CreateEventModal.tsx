@@ -69,9 +69,6 @@ export default function CreateEventModal({ defaultDate, onClose, onCreate }: Cre
                <h2 className="text-base font-bold text-gray-900">
                   {format(defaultDate, 'M월 d일', { locale: ko })} 일정 등록
                </h2>
-               <button type="button" onClick={onClose} aria-label="닫기" className="cursor-pointer">
-                  <X size={18} className="text-gray-400" />
-               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">

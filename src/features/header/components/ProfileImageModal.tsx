@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Trash2, Upload, User, X } from 'lucide-react';
 import { Button } from '@/components/ui/shadcn/button';
 import { deleteProfileImage, uploadProfileImage } from '@/services/auth.service';
@@ -12,10 +12,13 @@ import { toast } from '@/lib/toast';
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
 
+function revokeIfBlobUrl(url: string | null) {
+   if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
+}
+
 interface ProfileImageModalProps {
    currentImageUrl: string | null;
    onClose: () => void;
-   // 업로드 성공 시 새 URL을, 삭제 성공 시 null을 넘겨준다
    onUploaded: (url: string | null) => void;
 }
 
@@ -32,6 +35,26 @@ export default function ProfileImageModal({
    const [isDeleting, setIsDeleting] = useState(false);
    const isSavingRef = useRef(false);
    const isDeletingRef = useRef(false);
+   // 언마운트 시에도 마지막 blob URL을 해제할 수 있도록 최신 값을 ref로도 들고 있는다
+   const previewUrlRef = useRef(previewUrl);
+   useEffect(() => {
+      previewUrlRef.current = previewUrl;
+   }, [previewUrl]);
+
+   useEffect(() => {
+      const handleKeyDown = (event: KeyboardEvent) => {
+         if (event.key === 'Escape') onClose();
+      };
+      document.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+
+      return () => {
+         document.removeEventListener('keydown', handleKeyDown);
+         document.body.style.overflow = '';
+         revokeIfBlobUrl(previewUrlRef.current);
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, []);
 
    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const selected = e.target.files?.[0] ?? null;
@@ -40,34 +63,41 @@ export default function ProfileImageModal({
       if (!selected) return;
 
       if (!ACCEPTED_TYPES.includes(selected.type)) {
-         setFileError('JPG, PNG 형식만 업로드할 수 있어요');
+         resetToCurrentImage();
+         setFileError('JPG, PNG 형식만 업로드할 수 있습니다.');
          return;
       }
       if (selected.size > MAX_FILE_SIZE) {
-         setFileError('파일 용량은 5MB를 초과할 수 없어요');
+         resetToCurrentImage();
+         setFileError('파일 용량은 5MB를 초과할 수 없습니다.');
          return;
       }
 
+      revokeIfBlobUrl(previewUrl);
       setFileError('');
       setFile(selected);
       setPreviewUrl(URL.createObjectURL(selected));
    };
 
-   const handleRemoveSelection = () => {
+   // file/previewUrl만 되돌린다 (fileError는 호출하는 쪽에서 각자 상황에 맞게 처리)
+   const resetToCurrentImage = () => {
+      revokeIfBlobUrl(previewUrl);
       setFile(null);
       setPreviewUrl(currentImageUrl);
+   };
+
+   const handleRemoveSelection = () => {
+      resetToCurrentImage();
       setFileError('');
    };
 
    const handleDelete = async () => {
-      // 아직 저장하지 않은, 새로 고른 파일만 있는 상태라면 서버엔 변화가 없으니
-      // API 호출 없이 선택만 취소한다
+
       if (file) {
          handleRemoveSelection();
          return;
       }
 
-      // 여기 도달했다는 건 previewUrl이 곧 currentImageUrl(이미 저장된 사진)이라는 뜻
       if (!currentImageUrl || isDeletingRef.current) return;
 
       isDeletingRef.current = true;
@@ -117,11 +147,16 @@ export default function ProfileImageModal({
          onClick={onClose}
       >
          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profile-image-modal-title"
             className="w-full max-w-sm rounded-sm bg-white p-6"
             onClick={(e) => e.stopPropagation()}
          >
             <div className="mb-6 flex items-center justify-between">
-               <h2 className="text-base font-bold text-gray-900">프로필 사진 등록</h2>
+               <h2 id="profile-image-modal-title" className="text-base font-bold text-gray-900">
+                  프로필 사진 등록
+               </h2>
                <button type="button" onClick={onClose} aria-label="닫기" className="cursor-pointer">
                   <X size={18} className="text-gray-400" />
                </button>
@@ -130,7 +165,7 @@ export default function ProfileImageModal({
             <div className="flex flex-col items-center">
                <span className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 text-gray-300 bg-white">
                   {previewUrl ? (
-                     // eslint-disable-next-line @next/next/no-img-element -- 업로드 전 미리보기는 blob URL이라 next/image 대상이 아님
+                     // eslint-disable-next-line @next/next/no-img-element
                      <img
                         src={previewUrl}
                         alt="프로필 사진 미리보기"
