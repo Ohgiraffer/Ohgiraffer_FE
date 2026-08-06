@@ -3,8 +3,9 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, MessageSquare, Settings } from 'lucide-react';
+import { Bell, Settings } from 'lucide-react';
 import ProfileDropdown from '@/features/header/components/ProfileDropdown';
+import ChatButton from '@/features/chat/components/ChatButton';
 
 export default function Header() {
    const pathname = usePathname();
@@ -33,13 +34,7 @@ export default function Header() {
             >
                <Bell size={18} />
             </button>
-            <button
-               type="button"
-               aria-label="채팅"
-               className="rounded-xs p-2 transition-colors hover:bg-[#4D655A]"
-            >
-               <MessageSquare size={18} />
-            </button>
+            <ChatButton />
 
             <ProfileDropdown />
          </div>
