@@ -52,5 +52,6 @@ jobs:
                    --name ${{ vars.APP_NAME }} \
                    -p 3030:3030 \
                    --restart unless-stopped \
+                   -e HOLIDAY_API_SERVICE_KEY=${{ secrets.HOLIDAY_API_SERVICE_KEY }} \
                    ${{ secrets.DOCKER_USERNAME }}/${{ vars.APP_NAME }}:latest
                  docker image prune -f

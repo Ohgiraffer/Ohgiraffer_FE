@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { ClipboardCheck, TriangleAlert } from 'lucide-react';
 
 interface AttendanceStat {
@@ -25,7 +26,9 @@ export default function AttendanceCard() {
                <ClipboardCheck size={16} className="text-gray-400" />
                출결 현황
             </h2>
-            <span className="text-xs text-gray-400">상세</span>
+            <Link href="/attendance" className="text-xs text-gray-400 hover:text-gray-600">
+               상세
+            </Link>
          </div>
 
          <div className="mb-1.5 flex items-baseline gap-1.5">
