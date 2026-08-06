@@ -1,15 +1,21 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Bell, Settings } from 'lucide-react';
 import ProfileDropdown from '@/features/header/components/ProfileDropdown';
 import ChatButton from '@/features/chat/components/ChatButton';
+import NotificationPanel from '@/features/alarm/components/AlarmPanel';
+import { useNotifications } from '@/features/alarm/hooks/useNotifications';
 
 export default function Header() {
    const pathname = usePathname();
    const isSettingActive = pathname === '/manager-setting';
+   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+   // 배지 카운트와 알림 패널이 같은 상태를 봐야 하므로 여기서 한 번만 호출해서 아래로 내려줌
+   const notifications = useNotifications();
 
    return (
       <header className="sticky top-0 z-50 flex h-14 items-center justify-between bg-brand-green px-4 text-white">
@@ -30,14 +36,26 @@ export default function Header() {
             <button
                type="button"
                aria-label="알림"
-               className="rounded-xs p-2 transition-colors hover:bg-[#4D655A]"
+               onClick={() => setIsNotificationOpen(true)}
+               className="relative rounded-xs p-2 transition-colors hover:bg-[#4D655A]"
             >
                <Bell size={18} />
+               {notifications.unreadCount > 0 && (
+                  <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#FFEEAF] px-1 text-[10px] font-medium leading-none text-black">
+                     {notifications.unreadCount}
+                  </span>
+               )}
             </button>
             <ChatButton />
 
             <ProfileDropdown />
          </div>
+
+         <NotificationPanel
+            open={isNotificationOpen}
+            onClose={() => setIsNotificationOpen(false)}
+            {...notifications}
+         />
       </header>
    );
 }
