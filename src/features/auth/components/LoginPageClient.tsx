@@ -2,17 +2,35 @@
 
 import Image from 'next/image';
 import { Eye, EyeOff, TriangleAlert } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/shadcn/button';
+import { RoleMismatchError, useAuth } from '@/components/auth/AuthContext';
+import { ApiError } from '@/lib/http';
+import { toast } from '@/lib/toast';
 
 export default function LoginPageClient() {
+   const router = useRouter();
+   const { login, isAuthenticated, isInitializing } = useAuth();
    const [email, setEmail] = useState('');
    const [password, setPassword] = useState('');
    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
    const [emailError, setEmailError] = useState('');
    const [passwordError, setPasswordError] = useState('');
+   const [isSubmitting, setIsSubmitting] = useState(false);
+   // 최초 진입 시 "이미 로그인된 상태인지"를 한 번만 확인하기 위한 가드
+   const hasCheckedInitialAuthRef = useRef(false);
 
-   const handleSubmit = (e: React.FormEvent) => {
+   // 이미 로그인된 상태로 로그인 페이지에 들어오면 대시보드로 보냄
+   useEffect(() => {
+      if (isInitializing || hasCheckedInitialAuthRef.current) return;
+      hasCheckedInitialAuthRef.current = true;
+      if (isAuthenticated) {
+         router.replace('/');
+      }
+   }, [isInitializing, isAuthenticated, router]);
+
+   const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
 
       const nextEmailError = email.trim() ? '' : '이메일을 입력해주세요';
@@ -22,7 +40,36 @@ export default function LoginPageClient() {
 
       if (nextEmailError || nextPasswordError) return;
 
-      // TODO: 백엔드 API 연동 시 로그인 요청 처리
+      setIsSubmitting(true);
+      try {
+         const result = await login(email, password);
+         toast.success(`${result.name}님 환영합니다`);
+
+         if (result.needResetPw) {
+            router.push('/reset-password');
+         } else if (result.bootcampId === null) {
+            router.push('/onboarding-wizard');
+         } else {
+            router.push('/');
+         }
+      } catch (err) {
+         if (err instanceof RoleMismatchError) {
+            toast.error('인증 정보가 일치하지 않습니다. 다시 로그인해주세요.');
+         } else if (err instanceof ApiError) {
+            if (err.status === 400) {
+               setEmailError(err.errors.email ?? '');
+               setPasswordError(err.errors.password ?? '');
+            } else {
+               // 401(비밀번호 불일치/존재하지 않는 계정)
+               // 403(자퇴·제적 등)
+               toast.error(err.message);
+            }
+         } else {
+            toast.error('로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+         }
+      } finally {
+         setIsSubmitting(false);
+      }
    };
 
    return (
@@ -94,9 +141,10 @@ export default function LoginPageClient() {
 
                <Button
                   type="submit"
-                  className="mt-2 h-12 w-full bg-brand-green text-base hover:bg-[#4D655A]"
+                  disabled={isSubmitting}
+                  className="mt-2 h-12 w-full bg-brand-green text-base hover:bg-[#4D655A] disabled:opacity-70"
                >
-                  로그인
+                  {isSubmitting ? '로그인 중...' : '로그인'}
                </Button>
             </form>
          </div>

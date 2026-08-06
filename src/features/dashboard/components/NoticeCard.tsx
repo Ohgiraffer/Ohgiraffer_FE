@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Megaphone, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,7 +24,9 @@ export default function NoticeCard() {
                <Megaphone size={16} className="text-gray-400" />
                공지사항
             </h2>
-            <span className="text-xs text-gray-400">더보기</span>
+            <Link href="/notices" className="text-xs text-gray-400 hover:text-gray-600">
+               더보기
+            </Link>
          </div>
 
          <ul className="flex flex-col gap-1">
