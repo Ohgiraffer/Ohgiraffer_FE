@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
    Calendar,
    dateFnsLocalizer,
@@ -74,16 +74,42 @@ interface DashboardCalendarProps {
    holidays?: Holiday[];
 }
 
-export default function DashboardCalendar({ holidays = [] }: DashboardCalendarProps) {
+export default function DashboardCalendar({ holidays: initialHolidays = [] }: DashboardCalendarProps) {
    const [events, setEvents] = useState<CalendarEvent[]>([]);
    const [createDate, setCreateDate] = useState<Date | null>(null);
    const [viewDate, setViewDate] = useState<Date | null>(null);
+   const [currentDate, setCurrentDate] = useState(() => new Date());
+
+   // 서버에서 미리 받아온 올해 공휴일로 시작하고, 다른 연도로 이동하면 그때 그 연도만큼만 받아온다
+   const [holidaysByYear, setHolidaysByYear] = useState<Record<number, Holiday[]>>(() => ({
+      [new Date().getFullYear()]: initialHolidays,
+   }));
+
+   const currentYear = currentDate.getFullYear();
+
+   useEffect(() => {
+      if (currentYear in holidaysByYear) return;
+
+      let cancelled = false;
+      fetch(`/api/holidays?year=${currentYear}`)
+         .then((res) => res.json())
+         .then((data: Holiday[]) => {
+            if (!cancelled) setHolidaysByYear((prev) => ({ ...prev, [currentYear]: data }));
+         })
+         .catch(() => {
+            if (!cancelled) setHolidaysByYear((prev) => ({ ...prev, [currentYear]: [] }));
+         });
+
+      return () => {
+         cancelled = true;
+      };
+   }, [currentYear, holidaysByYear]);
 
    const holidaysByDate = useMemo(() => {
       const map = new Map<string, string>();
-      holidays.forEach((holiday) => map.set(holiday.date, holiday.name));
+      (holidaysByYear[currentYear] ?? []).forEach((holiday) => map.set(holiday.date, holiday.name));
       return map;
-   }, [holidays]);
+   }, [holidaysByYear, currentYear]);
 
    // 공휴일이거나 일요일이면 날짜 숫자를 빨간색으로, 공휴일이면 옆에 공휴일명도 작게 표시한다
    const DateHeader = useMemo(() => {
@@ -174,6 +200,8 @@ export default function DashboardCalendar({ holidays = [] }: DashboardCalendarPr
          <Calendar
             localizer={localizer}
             culture="ko"
+            date={currentDate}
+            onNavigate={(newDate) => setCurrentDate(newDate)}
             events={events}
             startAccessor="start"
             endAccessor="end"

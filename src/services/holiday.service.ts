@@ -40,7 +40,11 @@ export async function getHolidays(year: number): Promise<Holiday[]> {
    const url = `${HOLIDAY_API_URL}?solYear=${year}&numOfRows=100&_type=json&ServiceKey=${serviceKey}`;
 
    try {
-      const res = await fetch(url, { next: { revalidate: 60 * 60 * 24 } });
+      // 외부 API가 응답 지연/행 상태여도 대시보드 렌더링이 무한정 대기하지 않도록 5초 제한을 둔다
+      const res = await fetch(url, {
+         next: { revalidate: 60 * 60 * 24 },
+         signal: AbortSignal.timeout(5000),
+      });
       if (!res.ok) {
          console.error(`공휴일 API 호출 실패: ${res.status}`);
          return [];
