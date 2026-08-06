@@ -13,6 +13,9 @@ interface AuthContextValue {
    // 로그인 응답엔 이름/이메일이 없어, 로그인 시 입력한 이메일을 화면 표시용으로만 들고 있는다.
    // 새로고침으로 세션이 복구된 경우엔 비어 있다.
    email: string | null;
+   // 프로필 이미지 조회 API가 없어 이번 세션에서 업로드한 값만 들고 있는다. 새로고침하면 비워진다.
+   profileImageUrl: string | null;
+   setProfileImageUrl: (url: string | null) => void;
    isAuthenticated: boolean;
    // 앱 최초 로드 시 /auth/refresh로 로그인 상태 복구를 시도하는 동안 true
    isInitializing: boolean;
@@ -32,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    const [role, setRole] = useState<UserRole | null>(null);
    const [status, setStatus] = useState<string | null>(null);
    const [email, setEmail] = useState<string | null>(null);
+   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
    const [isInitializing, setIsInitializing] = useState(true);
    const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -93,6 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
          setRole(null);
          setStatus(null);
          setEmail(null);
+         setProfileImageUrl(null);
       }
    }, []);
 
@@ -103,6 +108,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role,
             status,
             email,
+            profileImageUrl,
+            setProfileImageUrl,
             isAuthenticated: !!accessToken,
             isInitializing,
             login,

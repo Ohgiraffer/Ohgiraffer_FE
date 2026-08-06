@@ -5,12 +5,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthContext';
 import { ROLE_LABELS } from '@/services/auth.service';
+import ProfileImageModal from './ProfileImageModal';
 
 export default function ProfileDropdown() {
    const router = useRouter();
-   const { email, role, logout } = useAuth();
+   const { email, role, profileImageUrl, setProfileImageUrl, logout } = useAuth();
    const [isMenuOpen, setIsMenuOpen] = useState(false);
    const [isLoggingOut, setIsLoggingOut] = useState(false);
+   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
    const containerRef = useRef<HTMLDivElement>(null);
 
    // 로그인 응답엔 이름이 없어 이메일을 표시용 이름 자리에 대신 사용
@@ -54,8 +56,13 @@ export default function ProfileDropdown() {
                isMenuOpen ? 'bg-[#4D655A]' : ''
             }`}
          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-gray-600">
-               <User size={16} />
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-gray-600">
+               {profileImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- 동적 S3 URL이라 next/image 설정 없이 바로 사용
+                  <img src={profileImageUrl} alt="" className="h-full w-full object-cover" />
+               ) : (
+                  <User size={16} />
+               )}
             </span>
             <span className="text-left text-xs leading-tight">
                <span className="block truncate font-semibold">{displayName}</span>
@@ -65,14 +72,10 @@ export default function ProfileDropdown() {
          </button>
 
          {isMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-40 rounded-xs border border-gray-200 bg-white text-gray-800">
+            <div className="absolute right-0 top-full mt-2 w-max min-w-40 max-w-xs rounded-xs border border-gray-200 bg-white text-gray-800">
                <div className="flex items-center p-3 gap-2">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600">
-                     <User size={18} />
-                  </span>
                   <div className="min-w-0">
-                     <p className="truncate text-sm font-semibold">{displayName}</p>
-                     <p className="text-xs text-gray-500">{displayRole}</p>
+                     {email && <p className="truncate text-sm text-gray-600">{email}</p>}
                   </div>
                </div>
 
@@ -80,6 +83,10 @@ export default function ProfileDropdown() {
 
                <button
                   type="button"
+                  onClick={() => {
+                     setIsMenuOpen(false);
+                     setIsImageModalOpen(true);
+                  }}
                   className="flex w-full items-center gap-2 whitespace-nowrap rounded-xs p-3 text-sm font-medium hover:bg-gray-50"
                >
                   <User size={16} />
@@ -96,6 +103,14 @@ export default function ProfileDropdown() {
                   {isLoggingOut ? '로그아웃 중...' : '로그아웃'}
                </button>
             </div>
+         )}
+
+         {isImageModalOpen && (
+            <ProfileImageModal
+               currentImageUrl={profileImageUrl}
+               onClose={() => setIsImageModalOpen(false)}
+               onUploaded={setProfileImageUrl}
+            />
          )}
       </div>
    );

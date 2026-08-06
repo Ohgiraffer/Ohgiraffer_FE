@@ -59,3 +59,25 @@ export function resetPassword(newPassword: string) {
       body: JSON.stringify({ newPassword }),
    });
 }
+
+export interface UploadProfileImageResponse {
+   profileImgUrl: string;
+}
+
+export function uploadProfileImage(file: File) {
+   const formData = new FormData();
+   formData.append('profileImg', file);
+   // FormData를 body로 넘기면 apiFetch가 Content-Type을 붙이지 않아 브라우저가
+   // boundary 포함한 multipart/form-data 헤더를 알아서 채운다
+   return apiFetch<UploadProfileImageResponse>('/user/profile-image', {
+      method: 'PATCH',
+      body: formData,
+   });
+}
+
+export function deleteProfileImage() {
+   // 204 No Content — apiFetch가 status 204를 undefined로 처리해준다
+   return apiFetch<void>('/user/profile-image', {
+      method: 'DELETE',
+   });
+}
