@@ -62,7 +62,9 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
    const { skipAuth, skipRefreshRetry, headers, ...rest } = options;
 
    const buildHeaders = (): HeadersInit => ({
-      ...(rest.body ? { 'Content-Type': 'application/json' } : {}),
+      // FormData는 Content-Type을 직접 지정하면 boundary가 빠져 깨지므로,
+      // 이땐 브라우저가 알아서 채우도록 아예 헤더를 붙이지 않는다
+      ...(rest.body && !(rest.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
       ...(!skipAuth && getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
       ...headers,
    });
