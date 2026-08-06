@@ -178,6 +178,41 @@
    animation-delay: var(--dot-delay, 0s);
 }
 
+/* 채팅 패널(우측 슬라이드)과 그 안의 새 채팅 시트(하단 슬라이드) 전용 */
+@keyframes slideInFromRight {
+   from {
+      transform: translateX(100%);
+   }
+   to {
+      transform: translateX(0);
+   }
+}
+@keyframes slideUpFromBottom {
+   from {
+      transform: translateY(100%);
+   }
+   to {
+      transform: translateY(0);
+   }
+}
+.animate-slide-in-right {
+   animation: slideInFromRight 0.25s ease-out;
+}
+.animate-slide-up-from-bottom {
+   animation: slideUpFromBottom 0.2s ease-out;
+}
+@keyframes slideOutToRight {
+   from {
+      transform: translateX(0);
+   }
+   to {
+      transform: translateX(100%);
+   }
+}
+.animate-slide-out-right {
+   animation: slideOutToRight 0.25s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
    .dot-glow {
       animation: none;
