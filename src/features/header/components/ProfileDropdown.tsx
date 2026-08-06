@@ -2,16 +2,34 @@
 
 import { ChevronDown, LogOut, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-
-// 로그인 기능이 붙기 전까지 쓰는 더미 사용자 정보
-const dummyUser = {
-   name: '이매니저',
-   role: '매니저',
-};
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/auth/AuthContext';
+import { ROLE_LABELS } from '@/services/auth.service';
 
 export default function ProfileDropdown() {
+   const router = useRouter();
+   const { email, role, logout } = useAuth();
    const [isMenuOpen, setIsMenuOpen] = useState(false);
+   const [isLoggingOut, setIsLoggingOut] = useState(false);
    const containerRef = useRef<HTMLDivElement>(null);
+
+   // 로그인 응답엔 이름이 없어 이메일을 표시용 이름 자리에 대신 사용
+   const displayName = email ?? '사용자';
+   const displayRole = role ? ROLE_LABELS[role] : '';
+
+   const handleLogout = async () => {
+      if (isLoggingOut) return;
+      setIsLoggingOut(true);
+      try {
+         await logout();
+      } catch {
+         // 이미 로그아웃되었거나(401) 토큰 문제여도 클라이언트 상태는 정리 후 로그인 페이지로
+      } finally {
+         setIsLoggingOut(false);
+         setIsMenuOpen(false);
+         router.push('/login');
+      }
+   };
 
    useEffect(() => {
       if (!isMenuOpen) return;
@@ -40,8 +58,8 @@ export default function ProfileDropdown() {
                <User size={16} />
             </span>
             <span className="text-left text-xs leading-tight">
-               <span className="block font-semibold">{dummyUser.name}</span>
-               <span className="block text-[11px] text-white/80">{dummyUser.role}</span>
+               <span className="block truncate font-semibold">{displayName}</span>
+               <span className="block text-[11px] text-white/80">{displayRole}</span>
             </span>
             <ChevronDown size={14} />
          </button>
@@ -52,9 +70,9 @@ export default function ProfileDropdown() {
                   <span className="flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600">
                      <User size={18} />
                   </span>
-                  <div>
-                     <p className="text-sm font-semibold">{dummyUser.name}</p>
-                     <p className="text-xs text-gray-500">{dummyUser.role}</p>
+                  <div className="min-w-0">
+                     <p className="truncate text-sm font-semibold">{displayName}</p>
+                     <p className="text-xs text-gray-500">{displayRole}</p>
                   </div>
                </div>
 
@@ -70,10 +88,12 @@ export default function ProfileDropdown() {
 
                <button
                   type="button"
-                  className="flex w-full items-center gap-2 whitespace-nowrap rounded-xs p-3 text-sm font-medium text-brand-red hover:bg-gray-50"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="flex w-full items-center gap-2 whitespace-nowrap rounded-xs p-3 text-sm font-medium text-brand-red hover:bg-gray-50 disabled:opacity-60"
                >
                   <LogOut size={16} />
-                  로그아웃
+                  {isLoggingOut ? '로그아웃 중...' : '로그아웃'}
                </button>
             </div>
          )}
