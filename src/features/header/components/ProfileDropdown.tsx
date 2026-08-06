@@ -9,15 +9,15 @@ import ProfileImageModal from './ProfileImageModal';
 
 export default function ProfileDropdown() {
    const router = useRouter();
-   const { email, role, profileImageUrl, setProfileImageUrl, logout } = useAuth();
+   const { me, role, updateProfileImageUrl, logout } = useAuth();
    const [isMenuOpen, setIsMenuOpen] = useState(false);
    const [isLoggingOut, setIsLoggingOut] = useState(false);
    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
    const containerRef = useRef<HTMLDivElement>(null);
 
-   // 로그인 응답엔 이름이 없어 이메일을 표시용 이름 자리에 대신 사용
-   const displayName = email ?? '사용자';
+   const displayName = me?.name ?? '사용자';
    const displayRole = role ? ROLE_LABELS[role] : '';
+   const profileImageUrl = me?.profileImgUrl ?? null;
 
    const handleLogout = async () => {
       if (isLoggingOut) return;
@@ -75,7 +75,7 @@ export default function ProfileDropdown() {
             <div className="absolute right-0 top-full mt-2 w-max min-w-40 max-w-xs rounded-xs border border-gray-200 bg-white text-gray-800">
                <div className="flex items-center p-3 gap-2">
                   <div className="min-w-0">
-                     {email && <p className="truncate text-sm text-gray-600">{email}</p>}
+                     {me?.email && <p className="truncate text-sm text-gray-600">{me.email}</p>}
                   </div>
                </div>
 
@@ -109,7 +109,7 @@ export default function ProfileDropdown() {
             <ProfileImageModal
                currentImageUrl={profileImageUrl}
                onClose={() => setIsImageModalOpen(false)}
-               onUploaded={setProfileImageUrl}
+               onUploaded={updateProfileImageUrl}
             />
          )}
       </div>

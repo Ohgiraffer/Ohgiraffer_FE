@@ -32,17 +32,27 @@ async function rawRequest(path: string, options: RequestInit = {}) {
    });
 }
 
-// 동시에 여러 요청이 401을 받아도 /auth/refresh는 한 번만 나가도록 진행 중인 요청을 공유
-let refreshPromise: Promise<string> | null = null;
+export interface RefreshApiData {
+   userId: number;
+   accessToken: string;
+   role: string;
+   status: string;
+}
 
-export async function refreshAccessToken(): Promise<string> {
+// 동시에 여러 요청이 401을 받아도 /auth/refresh는 한 번만 나가도록 진행 중인 요청을 공유
+let refreshPromise: Promise<RefreshApiData> | null = null;
+
+// role/status까지 포함한 응답 전체를 돌려줌
+// (apiFetch의 401 재시도는 accessToken만 쓰지만, 
+// AuthContext가 세션 복구 시 role/status를 다시 세팅하려면 전체 데이터가 필요)
+export async function refreshAccessToken(): Promise<RefreshApiData> {
    if (!refreshPromise) {
       refreshPromise = rawRequest('/auth/refresh', { method: 'POST' })
          .then(async (res) => {
             if (!res.ok) throw new ApiError(await res.json().catch(() => null), res.status);
-            const data = (await res.json()) as { accessToken: string };
+            const data = (await res.json()) as RefreshApiData;
             setAccessToken(data.accessToken);
-            return data.accessToken;
+            return data;
          })
          .finally(() => {
             refreshPromise = null;
@@ -62,8 +72,6 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
    const { skipAuth, skipRefreshRetry, headers, ...rest } = options;
 
    const buildHeaders = (): HeadersInit => ({
-      // FormData는 Content-Type을 직접 지정하면 boundary가 빠져 깨지므로,
-      // 이땐 브라우저가 알아서 채우도록 아예 헤더를 붙이지 않는다
       ...(rest.body && !(rest.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
       ...(!skipAuth && getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
       ...headers,

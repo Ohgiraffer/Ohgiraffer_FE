@@ -5,17 +5,18 @@ import { jwtDecode } from 'jwt-decode';
 import { setAccessToken, subscribeAccessToken } from '@/lib/auth/token-store';
 import * as authService from '@/services/auth.service';
 import type { UserRole } from '@/services/auth.service';
+import { getMe, type Me } from '@/services/user.service';
+
+// 토큰-계정 정보 불일치로 보고 강제 로그아웃 처리
+export class RoleMismatchError extends Error {}
 
 interface AuthContextValue {
    accessToken: string | null;
    role: UserRole | null;
    status: string | null;
-   // 로그인 응답엔 이름/이메일이 없어, 로그인 시 입력한 이메일을 화면 표시용으로만 들고 있는다.
-   // 새로고침으로 세션이 복구된 경우엔 비어 있다.
-   email: string | null;
-   // 프로필 이미지 조회 API가 없어 이번 세션에서 업로드한 값만 들고 있는다. 새로고침하면 비워진다.
-   profileImageUrl: string | null;
-   setProfileImageUrl: (url: string | null) => void;
+   // /user/me 조회 결과
+   me: Me | null;
+   updateProfileImageUrl: (url: string | null) => void;
    isAuthenticated: boolean;
    // 앱 최초 로드 시 /auth/refresh로 로그인 상태 복구를 시도하는 동안 true
    isInitializing: boolean;
@@ -26,6 +27,9 @@ interface AuthContextValue {
 interface LoginResult {
    role: UserRole;
    status: string;
+   needResetPw: boolean;
+   bootcampId: number | null;
+   name: string;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -34,8 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    const [accessToken, setAccessTokenState] = useState<string | null>(null);
    const [role, setRole] = useState<UserRole | null>(null);
    const [status, setStatus] = useState<string | null>(null);
-   const [email, setEmail] = useState<string | null>(null);
-   const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+   const [me, setMe] = useState<Me | null>(null);
    const [isInitializing, setIsInitializing] = useState(true);
    const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -67,28 +70,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return unsubscribe;
    }, [scheduleRefresh]);
 
-   useEffect(() => {
-      authService
-         .refresh()
-         .catch(() => {
-            // 리프레시 토큰이 없거나 만료됨 → 비로그인 상태
-         })
-         .finally(() => setIsInitializing(false));
-
-      return () => {
-         if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-      };
-   }, []);
-
-   const login = useCallback(async (emailInput: string, password: string) => {
-      const data = await authService.login({ email: emailInput, password });
-      setRole(data.role);
-      setStatus(data.status);
-      setEmail(emailInput);
-      setAccessToken(data.accessToken);
-      return { role: data.role, status: data.status };
-   }, []);
-
    const logout = useCallback(async () => {
       try {
          await authService.logout();
@@ -96,9 +77,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
          setAccessToken(null);
          setRole(null);
          setStatus(null);
-         setEmail(null);
-         setProfileImageUrl(null);
+         setMe(null);
       }
+   }, []);
+
+   // role이 서로 다르면 강제 로그아웃한다.
+   const verifyAndSetMe = useCallback(
+      async (expectedRole: UserRole) => {
+         const meData = await getMe();
+         if (meData.role !== expectedRole) {
+            await logout();
+            throw new RoleMismatchError('로그인 정보와 계정 정보가 일치하지 않습니다.');
+         }
+         setMe(meData);
+         return meData;
+      },
+      [logout],
+   );
+
+   useEffect(() => {
+      authService
+         .refresh()
+         .then(async (data) => {
+            setRole(data.role);
+            setStatus(data.status);
+            await verifyAndSetMe(data.role);
+         })
+         .catch(() => {
+            // 리프레시 토큰이 없거나 만료됨(또는 role 불일치로 강제 로그아웃됨) → 비로그인 상태
+         })
+         .finally(() => setIsInitializing(false));
+
+      return () => {
+         if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      };
+      // verifyAndSetMe는 logout에만 의존, 항상 안정적이라, 최초 1회만 실행돼도 안전
+   }, [verifyAndSetMe]);
+
+   const login = useCallback(
+      async (emailInput: string, password: string): Promise<LoginResult> => {
+         const data = await authService.login({ email: emailInput, password });
+         setRole(data.role);
+         setStatus(data.status);
+         setAccessToken(data.accessToken);
+
+         const meData = await verifyAndSetMe(data.role);
+
+         return {
+            role: data.role,
+            status: data.status,
+            needResetPw: data.need_reset_pw,
+            bootcampId: data.bootcampId,
+            name: meData.name,
+         };
+      },
+      [verifyAndSetMe],
+   );
+
+   const updateProfileImageUrl = useCallback((url: string | null) => {
+      setMe((prev) => (prev ? { ...prev, profileImgUrl: url } : prev));
    }, []);
 
    return (
@@ -107,9 +144,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             accessToken,
             role,
             status,
-            email,
-            profileImageUrl,
-            setProfileImageUrl,
+            me,
+            updateProfileImageUrl,
             isAuthenticated: !!accessToken,
             isInitializing,
             login,

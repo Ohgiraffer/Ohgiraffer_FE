@@ -17,10 +17,15 @@ export interface LoginResponse {
    accessToken: string;
    role: UserRole;
    status: string;
+   bootcampId: number | null;
+   need_reset_pw: boolean;
 }
 
 export interface RefreshResponse {
+   userId: number;
    accessToken: string;
+   role: UserRole;
+   status: string;
 }
 
 export function login(body: LoginRequest) {
@@ -33,14 +38,12 @@ export function login(body: LoginRequest) {
 }
 
 export async function refresh(): Promise<RefreshResponse> {
-   const accessToken = await refreshAccessToken();
-   return { accessToken };
+   const data = await refreshAccessToken();
+   return { ...data, role: data.role as UserRole };
 }
 
 export function logout() {
-   // 백엔드 스펙상 Refresh-Token 헤더도 함께 요구하지만, 리프레시 토큰은 httpOnly 쿠키라
-   // 프론트에서 값을 읽어 헤더에 담을 수 없다. credentials:'include'로 쿠키 자체는 함께
-   // 전송되니, 백엔드가 쿠키 형태도 허용하는지 확인이 필요하다 (미확인 상태로 우선 진행).
+   // 리프레시 토큰은 httpOnly 쿠키라 credentials:'include'로 자동 전송되고, 별도 헤더는 필요 없다
    return apiFetch<void>('/auth/logout', {
       method: 'POST',
       skipRefreshRetry: true,
@@ -68,7 +71,7 @@ export function uploadProfileImage(file: File) {
    const formData = new FormData();
    formData.append('profileImg', file);
    // FormData를 body로 넘기면 apiFetch가 Content-Type을 붙이지 않아 브라우저가
-   // boundary 포함한 multipart/form-data 헤더를 알아서 채운다
+   // boundary 포함한 multipart/form-data 헤더를 알아서 채움
    return apiFetch<UploadProfileImageResponse>('/user/profile-image', {
       method: 'PATCH',
       body: formData,
@@ -76,7 +79,7 @@ export function uploadProfileImage(file: File) {
 }
 
 export function deleteProfileImage() {
-   // 204 No Content — apiFetch가 status 204를 undefined로 처리해준다
+   // 204 No Content — apiFetch가 status 204를 undefined로 처리해줌
    return apiFetch<void>('/user/profile-image', {
       method: 'DELETE',
    });
