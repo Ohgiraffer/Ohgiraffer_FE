@@ -54,9 +54,9 @@ export default function ConfirmModal({
             aria-modal="true"
             aria-labelledby="confirm-modal-title"
             onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-sm rounded-sm bg-white p-6 text-center shadow-lg"
+            className="w-full max-w-sm rounded-sm bg-white px-8 py-11 text-center shadow-lg"
          >
-            <h2 id="confirm-modal-title" className="text-lg font-bold text-gray-900">
+            <h2 id="confirm-modal-title" className="text-[18px] font-bold text-gray-900">
                {title}
             </h2>
             {description && <p className="mt-2 text-sm text-gray-500">{description}</p>}
@@ -72,7 +72,7 @@ export default function ConfirmModal({
                <button
                   type="button"
                   onClick={onConfirm}
-                  className={`flex-1 cursor-pointer rounded-xs py-2.5 text-sm font-semibold text-white ${
+                  className={`flex-1 cursor-pointer rounded-sm py-2.5 text-sm font-semibold text-white ${
                      variant === 'danger'
                         ? 'bg-brand-maroon hover:bg-[#832E2E]'
                         : 'bg-brand-green hover:bg-[#4D655A]'
