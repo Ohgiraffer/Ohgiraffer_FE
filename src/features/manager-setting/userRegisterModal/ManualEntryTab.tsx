@@ -22,9 +22,16 @@ type Props = {
    onAddRow: () => void;
    onRemoveRow: (id: string) => void;
    onUpdateRow: (id: string, field: keyof Omit<UserDraftRow, 'id'>, value: string) => void;
+   disabled?: boolean;
 };
 
-export default function ManualEntryTab({ rows, onAddRow, onRemoveRow, onUpdateRow }: Props) {
+export default function ManualEntryTab({
+   rows,
+   onAddRow,
+   onRemoveRow,
+   onUpdateRow,
+   disabled = false,
+}: Props) {
    return (
       <div>
          {rows.length > 0 && (
@@ -56,14 +63,16 @@ export default function ManualEntryTab({ rows, onAddRow, onRemoveRow, onUpdateRo
                         value={row.name}
                         onChange={(event) => onUpdateRow(row.id, 'name', event.target.value)}
                         placeholder="이름"
-                        className="w-full min-w-0 rounded-xs border border-[#E5E7EB] px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
+                        disabled={disabled}
+                        className="w-full min-w-0 rounded-xs border border-[#E5E7EB] px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
                      />
                      <input
                         type="email"
                         value={row.email}
                         onChange={(event) => onUpdateRow(row.id, 'email', event.target.value)}
                         placeholder="이메일"
-                        className="w-full min-w-0 rounded-xs border border-[#E5E7EB] px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
+                        disabled={disabled}
+                        className="w-full min-w-0 rounded-xs border border-[#E5E7EB] px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
                      />
                      <IMaskInput
                         mask="000-0000-0000"
@@ -76,11 +85,13 @@ export default function ManualEntryTab({ rows, onAddRow, onRemoveRow, onUpdateRo
                            onUpdateRow(row.id, 'phone', value);
                         }}
                         placeholder="010-0000-0000"
-                        className="w-full min-w-0 rounded-xs border border-[#E5E7EB] px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
+                        disabled={disabled}
+                        className="w-full min-w-0 rounded-xs border border-[#E5E7EB] px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
                      />
                      <Select
                         value={row.role}
                         onValueChange={(value) => value && onUpdateRow(row.id, 'role', value)}
+                        disabled={disabled}
                      >
                         <SelectTrigger className="data-[size=default]:h-10 w-full min-w-0 rounded-xs bg-white">
                            <SelectValue placeholder="역할" />
@@ -97,7 +108,8 @@ export default function ManualEntryTab({ rows, onAddRow, onRemoveRow, onUpdateRo
                         type="button"
                         onClick={() => onRemoveRow(row.id)}
                         aria-label="행 삭제"
-                        className="cursor-pointer rounded-xs p-1.5 text-gray-400 hover:bg-gray-50 hover:text-brand-maroon"
+                        disabled={disabled}
+                        className="cursor-pointer rounded-xs p-1.5 text-gray-400 hover:bg-gray-50 hover:text-brand-maroon disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400"
                      >
                         <X size={16} />
                      </button>
@@ -109,7 +121,8 @@ export default function ManualEntryTab({ rows, onAddRow, onRemoveRow, onUpdateRo
          <button
             type="button"
             onClick={onAddRow}
-            className="mt-2 flex w-full cursor-pointer items-center justify-center gap-1 rounded-xs border border-dashed border-gray-300 py-3 text-sm font-medium text-gray-500 hover:bg-gray-50"
+            disabled={disabled}
+            className="mt-2 flex w-full cursor-pointer items-center justify-center gap-1 rounded-xs border border-dashed border-gray-300 py-3 text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
          >
             <Plus size={16} />행 추가
          </button>

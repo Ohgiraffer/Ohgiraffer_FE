@@ -179,6 +179,7 @@ export default function UserRegisterModal({ open, onClose, onRegister }: Props) 
                      onAddRow={addRow}
                      onRemoveRow={removeRow}
                      onUpdateRow={updateRow}
+                     disabled={isRegistering}
                   />
                ) : (
                   <FileUploadTab selectedFile={selectedFile} onFileSelect={setSelectedFile} />
