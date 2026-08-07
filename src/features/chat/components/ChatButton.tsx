@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
 import ChatPanel from './ChatPanel';
-import { GROUP_ROOMS } from '../dummyData';
+import { useChatChannels } from '../hooks/useChatChannels';
 
 export default function ChatButton() {
    const [isOpen, setIsOpen] = useState(false);
-   // 패널이 실제로 사라지기 전, 닫힘 애니메이션이 재생되는 동안만 true
    const [isClosing, setIsClosing] = useState(false);
-   const totalUnread = GROUP_ROOMS.reduce((sum, room) => sum + room.unreadCount, 0);
+   const { channels } = useChatChannels();
+   const totalUnread = channels.reduce((sum, channel) => sum + channel.unreadCount, 0);
 
    const handleToggle = () => {
       if (isOpen) {
@@ -19,7 +19,6 @@ export default function ChatButton() {
       }
    };
 
-   // 닫힘 애니메이션 재생을 시작만 시킨다 (실제 언마운트는 애니메이션이 끝난 뒤 handleClosed에서)
    const requestClose = () => setIsClosing(true);
 
    const handleClosed = () => {

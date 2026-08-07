@@ -143,7 +143,7 @@ export default function ProfileImageModal({
 
    return (
       <div
-         className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+         className="fixed inset-0 z-70 flex items-center justify-center bg-black/40 px-4"
          onClick={onClose}
       >
          <div

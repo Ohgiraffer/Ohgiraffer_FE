@@ -196,10 +196,10 @@
    }
 }
 .animate-slide-in-right {
-   animation: slideInFromRight 0.25s ease-out;
+   animation: slideInFromRight 0.25s ease-out forwards;
 }
 .animate-slide-up-from-bottom {
-   animation: slideUpFromBottom 0.2s ease-out;
+   animation: slideUpFromBottom 0.2s ease-out forwards;
 }
 @keyframes slideOutToRight {
    from {
@@ -210,7 +210,9 @@
    }
 }
 .animate-slide-out-right {
-   animation: slideOutToRight 0.25s ease-out;
+   /* fill-mode:forwards가 없으면 애니메이션이 끝나는 순간 transform이 초기값으로 리셋되면서
+      패널이 원래 자리로 스냅백했다가 사라지는 것처럼 번쩍인다 */
+   animation: slideOutToRight 0.25s ease-out forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
