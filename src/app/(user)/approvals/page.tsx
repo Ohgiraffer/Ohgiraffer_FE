@@ -1,3 +1,5 @@
+import InstructorApprovalsClient from '@/features/approvals/components/InstructorApprovalsClient';
+
 export default function ApprovalsPage() {
-   return <div>ApprovalsPage</div>;
+   return <InstructorApprovalsClient />;
 }
