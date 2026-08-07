@@ -21,12 +21,18 @@ export interface GoogleSheetColumnField {
    label: string;
 }
 
+export interface GoogleSheetColumnMapping {
+   // 같은 이름의 컬럼이 여러 개여도 구분할 수 있도록 열 위치(0-based)를 함께 넘긴다
+   columnIndex: number;
+   columnName: string;
+}
+
 export interface GoogleSheetSaveResult {
    spreadsheetId: string;
    spreadsheetUrl: string;
    spreadsheetTitle: string;
    sheetName: string;
-   columnMapping: Record<string, string>;
+   columnMapping: Record<string, GoogleSheetColumnMapping>;
 }
 
 interface GoogleSheetSyncProps {
@@ -115,10 +121,10 @@ export default function GoogleSheetSync({ columns, onSave }: GoogleSheetSyncProp
       if (!connection) return;
       setIsSaving(true);
       try {
-         const resolvedMapping = Object.fromEntries(
+         const resolvedMapping: Record<string, GoogleSheetColumnMapping> = Object.fromEntries(
             Object.entries(columnMapping).map(([key, index]) => [
                key,
-               connection.columnOptions[index],
+               { columnIndex: index, columnName: connection.columnOptions[index] },
             ]),
          );
          await onSave({
@@ -273,7 +279,7 @@ export default function GoogleSheetSync({ columns, onSave }: GoogleSheetSyncProp
                               }}
                            </SelectValue>
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent alignItemWithTrigger={false}>
                            {connection?.columnOptions.map((option, index) => (
                               <SelectItem key={index} value={String(index)}>
                                  {duplicateColumnNames.has(option)
