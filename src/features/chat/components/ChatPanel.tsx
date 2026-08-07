@@ -25,14 +25,14 @@ export default function ChatPanel({ onClose, isClosing, onClosed }: ChatPanelPro
    const [activeRoom, setActiveRoom] = useState<ChatChannel | null>(null);
    const [isNewChatOpen, setIsNewChatOpen] = useState(false);
    const [threadRoot, setThreadRoot] = useState<ChatMessage | null>(null);
-   // 답글 수 필드가 백엔드 응답에 없어, 이번 세션에서 파악된(직접 답장했거나 스레드를 열어본) 만큼만 기록한다
+   // 답글 수 필드가 백엔드 응답에 없어, 이번 세션에서 파악된(직접 답장했거나 스레드를 열어본) 만큼만 기록
    const [replyCounts, setReplyCounts] = useState<Record<string, number>>({});
    const { channels, isLoading, reload } = useChatChannels();
 
    const totalUnread = channels.reduce((sum, channel) => sum + channel.unreadCount, 0);
 
    // 패널이 떠 있는 동안(닫힘 애니메이션 재생 중까지) 배경 페이지 스크롤을 잠가서,
-   // 채팅 목록 스크롤바와 페이지 스크롤바가 나란히 붙어 보이는 이중 스크롤을 없앤다
+   // 채팅 목록 스크롤바와 페이지 스크롤바가 나란히 붙어 보이는 이중 스크롤을 없앰
    useScrollLock();
 
    const handleSelectRoom = (room: ChatChannel) => {
@@ -65,7 +65,7 @@ export default function ChatPanel({ onClose, isClosing, onClosed }: ChatPanelPro
          setIsNewChatOpen(false);
          reload();
       } catch (err) {
-         // 이미 같은 상대와의 1:1 채팅방이 있으면 새로 만들지 않고 그 방을 그대로 연다
+         // 이미 같은 상대와의 1:1 채팅방이 있으면 새로 만들지 않고 그 방을 그대로 상세 조회
          if (err instanceof ApiError && err.status === 409 && typeof err.data?.channelId === 'string') {
             handleSelectRoom({
                channelId: err.data.channelId,
@@ -110,7 +110,6 @@ export default function ChatPanel({ onClose, isClosing, onClosed }: ChatPanelPro
                   onReplySent={handleReplySent}
                   onOpenThread={setThreadRoot}
                   onBack={handleBack}
-                  onClose={onClose}
                />
             ) : (
                <>

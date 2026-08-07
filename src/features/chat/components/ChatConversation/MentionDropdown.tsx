@@ -26,7 +26,7 @@ export default function MentionDropdown({ users, activeIndex, onSelect }: Mentio
                >
                   <ChatAvatar name={user.name} />
                   <span className="text-sm font-medium text-gray-900">{user.name}</span>
-                  <span className="text-xs text-gray-400">{user.roleLabel}</span>
+                  {user.roleLabel && <span className="text-xs text-gray-400">{user.roleLabel}</span>}
                </button>
             </li>
          ))}

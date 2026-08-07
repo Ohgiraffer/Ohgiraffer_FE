@@ -9,6 +9,12 @@ interface SearchInputProps {
    className?: string;
    initialValue?: string;
    heightClassName?: string;
+   // 아래 세 개는 부모가 검색어를 직접 들고 있어야 하거나(예: 검색창 밖 X 버튼으로 초기화),
+   // 타이핑할 때마다 바로 필터링해야 하는 경우(예: 채팅 메시지 검색)에만 넘긴다
+   value?: string;
+   onChange?: (value: string) => void;
+   hideButton?: boolean;
+   autoFocus?: boolean;
 }
 
 // 검색창 공용 컴포넌트
@@ -18,19 +24,31 @@ export default function SearchInput({
    className = 'w-64',
    initialValue = '',
    heightClassName = 'h-10',
+   value,
+   onChange,
+   hideButton = false,
+   autoFocus = false,
 }: SearchInputProps) {
    const [inputValue, setInputValue] = useState(initialValue);
+   const isControlled = value !== undefined;
+   const displayValue = isControlled ? value : inputValue;
+
+   const handleChange = (next: string) => {
+      if (!isControlled) setInputValue(next);
+      onChange?.(next);
+   };
 
    const handleSubmit = () => {
-      onSearch(inputValue.trim());
+      onSearch(displayValue.trim());
    };
 
    return (
       <div className={`relative ${className}`}>
          <input
             type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            autoFocus={autoFocus}
+            value={displayValue}
+            onChange={(e) => handleChange(e.target.value)}
             onKeyDown={(e) => {
                if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
                   e.preventDefault();
@@ -38,16 +56,18 @@ export default function SearchInput({
                }
             }}
             placeholder={placeholder}
-            className={`${heightClassName} w-full rounded-xs border border-gray-200 bg-white pl-5 pr-11 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-gray-400`}
+            className={`${heightClassName} w-full rounded-xs border border-gray-200 bg-white pl-5 ${hideButton ? 'pr-3' : 'pr-11'} text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-gray-400`}
          />
-         <button
-            type="button"
-            onClick={handleSubmit}
-            aria-label="검색"
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-xs p-1.5 text-gray-400 transition-colors hover:bg-brand-sage hover:text-white active:bg-brand-sage active:text-white"
-         >
-            <Search size={18} />
-         </button>
+         {!hideButton && (
+            <button
+               type="button"
+               onClick={handleSubmit}
+               aria-label="검색"
+               className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-xs p-1.5 text-gray-400 transition-colors hover:bg-brand-sage hover:text-white active:bg-brand-sage active:text-white"
+            >
+               <Search size={18} />
+            </button>
+         )}
       </div>
    );
 }

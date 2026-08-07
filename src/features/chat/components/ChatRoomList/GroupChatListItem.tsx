@@ -1,5 +1,6 @@
 import { Users } from 'lucide-react';
 import ChatListItem from './ChatListItem';
+import { formatChatTimestamp } from '../../formatChatTimestamp';
 import type { ChatChannel } from '@/services/chat.service';
 
 interface GroupChatListItemProps {
@@ -16,7 +17,7 @@ export default function GroupChatListItem({ room, onClick }: GroupChatListItemPr
             </span>
          }
          title={room.name}
-         timestamp={room.lastMessageSentAt ?? undefined}
+         timestamp={room.lastMessageSentAt ? formatChatTimestamp(room.lastMessageSentAt) : undefined}
          preview={room.lastMessageContent ?? undefined}
          unreadCount={room.unreadCount}
          onClick={onClick}
