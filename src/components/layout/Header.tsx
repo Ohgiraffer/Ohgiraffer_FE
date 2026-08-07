@@ -9,11 +9,15 @@ import ProfileDropdown from '@/features/header/components/ProfileDropdown';
 import ChatButton from '@/features/chat/components/ChatButton';
 import NotificationPanel from '@/features/alarm/components/AlarmPanel';
 import { useNotifications } from '@/features/alarm/hooks/useNotifications';
+import { useAuth } from '@/components/auth/AuthContext';
 
 export default function Header() {
    const pathname = usePathname();
    const isSettingActive = pathname === '/manager-setting';
    const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+   // 관리자 설정은 매니저 role만 접근 가능한 화면이라 헤더에서도 매니저에게만 노출
+   const { role } = useAuth();
+   const isManager = role === 'MANAGER';
    // 배지 카운트와 알림 패널이 같은 상태를 봐야 하므로 여기서 한 번만 호출해서 아래로 내려줌
    const notifications = useNotifications();
 
@@ -24,15 +28,17 @@ export default function Header() {
          </Link>
 
          <div className="flex items-center gap-2">
-            <Link
-               href="/manager-setting"
-               aria-label="설정"
-               className={`rounded-xs p-2 transition-colors hover:bg-[#4D655A] ${
-                  isSettingActive ? 'bg-[#4D655A]' : ''
-               }`}
-            >
-               <Settings size={18} />
-            </Link>
+            {isManager && (
+               <Link
+                  href="/manager-setting"
+                  aria-label="설정"
+                  className={`rounded-xs p-2 transition-colors hover:bg-[#4D655A] ${
+                     isSettingActive ? 'bg-[#4D655A]' : ''
+                  }`}
+               >
+                  <Settings size={18} />
+               </Link>
+            )}
             <button
                type="button"
                aria-label="알림"
