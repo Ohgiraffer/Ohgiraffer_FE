@@ -1,5 +1,6 @@
 import ChatAvatar from '../ChatAvatar';
 import ChatListItem from './ChatListItem';
+import { formatChatTimestamp } from '../../formatChatTimestamp';
 import type { ChatChannel } from '@/services/chat.service';
 
 interface DirectChatListItemProps {
@@ -13,7 +14,7 @@ export default function DirectChatListItem({ room, onClick }: DirectChatListItem
       <ChatListItem
          avatar={<ChatAvatar name={room.name} />}
          title={room.name}
-         timestamp={room.lastMessageSentAt ?? undefined}
+         timestamp={room.lastMessageSentAt ? formatChatTimestamp(room.lastMessageSentAt) : undefined}
          preview={room.lastMessageContent ?? undefined}
          unreadCount={room.unreadCount}
          onClick={onClick}

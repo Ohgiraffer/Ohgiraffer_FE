@@ -9,13 +9,19 @@ function colorForName(name: string | null | undefined) {
 interface ChatAvatarProps {
    name: string | null | undefined;
    isOnline?: boolean;
+   size?: 'sm' | 'md';
 }
 
-export default function ChatAvatar({ name, isOnline }: ChatAvatarProps) {
+const SIZE_CLASSES: Record<'sm' | 'md', string> = {
+   sm: 'h-7 w-7 text-xs',
+   md: 'h-11 w-11 text-sm',
+};
+
+export default function ChatAvatar({ name, isOnline, size = 'md' }: ChatAvatarProps) {
    return (
       <span className="relative inline-flex shrink-0">
          <span
-            className={`flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold text-white ${colorForName(name)}`}
+            className={`flex items-center justify-center rounded-full font-semibold text-white ${SIZE_CLASSES[size]} ${colorForName(name)}`}
          >
             {name ? name.slice(0, 1) : '?'}
          </span>

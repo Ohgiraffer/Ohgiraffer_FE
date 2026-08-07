@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, Paperclip, Search, Send, X } from 'lucide-react';
+import { isSameDay } from 'date-fns';
+import { ChevronLeft, Paperclip, Search, Send, Users, X } from 'lucide-react';
 import ChatMessageBubble from './ChatMessageBubble';
 import MessageSearchBar from './MessageSearchBar';
 import MentionDropdown from './MentionDropdown';
 import ReplyPreview from './ReplyPreview';
+import GroupMembersModal from './GroupMembersModal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import {
    createReply,
@@ -16,10 +18,10 @@ import {
    getUserStatus,
    sendMessage,
    type ChatChannel,
+   type ChatChannelMember,
 } from '@/services/chat.service';
 import { mapMessageDto } from '../../chatMappers';
-import { DUMMY_MENTION_USERS } from '../../dummyMentionUsers';
-import { getMyUserId } from '@/lib/auth/current-user';
+import { formatChatDateDivider } from '../../formatChatTimestamp';
 import { useAuth } from '@/components/auth/AuthContext';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
@@ -31,7 +33,6 @@ interface ChatConversationProps {
    onReplySent: (rootId: string) => void;
    onOpenThread: (message: ChatMessage) => void;
    onBack: () => void;
-   onClose: () => void;
 }
 
 export default function ChatConversation({
@@ -40,18 +41,18 @@ export default function ChatConversation({
    onReplySent,
    onOpenThread,
    onBack,
-   onClose,
 }: ChatConversationProps) {
    const { me } = useAuth();
-   const myUserId = getMyUserId();
+   const myUserId = me?.userId ?? null;
    const myName = me?.name ?? '나';
+   const [members, setMembers] = useState<ChatChannelMember[]>([]);
    const mapCtx = useMemo(
       () => ({
          currentUserId: myUserId ?? -1,
          currentUserName: myName,
-         partnerName: room.channelType === 'DM' ? room.name : undefined,
+         members,
       }),
-      [myUserId, myName, room.channelType, room.name],
+      [myUserId, myName, members],
    );
 
    const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -62,6 +63,7 @@ export default function ChatConversation({
    const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
    const [deleteTarget, setDeleteTarget] = useState<ChatMessage | null>(null);
    const [isSearchOpen, setIsSearchOpen] = useState(false);
+   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
    const [searchQuery, setSearchQuery] = useState('');
    const [activeSearchIndex, setActiveSearchIndex] = useState(0);
    const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
@@ -70,72 +72,79 @@ export default function ChatConversation({
    const isDeletingRef = useRef(false);
 
    const title = room.name;
-   const subtitle =
-      room.channelType === 'DM'
-         ? isPartnerOnline
-            ? '1:1 채팅 · 온라인'
-            : '1:1 채팅'
-         : '단체 채팅';
+   const subtitle = room.channelType === 'DM' ? '1:1 채팅' : '단체 채팅';
 
-   // 채널 목록에는 상대방 userId가 없어 온라인 여부를 못 구함 - 방에 들어왔을 때
-   // 채널 상세로 멤버를 받아온 뒤, 나를 뺀 나머지 한 명(1:1일 때만)의 상태를 조회한다
-   useEffect(() => {
-      if (room.channelType !== 'DM') return;
-      let isMounted = true;
-      const uid = getMyUserId();
-
-      getChannelDetail(room.channelId)
-         .then((detail) => {
-            const partnerId = detail.members.find((member) => member.userId !== uid)?.userId;
-            if (partnerId == null) return null;
-            return getUserStatus(partnerId);
-         })
-         .then((status) => {
-            if (isMounted && status) setIsPartnerOnline(status.isOnline);
-         })
-         .catch(() => {
-            // 온라인 표시는 보조 정보라 실패해도 조용히 무시 (기본 문구만 보여줌)
-         });
-
-      return () => {
-         isMounted = false;
-      };
-   }, [room.channelId, room.channelType]);
-
-   // 채널 메시지 이력 로드 — 방을 바꾸면 ChatPanel이 key로 이 컴포넌트를 새로 마운트하므로
-   // isLoadingMessages는 초기값(true) 그대로 시작한다
+   // 채널 상세(멤버 목록)와 메시지 이력을 함께 받아온다. 멤버 목록은 GROUP 메시지 발신자 이름과
+   // 멘션 후보에 쓰이는데, 메시지를 별도 effect에서 따로 불러와 매핑하면 멤버 목록이 아직
+   // 로딩 중일 때 매핑된 이름이 고정돼버려(참여자로 굳어짐) 나중에 멤버가 로드돼도 갱신되지 않는다.
+   // 그래서 두 응답을 함께 기다린 뒤, 방금 받아온 멤버 목록으로 바로 매핑한다.
+   // 방을 바꾸면 ChatPanel이 key로 이 컴포넌트를 새로 마운트하므로 isLoadingMessages는 초기값(true) 그대로 시작한다
    useEffect(() => {
       let isMounted = true;
-      getChannelMessages(room.channelId)
-         .then((page) => {
+      const uid = myUserId;
+
+      Promise.all([getChannelDetail(room.channelId), getChannelMessages(room.channelId)])
+         .then(([detail, page]) => {
             if (!isMounted) return;
+            setMembers(detail.members);
+            const ctx = {
+               currentUserId: uid ?? -1,
+               currentUserName: myName,
+               members: detail.members,
+            };
             // 백엔드가 최신순(sentAt DESC)으로 내려주므로 화면 표시용으로 오래된 순으로 뒤집는다
             const mapped = page.content
                .slice()
                .reverse()
-               .map((dto) => mapMessageDto(dto, mapCtx));
+               .map((dto) => mapMessageDto(dto, ctx));
             setMessages(mapped);
+
+            if (room.channelType !== 'DM') return;
+            // DM은 채널 목록에 상대방 userId가 없어 온라인 여부도 못 구하므로, 나를 뺀 나머지 한 명의 상태를 이어서 조회한다
+            const partnerId = detail.members.find((member) => member.userId !== uid)?.userId;
+            if (partnerId == null) return;
+            getUserStatus(partnerId)
+               .then((status) => {
+                  if (isMounted) setIsPartnerOnline(status.isOnline);
+               })
+               .catch(() => {
+                  // 온라인 표시는 보조 정보라 실패해도 조용히 무시 (기본 문구만 보여줌)
+               });
          })
          .catch((err) => {
             toast.error(
-               err instanceof ApiError ? err.message : '메시지를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+               err instanceof ApiError
+                  ? err.message
+                  : '메시지를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
             );
          })
          .finally(() => {
             if (isMounted) setIsLoadingMessages(false);
          });
+
       return () => {
          isMounted = false;
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [room.channelId]);
+   }, [room.channelId, room.channelType]);
+
+   // 채널 상세 조회로 받은 실제 멤버 목록에서 나를 제외하고 멘션 후보로 쓴다
+   const mentionCandidates: ChatMentionUser[] = useMemo(
+      () =>
+         members
+            .filter((member) => member.userId !== myUserId)
+            .map((member) => ({ id: member.userId, name: member.memberName, roleLabel: '' })),
+      [members, myUserId],
+   );
 
    // "@뒤에 공백 없이 이어지는 부분"을 멘션 검색어로 취급
    const mentionMatch = /@([^\s@]*)$/.exec(draft);
    const mentionQuery = mentionMatch ? mentionMatch[1] : null;
    const mentionResults: ChatMentionUser[] =
       mentionQuery !== null
-         ? DUMMY_MENTION_USERS.filter((user) => user.name.toLowerCase().includes(mentionQuery.toLowerCase()))
+         ? mentionCandidates.filter((user) =>
+              user.name.toLowerCase().includes(mentionQuery.toLowerCase()),
+           )
          : [];
 
    const searchMatches = useMemo(() => {
@@ -144,26 +153,29 @@ export default function ChatConversation({
       return messages.filter((m) => !m.isDeleted && m.content.toLowerCase().includes(q));
    }, [messages, searchQuery]);
 
-   // 입력이 바뀔 때마다(타이핑) 멘션 후보 강조 인덱스를 첫 번째로 되돌린다
    const handleDraftChange = (value: string) => {
       setDraft(value);
       setMentionActiveIndex(0);
    };
 
-   // 검색어가 바뀌면 활성 인덱스를 첫 번째 결과로 되돌린다
    const handleSearchQueryChange = (value: string) => {
       setSearchQuery(value);
       setActiveSearchIndex(0);
    };
 
+   // 검색 중 메시지가 삭제되는 등 결과 수가 줄어들면 activeSearchIndex가 범위를 벗어날 수 있어,
+   // 실제 state는 그대로 두고 화면 표시/스크롤에는 이 보정된 값만 사용한다
+   const safeActiveSearchIndex =
+      searchMatches.length === 0 ? 0 : Math.min(activeSearchIndex, searchMatches.length - 1);
+
    useEffect(() => {
-      const target = searchMatches[activeSearchIndex];
+      const target = searchMatches[safeActiveSearchIndex];
       if (target) {
          document
             .getElementById(`chat-message-${target.id}`)
             ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
       }
-   }, [activeSearchIndex, searchMatches]);
+   }, [safeActiveSearchIndex, searchMatches]);
 
    const handleSelectMention = (user: ChatMentionUser) => {
       setDraft((prev) => prev.replace(/@([^\s@]*)$/, `@${user.name} `));
@@ -216,22 +228,28 @@ export default function ChatConversation({
          } else if (replyTarget) {
             const dto = await createReply(replyTarget.id, { channelId: room.channelId, content });
             const mapped = mapMessageDto(dto, mapCtx);
-            mapped.replyToPreview = { senderName: replyTarget.senderName, content: replyTarget.content };
+            mapped.replyToPreview = {
+               senderName: replyTarget.senderName,
+               content: replyTarget.content,
+            };
             setMessages((prev) => [...prev, mapped]);
             onReplySent(replyTarget.id);
             setReplyTarget(null);
          } else {
-            // 멘션 대상 목록이 하드코딩 더미라 실제 사용자 id와 매칭되지 않으므로 항상 빈 배열로 보낸다
+            // 텍스트에서 @멘션을 어떤 사용자 id로 보낼지 추적하는 기능은 아직 없어 항상 빈 배열로 보낸다
             const dto = await sendMessage(room.channelId, { content, mentionedUserIds: [] });
             setMessages((prev) => [...prev, mapMessageDto(dto, mapCtx)]);
          }
          setDraft('');
       } catch (err) {
          toast.error(
-            err instanceof ApiError ? err.message : '메시지 전송에 실패했습니다. 잠시 후 다시 시도해주세요.',
+            err instanceof ApiError
+               ? err.message
+               : '메시지 전송에 실패했습니다. 잠시 후 다시 시도해주세요.',
          );
       } finally {
          isSubmittingRef.current = false;
+         inputRef.current?.focus();
       }
    };
 
@@ -241,10 +259,21 @@ export default function ChatConversation({
       try {
          await deleteMessage(deleteTarget.id);
          setMessages((prev) =>
-            prev.map((m) => (m.id === deleteTarget.id ? { ...m, isDeleted: true, content: '' } : m)),
+            prev.map((m) =>
+               m.id === deleteTarget.id ? { ...m, isDeleted: true, content: '' } : m,
+            ),
          );
+         // 삭제한 메시지를 수정 중이었다면 그 상태도 정리
+         if (editingMessage?.id === deleteTarget.id) {
+            setEditingMessage(null);
+            setDraft('');
+         }
       } catch (err) {
-         toast.error(err instanceof ApiError ? err.message : '삭제에 실패했습니다. 잠시 후 다시 시도해주세요.');
+         toast.error(
+            err instanceof ApiError
+               ? err.message
+               : '삭제에 실패했습니다. 잠시 후 다시 시도해주세요.',
+         );
       } finally {
          isDeletingRef.current = false;
          setDeleteTarget(null);
@@ -263,8 +292,26 @@ export default function ChatConversation({
                <ChevronLeft size={18} />
             </button>
             <div className="min-w-0 flex-1">
-               <p className="truncate text-sm font-bold text-gray-900">{title}</p>
-               <p className="text-xs text-gray-400">{subtitle}</p>
+               <p className="flex items-center gap-1.5">
+                  <span className="truncate text-sm font-bold text-gray-900">{title}</span>
+                  {room.channelType === 'DM' && isPartnerOnline && (
+                     <span className="h-2 w-2 shrink-0 rounded-full bg-brand-sage" aria-label="온라인" />
+                  )}
+               </p>
+               <div className="flex items-center gap-1 text-xs text-gray-400">
+                  <span>{subtitle}</span>
+                  {room.channelType === 'GROUP' && (
+                     <button
+                        type="button"
+                        onClick={() => setIsMembersModalOpen(true)}
+                        aria-label="참여 멤버 보기"
+                        className="flex cursor-pointer items-center gap-0.5 rounded-xs px-1 py-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                     >
+                        <Users size={12} />
+                        {members.length}
+                     </button>
+                  )}
+               </div>
             </div>
             <button
                type="button"
@@ -274,14 +321,6 @@ export default function ChatConversation({
             >
                <Search size={18} />
             </button>
-            <button
-               type="button"
-               onClick={onClose}
-               aria-label="닫기"
-               className="cursor-pointer rounded-xs p-1 text-gray-400 hover:bg-gray-100"
-            >
-               <X size={18} />
-            </button>
          </div>
 
          {isSearchOpen && (
@@ -289,7 +328,7 @@ export default function ChatConversation({
                query={searchQuery}
                onQueryChange={handleSearchQueryChange}
                resultCount={searchMatches.length}
-               activeIndex={activeSearchIndex}
+               activeIndex={safeActiveSearchIndex}
                onPrev={() =>
                   setActiveSearchIndex((i) => (i - 1 + searchMatches.length) % searchMatches.length)
                }
@@ -305,24 +344,35 @@ export default function ChatConversation({
             {isLoadingMessages ? (
                <p className="py-6 text-center text-sm text-gray-400">불러오는 중...</p>
             ) : messages.length === 0 ? (
-               <p className="py-6 text-center text-sm text-gray-400">아직 주고받은 메시지가 없습니다</p>
+               <p className="py-6 text-center text-sm text-gray-400">
+                  아직 주고받은 메시지가 없습니다
+               </p>
             ) : (
                messages.map((message, index) => {
                   const prev = messages[index - 1];
                   const showSenderName = !prev || prev.senderId !== message.senderId;
-                  const activeSearchMessageId = searchMatches[activeSearchIndex]?.id;
+                  const showDateDivider = !prev || !isSameDay(new Date(prev.sentAtISO), new Date(message.sentAtISO));
+                  const activeSearchMessageId = searchMatches[safeActiveSearchIndex]?.id;
                   return (
-                     <ChatMessageBubble
-                        key={message.id}
-                        message={message}
-                        showSenderName={showSenderName}
-                        replyCount={replyCounts[message.id] ?? 0}
-                        isSearchActive={isSearchOpen && message.id === activeSearchMessageId}
-                        onReply={() => handleStartReply(message)}
-                        onEdit={() => handleStartEdit(message)}
-                        onDelete={() => setDeleteTarget(message)}
-                        onOpenThread={() => onOpenThread(message)}
-                     />
+                     <div key={message.id}>
+                        {showDateDivider && (
+                           <div className="mb-3 flex items-center gap-2 text-xs text-gray-400">
+                              <span className="h-px flex-1 bg-gray-200" />
+                              <span className="shrink-0">{formatChatDateDivider(message.sentAtISO)}</span>
+                              <span className="h-px flex-1 bg-gray-200" />
+                           </div>
+                        )}
+                        <ChatMessageBubble
+                           message={message}
+                           showSenderName={showSenderName}
+                           replyCount={replyCounts[message.id] ?? 0}
+                           isSearchActive={isSearchOpen && message.id === activeSearchMessageId}
+                           onReply={() => handleStartReply(message)}
+                           onEdit={() => handleStartEdit(message)}
+                           onDelete={() => setDeleteTarget(message)}
+                           onOpenThread={() => onOpenThread(message)}
+                        />
+                     </div>
                   );
                })
             )}
@@ -352,7 +402,10 @@ export default function ChatConversation({
             </div>
          )}
 
-         <form onSubmit={handleSubmit} className="relative flex items-center gap-2 border-t border-gray-200 p-3">
+         <form
+            onSubmit={handleSubmit}
+            className="relative flex items-center gap-2 border-t border-gray-200 p-3"
+         >
             {mentionResults.length > 0 && (
                <MentionDropdown
                   users={mentionResults}
@@ -394,6 +447,10 @@ export default function ChatConversation({
             onConfirm={handleConfirmDelete}
             onClose={() => setDeleteTarget(null)}
          />
+
+         {isMembersModalOpen && (
+            <GroupMembersModal members={members} onClose={() => setIsMembersModalOpen(false)} />
+         )}
       </div>
    );
 }

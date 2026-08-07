@@ -10,7 +10,7 @@ import { toast } from '@/lib/toast';
 
 interface NewChatModalProps {
    onClose: () => void;
-   onCreate: (payload: { userIds: number[]; name?: string }) => void;
+   onCreate: (payload: { userIds: number[]; name?: string }) => Promise<void>;
 }
 
 export default function NewChatModal({ onClose, onCreate }: NewChatModalProps) {
@@ -19,6 +19,7 @@ export default function NewChatModal({ onClose, onCreate }: NewChatModalProps) {
    const [isSearching, setIsSearching] = useState(false);
    const [selectedUsers, setSelectedUsers] = useState<ChatUserSearchResult[]>([]);
    const [roomName, setRoomName] = useState('');
+   const [isCreating, setIsCreating] = useState(false);
 
    useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
@@ -56,14 +57,19 @@ export default function NewChatModal({ onClose, onCreate }: NewChatModalProps) {
       );
    };
 
-   const handleCreate = () => {
-      if (selectedUsers.length === 0) return;
-      // 채팅방명을 안 넣으면 참여자 이름을 조합해서 자동으로 채팅방명 만듦
-      const autoName = selectedUsers.map((u) => u.name ?? '알 수 없음').join(', ');
-      onCreate({
-         userIds: selectedUsers.map((u) => u.userId),
-         name: selectedUsers.length >= 2 ? roomName.trim() || autoName : undefined,
-      });
+   const handleCreate = async () => {
+      if (selectedUsers.length === 0 || isCreating) return;
+      setIsCreating(true);
+      try {
+         // 채팅방명을 안 넣으면 참여자 이름을 조합해서 자동으로 채팅방명 만듦.
+         const autoName = selectedUsers.map((u) => u.name ?? '알 수 없음').join(', ');
+         await onCreate({
+            userIds: selectedUsers.map((u) => u.userId),
+            name: roomName.trim() || autoName,
+         });
+      } finally {
+         setIsCreating(false);
+      }
    };
 
    return (
@@ -162,10 +168,10 @@ export default function NewChatModal({ onClose, onCreate }: NewChatModalProps) {
                <button
                   type="button"
                   onClick={handleCreate}
-                  disabled={selectedUsers.length === 0}
+                  disabled={selectedUsers.length === 0 || isCreating}
                   className="h-10 flex-1 cursor-pointer rounded-sm bg-brand-green text-sm font-medium text-white hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
                >
-                  만들기{selectedUsers.length > 0 ? ` (${selectedUsers.length}명)` : ''}
+                  {isCreating ? '만드는 중...' : `만들기${selectedUsers.length > 0 ? ` (${selectedUsers.length}명)` : ''}`}
                </button>
             </div>
          </div>

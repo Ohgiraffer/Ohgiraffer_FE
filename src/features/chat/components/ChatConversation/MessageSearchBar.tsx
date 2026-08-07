@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronDown, ChevronUp, X } from 'lucide-react';
+import SearchInput from '@/components/ui/SearchInput';
 
 interface MessageSearchBarProps {
    query: string;
@@ -23,12 +24,14 @@ export default function MessageSearchBar({
 }: MessageSearchBarProps) {
    return (
       <div className="flex items-center gap-2 border-b border-gray-200 p-3">
-         <input
+         <SearchInput
             autoFocus
+            onSearch={onQueryChange}
             value={query}
-            onChange={(e) => onQueryChange(e.target.value)}
+            onChange={onQueryChange}
             placeholder="메시지 검색"
-            className="h-9 flex-1 rounded-sm border border-gray-200 px-3 text-sm text-gray-900 outline-none focus:border-gray-400"
+            className="flex-1"
+            heightClassName="h-9"
          />
          {query && (
             <span className="w-10 shrink-0 text-center text-xs text-gray-400">
