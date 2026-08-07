@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { ApiError } from '@/lib/http';
+import { toast } from '@/lib/toast';
+import { registerUsers } from '@/services/user.service';
 import ManualEntryTab from '../userRegisterModal/ManualEntryTab';
 import FileUploadTab from '../userRegisterModal/FileUploadTab';
 import type { ManagerSettingUser, UserDraftRow } from '../types';
@@ -19,12 +22,19 @@ function createEmptyDraftRow(): UserDraftRow {
    return { id: crypto.randomUUID(), name: '', email: '', phone: '', role: '훈련생' };
 }
 
+function getApiErrorMessage(err: unknown, fallback: string) {
+   return err instanceof ApiError ? err.message : fallback;
+}
+
 // "사용자 등록" 모달. 이 페이지에서만 쓰는 모달이라 셸(오버레이/닫기 버튼)과 내용을
 // 하나의 파일에 같이 둠 - 다른 화면에서 재사용할 모달이 생기면 그때 공용 셸로 다시 분리
 export default function UserRegisterModal({ open, onClose, onRegister }: Props) {
    const [activeTab, setActiveTab] = useState<RegisterModalTab>('manual');
    const [rows, setRows] = useState<UserDraftRow[]>([]);
    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+   const [isRegistering, setIsRegistering] = useState(false);
+   // 더블클릭으로 인한 중복 등록 방지 - state는 비동기라 클릭 시점에 바로 막아줄 동기 가드가 필요
+   const isRegisteringRef = useRef(false);
 
    const addRow = () => setRows((prev) => [...prev, createEmptyDraftRow()]);
    const removeRow = (id: string) => setRows((prev) => prev.filter((row) => row.id !== id));
@@ -43,21 +53,46 @@ export default function UserRegisterModal({ open, onClose, onRegister }: Props) 
       onClose();
    };
 
-   const handleManualRegister = () => {
+   const handleManualRegister = async () => {
       if (!isManualValid) return;
+      if (isRegisteringRef.current) return;
+      isRegisteringRef.current = true;
+      setIsRegistering(true);
 
-      // TODO: 백엔드 준비되면 실제 등록 API 연동. 지금은 로컬 사용자 목록에만 추가
-      const newUsers: ManagerSettingUser[] = rows.map((row) => ({
-         id: crypto.randomUUID(),
-         name: row.name,
-         email: row.email,
-         role: row.role,
-         team: null,
-         status: '활성',
-      }));
+      try {
+         await registerUsers({
+            rows: rows.map((row) => ({
+               name: row.name,
+               email: row.email,
+               phone: row.phone,
+               role: row.role,
+            })),
+         });
 
-      onRegister(newUsers);
-      resetAndClose();
+         // 회원 목록 조회 API는 아직 준비되지 않아(하드코딩) 등록된 값을 화면에도 바로 반영해둔다
+         const newUsers: ManagerSettingUser[] = rows.map((row) => ({
+            id: crypto.randomUUID(),
+            name: row.name,
+            email: row.email,
+            role: row.role,
+            team: null,
+            status: '활성',
+         }));
+
+         toast.success(`${newUsers.length}명이 등록되었습니다.`);
+         onRegister(newUsers);
+         resetAndClose();
+      } catch (err) {
+         toast.error(
+            getApiErrorMessage(
+               err,
+               '사용자 등록 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+            ),
+         );
+      } finally {
+         isRegisteringRef.current = false;
+         setIsRegistering(false);
+      }
    };
 
    // open은 항상 false로 시작해서(useState(false)) 최초 서버 렌더링 시엔 이 아래로 내려가지 않음 -
@@ -66,7 +101,7 @@ export default function UserRegisterModal({ open, onClose, onRegister }: Props) 
       if (!open) return;
 
       const handleKeyDown = (event: KeyboardEvent) => {
-         if (event.key === 'Escape') resetAndClose();
+         if (event.key === 'Escape' && !isRegisteringRef.current) resetAndClose();
       };
 
       document.addEventListener('keydown', handleKeyDown);
@@ -84,7 +119,9 @@ export default function UserRegisterModal({ open, onClose, onRegister }: Props) 
    return createPortal(
       <div
          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-         onClick={resetAndClose}
+         onClick={() => {
+            if (!isRegistering) resetAndClose();
+         }}
       >
          <div
             role="dialog"
@@ -100,8 +137,9 @@ export default function UserRegisterModal({ open, onClose, onRegister }: Props) 
                <button
                   type="button"
                   onClick={resetAndClose}
+                  disabled={isRegistering}
                   aria-label="닫기"
-                  className="cursor-pointer rounded-sm p-1 text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                  className="cursor-pointer rounded-sm p-1 text-gray-400 hover:bg-gray-50 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
                >
                   <X size={20} />
                </button>
@@ -111,7 +149,8 @@ export default function UserRegisterModal({ open, onClose, onRegister }: Props) 
                <button
                   type="button"
                   onClick={() => setActiveTab('manual')}
-                  className={`cursor-pointer border-b-2 pb-3 text-sm transition-colors ${
+                  disabled={isRegistering}
+                  className={`cursor-pointer border-b-2 pb-3 text-sm transition-colors disabled:cursor-not-allowed ${
                      activeTab === 'manual'
                         ? 'border-brand-green font-bold text-gray-900'
                         : 'border-transparent font-medium text-gray-400 hover:text-gray-700'
@@ -122,7 +161,8 @@ export default function UserRegisterModal({ open, onClose, onRegister }: Props) 
                <button
                   type="button"
                   onClick={() => setActiveTab('file')}
-                  className={`cursor-pointer border-b-2 pb-3 text-sm transition-colors ${
+                  disabled={isRegistering}
+                  className={`cursor-pointer border-b-2 pb-3 text-sm transition-colors disabled:cursor-not-allowed ${
                      activeTab === 'file'
                         ? 'border-brand-green font-bold text-gray-900'
                         : 'border-transparent font-medium text-gray-400 hover:text-gray-700'
@@ -154,16 +194,16 @@ export default function UserRegisterModal({ open, onClose, onRegister }: Props) 
                {activeTab === 'manual' ? (
                   <button
                      type="button"
-                     disabled={!isManualValid}
+                     disabled={!isManualValid || isRegistering}
                      onClick={handleManualRegister}
                      className={`rounded-xs px-5 py-2 text-sm font-semibold transition-colors ${
-                        isManualValid
+                        isManualValid && !isRegistering
                            ? 'cursor-pointer bg-brand-green text-white hover:bg-[#4D655A]'
                            : 'cursor-not-allowed bg-[#E5E7EB] text-[#9CA3AF]'
                      }`}
                   >
                      {/* 이 버튼도 파일 업로드 처럼 등록 명 수 반영 버튼으로 교체 예정 */}
-                     등록
+                     {isRegistering ? '등록 중...' : '등록'}
                   </button>
                ) : (
                   <button
