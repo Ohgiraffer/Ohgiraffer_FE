@@ -63,11 +63,11 @@ export default function ChangeHistoryTab() {
                <thead>
                   <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
                      <th className="w-[6%] px-6 py-3 font-medium">#</th>
-                     <th className="w-[12%] px-6 py-3 font-medium">변경 사용자</th>
+                     <th className="w-[10%] px-6 py-3 text-center font-medium">변경 사용자</th>
                      <th className="w-[16%] px-6 py-3 text-center font-medium">변경 시각</th>
                      <th className="w-[18%] px-6 py-3 font-medium">변경 항목</th>
-                     <th className="w-[24%] px-6 py-3 font-medium">변경 전 값</th>
-                     <th className="w-[24%] px-6 py-3 font-medium">변경 후 값</th>
+                     <th className="w-[23%] px-6 py-3 font-medium">변경 전 값</th>
+                     <th className="w-[27%] px-6 py-3 font-medium">변경 후 값</th>
                   </tr>
                </thead>
                <tbody>
@@ -84,11 +84,11 @@ export default function ChangeHistoryTab() {
                         return (
                            <tr key={entry.id} className="border-b border-[#F3F4F6] last:border-b-0">
                               <td className="px-6 py-4 text-gray-500">{rowNumber}</td>
-                              <td className="px-6 py-4 text-gray-900">{entry.changedByName}</td>
+                              <td className="px-6 py-4 text-center text-gray-900">{entry.changedByName}</td>
                               <td className="px-6 py-4 text-center text-gray-700">
                                  {format(parseISO(entry.changedAt), 'yyyy.MM.dd HH:mm')}
                               </td>
-                              <td className="px-6 py-4 font-semibold text-brand-green">
+                              <td className="px-6 py-4  font-semibold text-brand-green">
                                  {entry.changedField}
                               </td>
                               <td className="px-6 py-4 text-gray-400 line-through">

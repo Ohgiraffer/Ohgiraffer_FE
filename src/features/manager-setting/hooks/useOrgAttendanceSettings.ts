@@ -118,13 +118,14 @@ export function useOrgAttendanceSettings() {
 
       try {
          // periodNo는 화면에 추가한 순서가 아니라 실제 날짜 순서를 따르도록 시작일 기준으로 재정렬
-         const sortedPeriods = [...periods]
-            .sort((a, b) => a.startDate.localeCompare(b.startDate))
-            .map((period, index) => ({
-               periodNo: index + 1,
-               periodStart: period.startDate,
-               periodEnd: period.endDate,
-            }));
+         const sortedLocalPeriods = [...periods].sort((a, b) =>
+            a.startDate.localeCompare(b.startDate),
+         );
+         const sortedPeriods = sortedLocalPeriods.map((period, index) => ({
+            periodNo: index + 1,
+            periodStart: period.startDate,
+            periodEnd: period.endDate,
+         }));
 
          // 부분 수정이 아니라 전체 교체라 항상 모든 필드를 다 담아 보낸다
          await updateBootcampSettings({
@@ -136,6 +137,8 @@ export function useOrgAttendanceSettings() {
          });
 
          toast.success('조직·출결 설정이 저장되었습니다.');
+         // 화면에 보여줄 순번도 방금 서버에 저장한 순서(날짜순)로 맞춰야, 새로고침 시 순번이 갑자기 바뀌지 않는다
+         setPeriods(sortedLocalPeriods);
          setIsDirty(false);
          setSubmitAttempted(false);
       } catch (err) {
