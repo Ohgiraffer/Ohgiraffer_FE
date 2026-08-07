@@ -1,24 +1,12 @@
+import type { BootcampOrgInfo, BootcampPeriod } from '@/features/bootcamp-settings/types';
+
 export type ManagerSettingTab = 'org' | 'users' | 'history';
 
-export type AttendanceUnitPeriod = {
-   id: string;
-   startDate: string;
-   endDate: string;
-};
+export type AttendanceUnitPeriod = BootcampPeriod;
 
-export type WarningCriteria = {
-   cautionRate: string;
-   warningRate: string;
-   expulsionRiskRate: string;
-};
-
-export type OrgSettingsData = {
-   orgName: string;
-   courseName: string;
-   startDate: string;
-   endDate: string;
+// 경고·제적 기준은 /bootcamp/settings API 범위에 없어(온보딩에서만 다루는 값) 여기서는 제외
+export type OrgSettingsData = BootcampOrgInfo & {
    attendanceUnitPeriods: AttendanceUnitPeriod[];
-   warningCriteria: WarningCriteria;
 };
 
 export type UserRole = '훈련생' | '강사' | '매니저';
@@ -32,15 +20,13 @@ export type ManagerSettingUser = {
    status: '활성' | '삭제됨';
 };
 
+// /bootcamp/settings/logs 응답 그대로 - 백엔드에 카테고리·강조표시 구분이 없어 그 항목들은 화면에서도 뺐다
 export type ChangeHistoryEntry = {
-   id: string;
-   changedBy: string;
+   changedByName: string;
    changedAt: string;
-   itemLabel: string;
-   category: string;
-   beforeValue: string;
-   afterValue: string;
-   isFlagged: boolean;
+   changedField: string;
+   oldValue: string;
+   newValue: string;
 };
 
 // "사용자 등록" 모달의 "직접 입력" 탭에서 한 행(row)의 입력값

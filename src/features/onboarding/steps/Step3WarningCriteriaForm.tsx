@@ -31,7 +31,7 @@ const FIELDS: Array<{
 
 export default function Step3WarningCriteriaForm({ value, onChange }: Props) {
    const updateField = (field: keyof WarningCriteriaData, fieldValue: string) => {
-      // max 속성만으로는 직접 타이핑으로 100 초과 입력을 막지 못해 여기서 한 번 더 제한
+      // 100 초과값 입력 제한
       const clampedValue = fieldValue !== '' && Number(fieldValue) > 100 ? '100' : fieldValue;
       onChange({ ...value, [field]: clampedValue });
    };

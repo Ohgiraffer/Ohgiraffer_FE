@@ -15,6 +15,9 @@ export default function OnboardingWizardClient() {
       isCurrentStepValid,
       goToNextStep,
       goToPreviousStep,
+      completeOnboarding,
+      isSavingOrgInfo,
+      isCompleting,
       orgInfo,
       setOrgInfo,
       attendanceUnit,
@@ -22,10 +25,11 @@ export default function OnboardingWizardClient() {
       warningCriteria,
       setWarningCriteria,
       orgInfoDateError,
-      attendanceUnitDateErrors,
+      attendanceUnitPeriodErrors,
    } = useOnboardingWizard();
 
    const isLastStep = currentStep === ONBOARDING_TOTAL_STEPS;
+   const isSubmitting = isSavingOrgInfo || isCompleting;
 
    return (
       <div className="flex flex-1">
@@ -45,7 +49,7 @@ export default function OnboardingWizardClient() {
                      <Step2AttendanceUnitForm
                         value={attendanceUnit}
                         onChange={setAttendanceUnit}
-                        dateOrderErrors={attendanceUnitDateErrors}
+                        periodErrors={attendanceUnitPeriodErrors}
                      />
                   )}
                   {currentStep === 3 && (
@@ -68,8 +72,9 @@ export default function OnboardingWizardClient() {
                      {currentStep > 1 && (
                         <button
                            type="button"
+                           disabled={isSubmitting}
                            onClick={goToPreviousStep}
-                           className="flex cursor-pointer items-center gap-1 rounded-sm bg-white border border-[#E5E7EB] px-4 py-2 text-sm font-medium text-[#374151] hover:bg-[#F7F8FA]"
+                           className="flex cursor-pointer items-center gap-1 rounded-sm bg-white border border-[#E5E7EB] px-4 py-2 text-sm font-medium text-[#374151] hover:bg-[#F7F8FA] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                            <ChevronLeft size={16} />
                            이전
@@ -83,17 +88,17 @@ export default function OnboardingWizardClient() {
                      </span>
                      <button
                         type="button"
-                        disabled={!isCurrentStepValid}
-                        // TODO: 백엔드 준비되면 완료 클릭 시 실제 제출 액션 연결
-                        onClick={isLastStep ? undefined : goToNextStep}
+                        disabled={!isCurrentStepValid || isSubmitting}
+                        onClick={isLastStep ? completeOnboarding : goToNextStep}
                         className={`flex items-center gap-1 rounded-sm px-4 py-2 text-sm font-semibold transition-colors ${
-                           isCurrentStepValid
+                           isCurrentStepValid && !isSubmitting
                               ? 'cursor-pointer bg-brand-green text-white hover:bg-[#4D655A]'
                               : 'cursor-not-allowed bg-[#E5E7EB] text-[#9CA3AF]'
                         }`}
                      >
-                        {isLastStep ? '완료' : '다음'}
-                        {isLastStep ? <Check size={16} /> : <ChevronRight size={16} />}
+                        {isSubmitting ? '처리 중...' : isLastStep ? '완료' : '다음'}
+                        {!isSubmitting &&
+                           (isLastStep ? <Check size={16} /> : <ChevronRight size={16} />)}
                      </button>
                   </div>
                </div>
