@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Copy, ExternalLink } from 'lucide-react';
 import {
    Select,
@@ -46,21 +46,44 @@ interface Connection {
 }
 
 export default function GoogleSheetSync({ columns, onSave }: GoogleSheetSyncProps) {
+   const emailInputId = useId();
+   const urlInputId = useId();
    const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
    const [isVerifying, setIsVerifying] = useState(false);
    const [verifyError, setVerifyError] = useState('');
    const [connection, setConnection] = useState<Connection | null>(null);
-   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+   // 컬럼 이름이 같은 시트도 구분할 수 있도록 이름이 아니라 columnOptions 안에서의 인덱스로 보관한다
+   const [columnMapping, setColumnMapping] = useState<Record<string, number>>({});
    const [isSaving, setIsSaving] = useState(false);
    const [isSaved, setIsSaved] = useState(false);
 
    const canVerify = spreadsheetUrl.trim().length > 0 && !isVerifying;
    const canSave =
-      connection !== null && columns.every((column) => columnMapping[column.key]) && !isSaving;
+      connection !== null &&
+      columns.every((column) => columnMapping[column.key] !== undefined) &&
+      !isSaving;
+
+   // 같은 이름의 컬럼이 여러 개면 선택 목록에서 구분할 수 있도록 표시해준다.
+   // (API가 컬럼 이름 문자열만 내려줘서, 이름이 같으면 백엔드 입장에서도 여전히 구분이 안 된다는 한계는 남아있다)
+   const duplicateColumnNames = connection
+      ? new Set(
+           connection.columnOptions.filter(
+              (name, index) => connection.columnOptions.indexOf(name) !== index,
+           ),
+        )
+      : new Set<string>();
 
    const handleCopyEmail = () => {
       navigator.clipboard.writeText(SHARE_EMAIL);
       toast.success('이메일을 복사했습니다.');
+   };
+
+   const handleUrlChange = (value: string) => {
+      setSpreadsheetUrl(value);
+      setVerifyError('');
+      // URL이 바뀌면 이전 검증 결과와 매핑은 더 이상 유효하지 않다
+      setConnection(null);
+      setColumnMapping({});
    };
 
    const handleVerify = async () => {
@@ -92,12 +115,18 @@ export default function GoogleSheetSync({ columns, onSave }: GoogleSheetSyncProp
       if (!connection) return;
       setIsSaving(true);
       try {
+         const resolvedMapping = Object.fromEntries(
+            Object.entries(columnMapping).map(([key, index]) => [
+               key,
+               connection.columnOptions[index],
+            ]),
+         );
          await onSave({
             spreadsheetId: connection.spreadsheetId,
             spreadsheetUrl: spreadsheetUrl.trim(),
             spreadsheetTitle: connection.spreadsheetTitle,
             sheetName: connection.sheetName,
-            columnMapping,
+            columnMapping: resolvedMapping,
          });
          setIsSaved(true);
       } catch (err) {
@@ -158,11 +187,12 @@ export default function GoogleSheetSync({ columns, onSave }: GoogleSheetSyncProp
          <h3 className="text-sm font-bold text-gray-900">Google Sheet 연동</h3>
 
          <div className="mt-4 rounded-xs border border-[#C8D9CE] bg-[#F0F4F2] px-6 py-5">
-            <p className="text-xs text-gray-700">
+            <label htmlFor={emailInputId} className="block text-xs text-gray-700">
                아래 이메일을 시트의 공유 대상(뷰어 이상)으로 추가해주세요.
-            </p>
+            </label>
             <div className="mt-2 flex gap-2">
                <input
+                  id={emailInputId}
                   readOnly
                   value={SHARE_EMAIL}
                   className="h-8 flex-1 rounded-xs border border-gray-200 bg-white px-3 text-sm text-brand-green"
@@ -177,16 +207,17 @@ export default function GoogleSheetSync({ columns, onSave }: GoogleSheetSyncProp
                </button>
             </div>
 
-            <p className="mt-4 text-xs font-medium text-gray-700">스프레드시트 URL</p>
+            <label htmlFor={urlInputId} className="mt-4 block text-xs font-medium text-gray-700">
+               스프레드시트 URL
+            </label>
             <div className="mt-2 flex gap-2">
                <input
+                  id={urlInputId}
                   value={spreadsheetUrl}
-                  onChange={(e) => {
-                     setSpreadsheetUrl(e.target.value);
-                     setVerifyError('');
-                  }}
+                  onChange={(e) => handleUrlChange(e.target.value)}
+                  disabled={isVerifying}
                   placeholder="https://docs.google.com/spreadsheets/..."
-                  className="h-8 flex-1 rounded-xs border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-gray-400"
+                  className="h-8 flex-1 rounded-xs border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-gray-400 disabled:bg-gray-50 disabled:text-gray-400"
                />
                <button
                   type="button"
@@ -220,19 +251,34 @@ export default function GoogleSheetSync({ columns, onSave }: GoogleSheetSyncProp
                         <span className="text-brand-gold">*</span>
                      </label>
                      <Select
-                        value={columnMapping[column.key] ?? ''}
-                        onValueChange={(value) =>
-                           setColumnMapping((prev) => ({ ...prev, [column.key]: value ?? '' }))
+                        value={
+                           columnMapping[column.key] !== undefined
+                              ? String(columnMapping[column.key])
+                              : ''
                         }
+                        onValueChange={(value) => {
+                           if (value === null) return;
+                           setColumnMapping((prev) => ({ ...prev, [column.key]: Number(value) }));
+                        }}
                         disabled={!connection}
                      >
                         <SelectTrigger className="mt-2 h-10 w-full rounded-xs">
-                           <SelectValue placeholder="컬럼 선택" />
+                           <SelectValue placeholder="컬럼 선택">
+                              {(value: string | null) => {
+                                 const option = value ? connection?.columnOptions[Number(value)] : undefined;
+                                 if (option === undefined) return null;
+                                 return duplicateColumnNames.has(option)
+                                    ? `${option} (${Number(value) + 1}번째 열)`
+                                    : option;
+                              }}
+                           </SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                           {connection?.columnOptions.map((option) => (
-                              <SelectItem key={option} value={option}>
-                                 {option}
+                           {connection?.columnOptions.map((option, index) => (
+                              <SelectItem key={index} value={String(index)}>
+                                 {duplicateColumnNames.has(option)
+                                    ? `${option} (${index + 1}번째 열)`
+                                    : option}
                               </SelectItem>
                            ))}
                         </SelectContent>
