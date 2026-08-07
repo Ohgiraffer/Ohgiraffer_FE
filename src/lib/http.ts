@@ -10,18 +10,22 @@ export interface ApiErrorBody {
    path?: string;
    traceId?: string;
    errors?: Record<string, string>;
+   // 409(채팅방 중복 생성 등) 응답처럼 errors 대신 별도 데이터를 함께 내려주는 경우용
+   data?: Record<string, unknown>;
 }
 
 export class ApiError extends Error {
    status: number;
    code: string;
    errors: Record<string, string>;
+   data: Record<string, unknown> | undefined;
 
    constructor(body: ApiErrorBody | null, fallbackStatus: number) {
       super(body?.message || '요청 처리 중 오류가 발생했습니다.');
       this.status = body?.status ?? fallbackStatus;
       this.code = body?.code ?? 'UNKNOWN';
       this.errors = body?.errors ?? {};
+      this.data = body?.data;
    }
 }
 

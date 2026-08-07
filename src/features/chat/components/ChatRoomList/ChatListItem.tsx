@@ -31,7 +31,7 @@ export default function ChatListItem({
                <div className="mt-0.5 flex items-center justify-between gap-2">
                   <p className="truncate text-xs text-gray-400">{preview}</p>
                   {!!unreadCount && (
-                     <span className="flex h-4.5 min-w-4.5 shrink-0 items-center justify-center rounded-full bg-brand-green px-1 text-[11px] leading-none font-medium text-white">
+                     <span className="flex h-4.5 min-w-4.5 shrink-0 items-center justify-center rounded-full bg-brand-green px-1 text-[11px] font-medium text-white">
                         {unreadCount}
                      </span>
                   )}

@@ -1,40 +1,18 @@
-export type ChatRole = '훈련생' | '강사' | '매니저';
-
-export interface ChatUser {
-   id: string;
-   name: string;
-   role: ChatRole;
-   email: string;
-   isOnline: boolean;
-}
-
 export interface ChatMessage {
-   id: string;
-   senderId: string; // 내가 보낸 메시지는 'me'
+   id: string; // sendbirdMessageId
+   senderId: number;
    senderName: string;
    content: string;
-   sentAt: string; // 'HH:mm'
+   sentAt: string; // 화면 표시용 'HH:mm'
    isMine: boolean;
    isRead: boolean;
+   isDeleted?: boolean;
+   // 백엔드 응답에 원본 메시지 참조 필드가 없어, 이번 세션에서 내가 답장으로 보낸 경우에만 채워진다
+   replyToPreview?: { senderName: string; content: string };
 }
 
-export interface DirectChatRoom {
-   id: string;
-   type: 'direct';
-   partner: ChatUser;
-   lastMessage?: string;
-   lastMessageAt?: string;
-   unreadCount?: number;
-}
-
-export interface GroupChatRoom {
-   id: string;
-   type: 'group';
+export interface ChatMentionUser {
+   id: number;
    name: string;
-   memberCount: number;
-   lastMessage: string;
-   lastMessageAt: string;
-   unreadCount: number;
+   roleLabel: string;
 }
-
-export type ChatRoom = DirectChatRoom | GroupChatRoom;
