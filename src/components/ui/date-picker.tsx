@@ -37,9 +37,17 @@ export function DatePicker({
             value={value}
             unmask={false}
             onAccept={(maskedValue: string) => {
-               // 마운트 시 react-imask가 초기값을 한 번 정규화하며 onAccept를 호출하는데,
-               // 값이 실제로 바뀐 게 아니면 onChange를 부르지 않아 불필요한 dirty 처리를 막는다
+
                if (maskedValue === value) return;
+
+               // 입력한 값이 실제 달력에 존재하지 않는 날짜면 반영하지 않음
+               if (
+                  maskedValue.length === 10 &&
+                  !isValid(parse(maskedValue, DATE_FORMAT, new Date()))
+               ) {
+                  return;
+               }
+
                onChange(maskedValue);
             }}
             placeholder={placeholder}
