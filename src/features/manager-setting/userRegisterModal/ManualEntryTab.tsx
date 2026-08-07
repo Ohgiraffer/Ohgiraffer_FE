@@ -14,7 +14,8 @@ import type { UserDraftRow, UserRole } from '../types';
 const ROLE_OPTIONS: UserRole[] = ['훈련생', '강사', '매니저'];
 
 // 이름/이메일/연락처/역할/삭제버튼 컬럼 너비 비율. 헤더 행과 입력 행이 항상 같은 값을 써야 열이 어긋나지 않음
-const GRID_COLUMNS = 'grid-cols-[minmax(0,0.7fr)_minmax(0,1.8fr)_minmax(0,1.1fr)_minmax(0,0.8fr)_28px]';
+const GRID_COLUMNS =
+   'grid-cols-[minmax(0,0.7fr)_minmax(0,1.8fr)_minmax(0,1.1fr)_minmax(0,0.8fr)_28px]';
 
 type Props = {
    rows: UserDraftRow[];
@@ -27,7 +28,9 @@ export default function ManualEntryTab({ rows, onAddRow, onRemoveRow, onUpdateRo
    return (
       <div>
          {rows.length > 0 && (
-            <div className={`mb-2 grid ${GRID_COLUMNS} gap-3 px-1 text-sm font-semibold text-gray-900`}>
+            <div
+               className={`mb-2 grid ${GRID_COLUMNS} gap-3 px-1 text-sm font-semibold text-gray-900`}
+            >
                <span>
                   이름 <span className="text-brand-gold">*</span>
                </span>
@@ -47,10 +50,7 @@ export default function ManualEntryTab({ rows, onAddRow, onRemoveRow, onUpdateRo
          {rows.length > 0 && (
             <div className="flex flex-col gap-1">
                {rows.map((row) => (
-                  <div
-                     key={row.id}
-                     className={`grid ${GRID_COLUMNS} items-center gap-2`}
-                  >
+                  <div key={row.id} className={`grid ${GRID_COLUMNS} items-center gap-2`}>
                      <input
                         type="text"
                         value={row.name}

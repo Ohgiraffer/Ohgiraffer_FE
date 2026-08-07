@@ -1,21 +1,7 @@
-import type { ChangeHistoryEntry, ManagerSettingUser, OrgSettingsData } from './types';
+import type { ManagerSettingUser } from './types';
 
-// 백엔드 API 연동 전까지 화면 확인용으로 쓰는 더미 데이터
-export const MOCK_ORG_SETTINGS: OrgSettingsData = {
-   orgName: '부트캠프 코딩학원',
-   courseName: 'React 풀스택 부트캠프 2기',
-   startDate: '2026-02-23',
-   endDate: '2026-02-23',
-   attendanceUnitPeriods: [
-      { id: 'period-1', startDate: '2025-07-01', endDate: '2025-07-31' },
-      { id: 'period-2', startDate: '2025-08-01', endDate: '2025-08-31' },
-   ],
-   warningCriteria: {
-      cautionRate: '85',
-      warningRate: '75',
-      expulsionRiskRate: '65',
-   },
-};
+// "조직·출결"·"변경 이력" 탭은 각각 /bootcamp/settings, /bootcamp/settings/logs API로 연동되어
+// 더 이상 mock을 쓰지 않음. 아래는 아직 백엔드 연동 전인 "사용자·권한" 탭에서 화면 확인용으로 쓰는 더미 데이터
 
 export const MOCK_USERS: ManagerSettingUser[] = [
    {
@@ -81,88 +67,5 @@ export const MOCK_USERS: ManagerSettingUser[] = [
       role: '강사',
       team: null,
       status: '활성',
-   },
-];
-
-export const MOCK_CHANGE_HISTORY: ChangeHistoryEntry[] = [
-   {
-      id: 'history-1',
-      changedBy: '이매니저',
-      changedAt: '2025.08.01 14:32',
-      itemLabel: '출결 단위기간 기준',
-      category: '출결 기준',
-      beforeValue: '월 단위',
-      afterValue: '훈련 개시일 기준',
-      isFlagged: true,
-   },
-   {
-      id: 'history-2',
-      changedBy: '이매니저',
-      changedAt: '2025.07.28 09:15',
-      itemLabel: '제적위험 기준 출석률',
-      category: '경고·제적 기준',
-      beforeValue: '70%',
-      afterValue: '65%',
-      isFlagged: true,
-   },
-   {
-      id: 'history-3',
-      changedBy: '이매니저',
-      changedAt: '2025.07.25 16:44',
-      itemLabel: '경고 기준 출석률',
-      category: '경고·제적 기준',
-      beforeValue: '80%',
-      afterValue: '75%',
-      isFlagged: true,
-   },
-   {
-      id: 'history-4',
-      changedBy: '이매니저',
-      changedAt: '2025.07.20 11:02',
-      itemLabel: '박민준 역할',
-      category: '사용자 권한',
-      beforeValue: '훈련생',
-      afterValue: '강사',
-      isFlagged: true,
-   },
-   {
-      id: 'history-5',
-      changedBy: '이매니저',
-      changedAt: '2025.07.18 10:30',
-      itemLabel: '과정명',
-      category: '조직 정보',
-      beforeValue: 'React 풀스택 부트캠프 1기',
-      afterValue: 'React 풀스택 부트캠프 2기',
-      isFlagged: false,
-   },
-   {
-      id: 'history-6',
-      changedBy: '이매니저',
-      changedAt: '2025.07.10 15:20',
-      itemLabel: '주의 기준 출석률',
-      category: '경고·제적 기준',
-      beforeValue: '90%',
-      afterValue: '85%',
-      isFlagged: false,
-   },
-   {
-      id: 'history-7',
-      changedBy: '이매니저',
-      changedAt: '2025.07.05 13:00',
-      itemLabel: '단위기간 추가',
-      category: '출결 기준',
-      beforeValue: '1개',
-      afterValue: '2개',
-      isFlagged: false,
-   },
-   {
-      id: 'history-8',
-      changedBy: '이매니저',
-      changedAt: '2025.07.01 09:00',
-      itemLabel: '조직명',
-      category: '조직 정보',
-      beforeValue: '-',
-      afterValue: '부트캠프 코딩학원',
-      isFlagged: false,
    },
 ];

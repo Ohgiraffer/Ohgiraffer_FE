@@ -5,6 +5,11 @@ import { useRouter } from 'next/navigation';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import {
+   getPeriodErrorType,
+   hasOrgDateOrderError,
+   type PeriodErrorType,
+} from '@/features/bootcamp-settings/hooks/bootcampPeriodValidation';
+import {
    createBootcampInfo,
    createBootcampPolicy,
    patchBootcampInfo,
@@ -14,7 +19,6 @@ import {
 import {
    ONBOARDING_TOTAL_STEPS,
    type AttendanceUnitData,
-   type AttendanceUnitPeriod,
    type OrgInfoData,
    type WarningCriteriaData,
 } from '../types';
@@ -36,10 +40,6 @@ const INITIAL_WARNING_CRITERIA: WarningCriteriaData = {
    expulsionRiskRate: '',
 };
 
-// 단위기간 하나에 걸릴 수 있는 에러 종류 - 한 번에 하나만 보여주면 되므로 우선순위대로 판단
-export type PeriodErrorType =
-   'order' | 'range' | 'overlap' | 'startBoundary' | 'endBoundary' | null;
-
 function isOrgInfoValid(data: OrgInfoData) {
    return Boolean(data.orgName.trim() && data.courseName.trim() && data.startDate && data.endDate);
 }
@@ -49,72 +49,6 @@ function isAttendanceUnitValid(data: AttendanceUnitData) {
    return (
       data.periods.length > 0 && data.periods.every((period) => period.startDate && period.endDate)
    );
-}
-
-function hasDateOrderError(period: AttendanceUnitPeriod) {
-   return Boolean(period.startDate) && Boolean(period.endDate) && period.startDate > period.endDate;
-}
-
-// 단위기간이 1단계에서 지정한 부트캠프 기간 안에 들어있는지 (날짜 둘 다 있어야 판단 가능)
-function isOutOfBootcampRange(period: AttendanceUnitPeriod, orgInfo: OrgInfoData) {
-   if (!period.startDate || !period.endDate || !orgInfo.startDate || !orgInfo.endDate) return false;
-   return period.startDate < orgInfo.startDate || period.endDate > orgInfo.endDate;
-}
-
-// 두 단위기간이 겹치는지 - 경계가 같은 날(한쪽 종료일 = 다른쪽 시작일)도 겹침으로 판정함
-// (하루가 두 단위기간에 동시에 속할 수는 없다고 보고 처리 - 백엔드와 다르면 알려주세요)
-function doPeriodsOverlap(a: AttendanceUnitPeriod, b: AttendanceUnitPeriod) {
-   if (!a.startDate || !a.endDate || !b.startDate || !b.endDate) return false;
-   return a.startDate <= b.endDate && b.startDate <= a.endDate;
-}
-
-// 가장 빠른 시작일을 가진 단위기간이 "첫 단위기간" - 그 시작일이 부트캠프 시작일과 다르면 에러
-function isMissingStartBoundary(
-   period: AttendanceUnitPeriod,
-   allPeriods: AttendanceUnitPeriod[],
-   orgInfo: OrgInfoData,
-) {
-   if (!period.startDate || !orgInfo.startDate) return false;
-
-   const datedPeriods = allPeriods.filter((p) => p.startDate);
-   const earliestStartDate = datedPeriods.reduce(
-      (earliest, p) => (p.startDate < earliest ? p.startDate : earliest),
-      datedPeriods[0].startDate,
-   );
-
-   return period.startDate === earliestStartDate && earliestStartDate !== orgInfo.startDate;
-}
-
-// 가장 늦은 종료일을 가진 단위기간이 "마지막 단위기간" - 그 종료일이 부트캠프 종료일과 다르면 에러
-function isMissingEndBoundary(
-   period: AttendanceUnitPeriod,
-   allPeriods: AttendanceUnitPeriod[],
-   orgInfo: OrgInfoData,
-) {
-   if (!period.endDate || !orgInfo.endDate) return false;
-
-   const datedPeriods = allPeriods.filter((p) => p.endDate);
-   const latestEndDate = datedPeriods.reduce(
-      (latest, p) => (p.endDate > latest ? p.endDate : latest),
-      datedPeriods[0].endDate,
-   );
-
-   return period.endDate === latestEndDate && latestEndDate !== orgInfo.endDate;
-}
-
-function getPeriodErrorType(
-   period: AttendanceUnitPeriod,
-   allPeriods: AttendanceUnitPeriod[],
-   orgInfo: OrgInfoData,
-): PeriodErrorType {
-   if (hasDateOrderError(period)) return 'order';
-   if (isOutOfBootcampRange(period, orgInfo)) return 'range';
-   if (allPeriods.some((other) => other.id !== period.id && doPeriodsOverlap(period, other))) {
-      return 'overlap';
-   }
-   if (isMissingStartBoundary(period, allPeriods, orgInfo)) return 'startBoundary';
-   if (isMissingEndBoundary(period, allPeriods, orgInfo)) return 'endBoundary';
-   return null;
 }
 
 function isValidPercent(value: string) {
@@ -180,11 +114,7 @@ export function useOnboardingWizard() {
              ? isWarningCriteriaValid(warningCriteria)
              : true;
 
-   const orgInfoDateError =
-      orgInfoSubmitAttempted &&
-      Boolean(orgInfo.startDate) &&
-      Boolean(orgInfo.endDate) &&
-      orgInfo.startDate > orgInfo.endDate;
+   const orgInfoDateError = orgInfoSubmitAttempted && hasOrgDateOrderError(orgInfo);
 
    // 기간 역전 / 부트캠프 기간 이탈 / 다른 단위기간과 겹침 / 양끝 경계 - 네 가지를 한 번에 계산해서 기간별로 하나씩만 보여줌
    const attendanceUnitPeriodErrors: Record<string, PeriodErrorType> = attendanceUnitSubmitAttempted
@@ -200,7 +130,7 @@ export function useOnboardingWizard() {
       if (!isCurrentStepValid) return;
 
       if (currentStep === 1) {
-         if (orgInfo.startDate > orgInfo.endDate) {
+         if (hasOrgDateOrderError(orgInfo)) {
             setOrgInfoSubmitAttempted(true);
             return;
          }
