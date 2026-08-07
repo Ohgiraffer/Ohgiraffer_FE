@@ -2,19 +2,28 @@
 
 import { Plus, X } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
+import type { PeriodErrorType } from '../hooks/useOnboardingWizard';
 import type { AttendanceUnitData, AttendanceUnitPeriod } from '../types';
 
 type Props = {
    value: AttendanceUnitData;
    onChange: (value: AttendanceUnitData) => void;
-   dateOrderErrors?: Record<string, boolean>;
+   periodErrors?: Record<string, PeriodErrorType>;
+};
+
+const PERIOD_ERROR_MESSAGES: Record<Exclude<PeriodErrorType, null>, string> = {
+   order: '종료일은 시작일보다 빠를 수 없습니다.',
+   range: '단위기간은 부트캠프 기간 내에 있어야 합니다.',
+   overlap: '다른 단위기간과 기간이 겹칩니다.',
+   startBoundary: '첫 단위기간 시작일은 부트캠프 시작일과 같아야 합니다.',
+   endBoundary: '마지막 단위기간 종료일은 부트캠프 종료일과 같아야 합니다.',
 };
 
 function createEmptyPeriod(): AttendanceUnitPeriod {
    return { id: crypto.randomUUID(), startDate: '', endDate: '' };
 }
 
-export default function Step2AttendanceUnitForm({ value, onChange, dateOrderErrors }: Props) {
+export default function Step2AttendanceUnitForm({ value, onChange, periodErrors }: Props) {
    const addPeriod = () => {
       onChange({ periods: [...value.periods, createEmptyPeriod()] });
    };
@@ -49,57 +58,61 @@ export default function Step2AttendanceUnitForm({ value, onChange, dateOrderErro
                </p>
             ) : (
                <div className="mt-2 flex flex-col gap-3">
-                  {value.periods.map((period, index) => (
-                     <div
-                        key={period.id}
-                        className="relative rounded-sm border border-gray-200 p-4"
-                     >
-                        <button
-                           type="button"
-                           onClick={() => removePeriod(period.id)}
-                           aria-label="단위기간 삭제"
-                           className="absolute right-3 top-3 cursor-pointer rounded-sm p-1 text-[#9CA3AF] hover:text-brand-maroon"
+                  {value.periods.map((period, index) => {
+                     const errorType = periodErrors?.[period.id] ?? null;
+
+                     return (
+                        <div
+                           key={period.id}
+                           className="relative rounded-sm border border-gray-200 p-4"
                         >
-                           <X size={16} />
-                        </button>
+                           <button
+                              type="button"
+                              onClick={() => removePeriod(period.id)}
+                              aria-label="단위기간 삭제"
+                              className="absolute right-3 top-3 cursor-pointer rounded-sm p-1 text-[#9CA3AF] hover:text-brand-maroon"
+                           >
+                              <X size={16} />
+                           </button>
 
-                        <p className="text-sm text-[#6B7280]">{index + 1}단위기간</p>
+                           <p className="text-sm text-[#6B7280]">{index + 1}단위기간</p>
 
-                        <div className="mt-1 grid grid-cols-2 gap-4">
-                           <div>
-                              <label className="text-[13px] font-semibold text-gray-900">
-                                 시작일
-                              </label>
-                              <DatePicker
-                                 value={period.startDate}
-                                 onChange={(nextValue) =>
-                                    updatePeriod(period.id, 'startDate', nextValue)
-                                 }
-                                 className="mt-1"
-                              />
-                           </div>
-                           <div>
-                              <label className="text-[13px] font-semibold text-gray-900">
-                                 종료일
-                              </label>
-                              <DatePicker
-                                 value={period.endDate}
-                                 onChange={(nextValue) =>
-                                    updatePeriod(period.id, 'endDate', nextValue)
-                                 }
-                                 className="mt-1"
-                              />
-                              <p
-                                 className={`mt-1 text-xs text-brand-red ${
-                                    dateOrderErrors?.[period.id] ? 'visible' : 'invisible'
-                                 }`}
-                              >
-                                 종료일은 시작일보다 빠를 수 없습니다.
-                              </p>
+                           <div className="mt-1 grid grid-cols-2 gap-4">
+                              <div>
+                                 <label className="text-[13px] font-semibold text-gray-900">
+                                    시작일
+                                 </label>
+                                 <DatePicker
+                                    value={period.startDate}
+                                    onChange={(nextValue) =>
+                                       updatePeriod(period.id, 'startDate', nextValue)
+                                    }
+                                    className="mt-1"
+                                 />
+                              </div>
+                              <div>
+                                 <label className="text-[13px] font-semibold text-gray-900">
+                                    종료일
+                                 </label>
+                                 <DatePicker
+                                    value={period.endDate}
+                                    onChange={(nextValue) =>
+                                       updatePeriod(period.id, 'endDate', nextValue)
+                                    }
+                                    className="mt-1"
+                                 />
+                                 <p
+                                    className={`mt-1 text-xs text-brand-red ${
+                                       errorType ? 'visible' : 'invisible'
+                                    }`}
+                                 >
+                                    {errorType ? PERIOD_ERROR_MESSAGES[errorType] : ''}
+                                 </p>
+                              </div>
                            </div>
                         </div>
-                     </div>
-                  ))}
+                     );
+                  })}
                </div>
             )}
 
