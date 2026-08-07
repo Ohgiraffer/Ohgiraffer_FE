@@ -16,59 +16,61 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
 export default function OnboardingSteps({ currentStep }: { currentStep: number }) {
    return (
       <aside className="w-72 shrink-0 border-r border-gray-200 bg-white px-4 py-5">
-         <p className="mb-4 text-md font-semibold text-gray-500">설정 단계</p>
+         <div className="sticky top-19">
+            <p className="mb-4 text-md font-semibold text-gray-500">설정 단계</p>
 
-         <ol className="flex flex-col gap-1">
-            {ONBOARDING_STEPS.map(({ step, title, description }) => {
-               const isActive = step === currentStep;
-               const isCompleted = step < currentStep;
+            <ol className="flex flex-col gap-1">
+               {ONBOARDING_STEPS.map(({ step, title, description }) => {
+                  const isActive = step === currentStep;
+                  const isCompleted = step < currentStep;
 
-               return (
-                  <li
-                     key={step}
-                     className={`flex items-center gap-3 rounded-sm px-3.5 py-3.5 ${
-                        isActive ? 'bg-brand-green' : isCompleted ? 'bg-[#F0F4F1]' : ''
-                     }`}
-                  >
-                     <span
-                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
-                           isActive
-                              ? 'bg-white/20 text-white'
-                              : isCompleted
-                                ? 'bg-brand-sage text-white'
-                                : 'bg-[#E5E7EB] text-[#9CA3AF]'
+                  return (
+                     <li
+                        key={step}
+                        className={`flex items-center gap-3 rounded-sm px-3.5 py-3.5 ${
+                           isActive ? 'bg-brand-green' : isCompleted ? 'bg-[#F0F4F1]' : ''
                         }`}
                      >
-                        {isCompleted ? <Check size={16} strokeWidth={4} /> : step}
-                     </span>
-                     <span className="flex flex-col">
                         <span
-                           className={`text-sm font-semibold mb-0.5 ${
+                           className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
                               isActive
-                                 ? 'text-white'
+                                 ? 'bg-white/20 text-white'
                                  : isCompleted
-                                   ? 'text-brand-green'
-                                   : 'text-[#9CA3AF]'
+                                   ? 'bg-brand-sage text-white'
+                                   : 'bg-[#E5E7EB] text-[#9CA3AF]'
                            }`}
                         >
-                           {title}
+                           {isCompleted ? <Check size={16} strokeWidth={4} /> : step}
                         </span>
-                        <span
-                           className={`text-xs ${
-                              isActive
-                                 ? 'text-white/80'
-                                 : isCompleted
-                                   ? 'text-brand-sage'
-                                   : 'text-[#C4C9CE]'
-                           }`}
-                        >
-                           {description}
+                        <span className="flex flex-col">
+                           <span
+                              className={`text-sm font-semibold mb-0.5 ${
+                                 isActive
+                                    ? 'text-white'
+                                    : isCompleted
+                                      ? 'text-brand-green'
+                                      : 'text-[#9CA3AF]'
+                              }`}
+                           >
+                              {title}
+                           </span>
+                           <span
+                              className={`text-xs ${
+                                 isActive
+                                    ? 'text-white/80'
+                                    : isCompleted
+                                      ? 'text-brand-sage'
+                                      : 'text-[#C4C9CE]'
+                              }`}
+                           >
+                              {description}
+                           </span>
                         </span>
-                     </span>
-                  </li>
-               );
-            })}
-         </ol>
+                     </li>
+                  );
+               })}
+            </ol>
+         </div>
       </aside>
    );
 }
