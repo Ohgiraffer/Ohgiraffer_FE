@@ -7,7 +7,7 @@ import ChangeHistoryTab from '../tabs/ChangeHistoryTab';
 import type { ManagerSettingTab } from '../types';
 
 const TABS: Array<{ key: ManagerSettingTab; label: string }> = [
-   { key: 'org', label: '조직·출결·결재 설정' },
+   { key: 'org', label: '조직·출결 설정' },
    { key: 'users', label: '사용자 및 권한 관리' },
    { key: 'history', label: '변경 이력' },
 ];

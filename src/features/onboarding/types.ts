@@ -1,15 +1,8 @@
-export type OrgInfoData = {
-   orgName: string;
-   courseName: string;
-   startDate: string;
-   endDate: string;
-};
+import type { BootcampOrgInfo, BootcampPeriod } from '@/features/bootcamp-settings/types';
 
-export type AttendanceUnitPeriod = {
-   id: string;
-   startDate: string;
-   endDate: string;
-};
+export type OrgInfoData = BootcampOrgInfo;
+
+export type AttendanceUnitPeriod = BootcampPeriod;
 
 export type AttendanceUnitData = {
    periods: AttendanceUnitPeriod[];
