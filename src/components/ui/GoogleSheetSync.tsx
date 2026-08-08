@@ -12,9 +12,7 @@ import {
 import { validateExternalSheet } from '@/services/externalSheet.service';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
-
-// TODO: 실제 서비스 계정 이메일이 정해지면 교체
-const SHARE_EMAIL = 'campflow-bot@campflow-lms.iam.gserviceaccount.com';
+import { GOOGLE_SERVICE_ACCOUNT_EMAIL as SHARE_EMAIL } from '@/lib/googleServiceAccount';
 
 export interface GoogleSheetColumnField {
    key: string;
@@ -36,11 +34,14 @@ export interface GoogleSheetSaveResult {
 }
 
 interface GoogleSheetSyncProps {
-   // 페이지마다 매핑해야 하는 컬럼이 달라서 목록을 props로 받는다
+   // 페이지마다 매핑해야 하는 컬럼이 달라서 목록을 props로 받는다. 빈 배열이면 컬럼 매핑 없이
+   // 연결 확인만으로 저장 가능한 단순한 흐름(예: 설문 응답 자동 기록)이 된다
    columns: GoogleSheetColumnField[];
    // 연결 확인(/external-sheets/validate)은 예산/평가/출결 등에서 공통으로 쓰는 API라 컴포넌트가 직접 호출한다.
    // 저장 방식만 페이지마다 달라서(연동 대상 테이블이 다름) 호출을 위임받는다.
    onSave: (result: GoogleSheetSaveResult) => Promise<void>;
+   // 연결된 상태의 헤더 영역에 페이지별 추가 액션(예: "평가 요약 결과 다운로드")을 끼워 넣는다
+   connectedExtra?: React.ReactNode;
 }
 
 interface Connection {
@@ -51,7 +52,7 @@ interface Connection {
    columnOptions: string[];
 }
 
-export default function GoogleSheetSync({ columns, onSave }: GoogleSheetSyncProps) {
+export default function GoogleSheetSync({ columns, onSave, connectedExtra }: GoogleSheetSyncProps) {
    const emailInputId = useId();
    const urlInputId = useId();
    const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
@@ -171,6 +172,7 @@ export default function GoogleSheetSync({ columns, onSave }: GoogleSheetSyncProp
                   </a>
                </div>
                <div className="flex shrink-0 items-center gap-2">
+                  {connectedExtra}
                   <span className="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-brand-green">
                      <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
                      연결됨
@@ -189,7 +191,7 @@ export default function GoogleSheetSync({ columns, onSave }: GoogleSheetSyncProp
    }
 
    return (
-      <div className="rounded-xs border border-gray-200 p-5">
+      <div className="rounded-xs border bg-white border-gray-200 p-5">
          <h3 className="text-sm font-bold text-gray-900">Google Sheet 연동</h3>
 
          <div className="mt-4 rounded-xs border border-[#C8D9CE] bg-[#F0F4F2] px-6 py-5">
@@ -242,57 +244,61 @@ export default function GoogleSheetSync({ columns, onSave }: GoogleSheetSyncProp
             )}
          </div>
 
-         <div className="mt-5">
-            <p className="flex items-center gap-2 text-sm font-bold text-gray-900">
-               컬럼 매핑
-               {!connection && (
-                  <span className="text-xs font-normal text-gray-400">연결 후 활성화됩니다</span>
-               )}
-            </p>
-            <div className="mt-3 grid grid-cols-3 gap-4">
-               {columns.map((column) => (
-                  <div key={column.key} className="px-1.5">
-                     <label className="flex items-center gap-1 text-sm text-gray-700">
-                        {column.label}
-                        <span className="text-brand-gold">*</span>
-                     </label>
-                     <Select
-                        value={
-                           columnMapping[column.key] !== undefined
-                              ? String(columnMapping[column.key])
-                              : ''
-                        }
-                        onValueChange={(value) => {
-                           if (value === null) return;
-                           setColumnMapping((prev) => ({ ...prev, [column.key]: Number(value) }));
-                        }}
-                        disabled={!connection}
-                     >
-                        <SelectTrigger className="mt-2 h-10 w-full rounded-xs">
-                           <SelectValue placeholder="컬럼 선택">
-                              {(value: string | null) => {
-                                 const option = value ? connection?.columnOptions[Number(value)] : undefined;
-                                 if (option === undefined) return null;
-                                 return duplicateColumnNames.has(option)
-                                    ? `${option} (${Number(value) + 1}번째 열)`
-                                    : option;
-                              }}
-                           </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent alignItemWithTrigger={false}>
-                           {connection?.columnOptions.map((option, index) => (
-                              <SelectItem key={index} value={String(index)}>
-                                 {duplicateColumnNames.has(option)
-                                    ? `${option} (${index + 1}번째 열)`
-                                    : option}
-                              </SelectItem>
-                           ))}
-                        </SelectContent>
-                     </Select>
-                  </div>
-               ))}
+         {columns.length > 0 && (
+            <div className="mt-5">
+               <p className="flex items-center gap-2 text-sm font-bold text-gray-900">
+                  컬럼 매핑
+                  {!connection && (
+                     <span className="text-xs font-normal text-gray-400">연결 후 활성화됩니다</span>
+                  )}
+               </p>
+               <div className="mt-3 grid grid-cols-3 gap-4">
+                  {columns.map((column) => (
+                     <div key={column.key} className="px-1.5">
+                        <label className="flex items-center gap-1 text-sm text-gray-700">
+                           {column.label}
+                           <span className="text-brand-gold">*</span>
+                        </label>
+                        <Select
+                           value={
+                              columnMapping[column.key] !== undefined
+                                 ? String(columnMapping[column.key])
+                                 : ''
+                           }
+                           onValueChange={(value) => {
+                              if (value === null) return;
+                              setColumnMapping((prev) => ({ ...prev, [column.key]: Number(value) }));
+                           }}
+                           disabled={!connection}
+                        >
+                           <SelectTrigger className="mt-2 h-10 w-full rounded-xs">
+                              <SelectValue placeholder="컬럼 선택">
+                                 {(value: string | null) => {
+                                    const option = value
+                                       ? connection?.columnOptions[Number(value)]
+                                       : undefined;
+                                    if (option === undefined) return null;
+                                    return duplicateColumnNames.has(option)
+                                       ? `${option} (${Number(value) + 1}번째 열)`
+                                       : option;
+                                 }}
+                              </SelectValue>
+                           </SelectTrigger>
+                           <SelectContent alignItemWithTrigger={false}>
+                              {connection?.columnOptions.map((option, index) => (
+                                 <SelectItem key={index} value={String(index)}>
+                                    {duplicateColumnNames.has(option)
+                                       ? `${option} (${index + 1}번째 열)`
+                                       : option}
+                                 </SelectItem>
+                              ))}
+                           </SelectContent>
+                        </Select>
+                     </div>
+                  ))}
+               </div>
             </div>
-         </div>
+         )}
 
          <div className="mt-6 flex justify-end border-t border-gray-100 pt-4">
             <button
