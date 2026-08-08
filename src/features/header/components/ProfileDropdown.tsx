@@ -72,7 +72,7 @@ export default function ProfileDropdown() {
          </button>
 
          {isMenuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-max min-w-40 max-w-xs rounded-xs border border-gray-200 bg-white text-gray-800">
+            <div className="absolute right-0 top-full z-70 mt-2 w-max min-w-40 max-w-xs rounded-xs border border-gray-200 bg-white text-gray-800">
                <div className="flex items-center p-3 gap-2">
                   <div className="min-w-0">
                      {me?.email && <p className="truncate text-sm text-gray-600">{me.email}</p>}

@@ -5,25 +5,31 @@ import { cn } from '@/lib/utils';
 import SearchInput from '@/components/ui/SearchInput';
 import DirectChatListItem from './DirectChatListItem';
 import GroupChatListItem from './GroupChatListItem';
-import { DIRECT_ROOMS, GROUP_ROOMS } from '../dummyData';
-import type { ChatRoom } from '../types';
+import type { ChatChannel } from '@/services/chat.service';
 
 interface ChatRoomListProps {
-   onSelectRoom: (room: ChatRoom) => void;
+   channels: ChatChannel[];
+   isLoading: boolean;
+   onSelectRoom: (room: ChatChannel) => void;
 }
 
 type Tab = 'direct' | 'group';
 
-export default function ChatRoomList({ onSelectRoom }: ChatRoomListProps) {
+export default function ChatRoomList({ channels, isLoading, onSelectRoom }: ChatRoomListProps) {
    const [tab, setTab] = useState<Tab>('direct');
    const [query, setQuery] = useState('');
 
-   const filteredDirectRooms = DIRECT_ROOMS.filter((room) =>
-      room.partner.name.toLowerCase().includes(query.toLowerCase()),
-   );
-   const filteredGroupRooms = GROUP_ROOMS.filter((room) =>
+   const directRooms = channels.filter((room) => room.channelType === 'DM');
+   const groupRooms = channels.filter((room) => room.channelType === 'GROUP');
+
+   const filteredDirectRooms = directRooms.filter((room) =>
       room.name.toLowerCase().includes(query.toLowerCase()),
    );
+   const filteredGroupRooms = groupRooms.filter((room) =>
+      room.name.toLowerCase().includes(query.toLowerCase()),
+   );
+
+   const activeRooms = tab === 'direct' ? filteredDirectRooms : filteredGroupRooms;
 
    return (
       <div className="flex min-h-0 flex-1 flex-col">
@@ -63,13 +69,29 @@ export default function ChatRoomList({ onSelectRoom }: ChatRoomListProps) {
          </div>
 
          <div className="flex-1 overflow-y-auto">
-            {tab === 'direct'
-               ? filteredDirectRooms.map((room) => (
-                    <DirectChatListItem key={room.id} room={room} onClick={() => onSelectRoom(room)} />
-                 ))
-               : filteredGroupRooms.map((room) => (
-                    <GroupChatListItem key={room.id} room={room} onClick={() => onSelectRoom(room)} />
-                 ))}
+            {isLoading ? (
+               <p className="p-6 text-center text-sm text-gray-400">불러오는 중...</p>
+            ) : activeRooms.length === 0 ? (
+               <p className="p-6 text-center text-sm text-gray-400">
+                  {tab === 'direct' ? '1:1 채팅방이 없습니다' : '단체 채팅방이 없습니다'}
+               </p>
+            ) : tab === 'direct' ? (
+               filteredDirectRooms.map((room) => (
+                  <DirectChatListItem
+                     key={room.channelId}
+                     room={room}
+                     onClick={() => onSelectRoom(room)}
+                  />
+               ))
+            ) : (
+               filteredGroupRooms.map((room) => (
+                  <GroupChatListItem
+                     key={room.channelId}
+                     room={room}
+                     onClick={() => onSelectRoom(room)}
+                  />
+               ))
+            )}
          </div>
       </div>
    );
