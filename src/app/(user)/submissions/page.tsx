@@ -1,3 +1,10 @@
+import { Suspense } from 'react';
+import SubmissionsPageClient from '@/features/submissions/components/SubmissionsPageClient';
+
 export default function SubmissionsPage() {
-   return <div>SubmissionsPage</div>;
+   return (
+      <Suspense>
+         <SubmissionsPageClient />
+      </Suspense>
+   );
 }

@@ -102,3 +102,48 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 
    return data as T;
 }
+
+function extractFilename(contentDisposition: string | null): string | null {
+   if (!contentDisposition) return null;
+   const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition);
+   if (utf8Match) return decodeURIComponent(utf8Match[1]);
+   const plainMatch = /filename="?([^";]+)"?/i.exec(contentDisposition);
+   return plainMatch ? plainMatch[1] : null;
+}
+
+export interface ApiFetchBlobResult {
+   blob: Blob;
+   filename: string | null;
+}
+
+// 파일 다운로드처럼 응답 본문이 JSON이 아닌 엔드포인트(302 redirect → 바이너리, PDF 등)용.
+// fetch가 redirect를 자동으로 따라가 최종 바이너리 응답을 그대로 blob으로 돌려줌
+export async function apiFetchBlob(
+   path: string,
+   options: RequestInit = {},
+): Promise<ApiFetchBlobResult> {
+   const buildHeaders = (): HeadersInit => ({
+      ...(getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
+      ...options.headers,
+   });
+
+   let res = await rawRequest(path, { ...options, headers: buildHeaders() });
+
+   if (res.status === 401) {
+      try {
+         await refreshAccessToken();
+         res = await rawRequest(path, { ...options, headers: buildHeaders() });
+      } catch {
+         setAccessToken(null);
+      }
+   }
+
+   if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new ApiError(data, res.status);
+   }
+
+   const blob = await res.blob();
+   const filename = extractFilename(res.headers.get('Content-Disposition'));
+   return { blob, filename };
+}
