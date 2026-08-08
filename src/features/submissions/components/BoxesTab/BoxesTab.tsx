@@ -59,7 +59,7 @@ export default function BoxesTab({ isCreating, onCreatingChange }: BoxesTabProps
    const handleEditClick = async (box: SubmissionBoxListItem) => {
       onCreatingChange(false);
       try {
-         // 항목(items)의 실제 ID까지 필요해서 상세 조회(제출 현황) API로 다시 받아온다
+         // 항목(items)의 실제 ID까지 필요해서 상세 조회(제출 현황) API로 다시 받아옴
          const detail = await getSubmissionBoxSubmissions(box.submissionBoxId, { size: 1 });
          setEditTarget({
             submissionBoxId: detail.submissionBoxId,
