@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -79,6 +79,9 @@ function ToggleButton({
 
 export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCreateFormProps) {
    const isEditing = !!editTarget;
+   const projectNameId = useId();
+   const startAtId = useId();
+   const dueAtId = useId();
 
    const [projectName, setProjectName] = useState(editTarget?.projectName ?? '');
    const [targetScope, setTargetScope] = useState<TargetScope>(
@@ -195,10 +198,14 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
 
          <div className="mt-5 grid grid-cols-2 gap-6">
             <div>
-               <label className="flex items-center gap-1 text-sm font-semibold text-gray-900">
+               <label
+                  htmlFor={projectNameId}
+                  className="flex items-center gap-1 text-sm font-semibold text-gray-900"
+               >
                   프로젝트명 <span className="font-bold text-brand-gold">*</span>
                </label>
                <input
+                  id={projectNameId}
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
                   placeholder="예: 팀 최종 발표자료"
@@ -233,16 +240,22 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
             </div>
 
             <div>
-               <label className="flex items-center gap-1 text-sm font-semibold text-gray-900">
+               <label
+                  htmlFor={startAtId}
+                  className="flex items-center gap-1 text-sm font-semibold text-gray-900"
+               >
                   제출 시작일 <span className="font-bold text-brand-gold">*</span>
                </label>
-               <DatePicker value={startAt} onChange={setStartAt} className="mt-2" />
+               <DatePicker id={startAtId} value={startAt} onChange={setStartAt} className="mt-2" />
             </div>
             <div>
-               <label className="flex items-center gap-1 text-sm font-semibold text-gray-900">
+               <label
+                  htmlFor={dueAtId}
+                  className="flex items-center gap-1 text-sm font-semibold text-gray-900"
+               >
                   제출 마감일 <span className="font-bold text-brand-gold">*</span>
                </label>
-               <DatePicker value={dueAt} onChange={setDueAt} className="mt-2" />
+               <DatePicker id={dueAtId} value={dueAt} onChange={setDueAt} className="mt-2" />
             </div>
          </div>
 
@@ -276,9 +289,9 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
 
          <div className="mt-5">
             <div className="flex items-center justify-between">
-               <label className="flex items-center gap-1 text-sm font-semibold text-gray-900">
+               <span className="flex items-center gap-1 text-sm font-semibold text-gray-900">
                   제출 항목 <span className="font-bold text-brand-gold">*</span>
-               </label>
+               </span>
                <span className="text-xs text-gray-400">최소 1개 필수</span>
             </div>
 
@@ -287,7 +300,11 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
                   <div key={item.draftId} className="rounded-xs border border-gray-200 p-3">
                      <div className={cn('grid items-center gap-3', ITEM_GRID_COLUMNS)}>
                         <span className="text-sm text-gray-400">{index + 1}</span>
+                        <label htmlFor={`item-name-${item.draftId}`} className="sr-only">
+                           항목 {index + 1} 이름
+                        </label>
                         <input
+                           id={`item-name-${item.draftId}`}
                            value={item.name}
                            onChange={(e) => updateItem(item.draftId, { name: e.target.value })}
                            placeholder="항목명 (예: 발표자료)"

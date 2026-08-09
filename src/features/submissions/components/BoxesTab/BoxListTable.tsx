@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Pencil, Trash2 } from 'lucide-react';
 import StatusBadge from '../StatusBadge';
@@ -38,9 +39,13 @@ export default function BoxListTable({ boxes, onEdit, onDelete }: BoxListTablePr
                   >
                      <td className="px-6 py-4 text-gray-500">{index + 1}</td>
                      <td className="px-6 py-4 font-medium text-gray-900">
-                        <span className="group-hover:font-bold group-hover:underline">
+                        <Link
+                           href={`/submissions/boxes/${box.submissionBoxId}`}
+                           onClick={(e) => e.stopPropagation()}
+                           className="group-hover:font-bold group-hover:underline"
+                        >
                            {box.projectName}
-                        </span>
+                        </Link>
                      </td>
                      <td className="flex items-center justify-center px-6 py-4 text-gray-500">
                         {formatDateTime(box.dueAt)}
