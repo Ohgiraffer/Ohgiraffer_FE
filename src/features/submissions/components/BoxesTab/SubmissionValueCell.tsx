@@ -57,12 +57,14 @@ export default function SubmissionValueCell({
       );
    }
 
+   if (!value.externalUrl) {
+      return <span className="text-gray-300">—</span>;
+   }
+
    return (
       <button
          type="button"
-         onClick={() =>
-            value.externalUrl && window.open(value.externalUrl, '_blank', 'noopener,noreferrer')
-         }
+         onClick={() => window.open(value.externalUrl!, '_blank', 'noopener,noreferrer')}
          className="flex cursor-pointer items-center gap-1 rounded-xs border border-gray-200 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
       >
          <ExternalLink size={12} />

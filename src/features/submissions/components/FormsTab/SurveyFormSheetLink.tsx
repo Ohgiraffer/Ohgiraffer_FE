@@ -10,8 +10,8 @@ import {
 } from '@/components/ui/shadcn/select';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
-import GoogleSheetEmailNotice from '@/components/ui/GoogleSheetEmailNotice';
-import GoogleSheetConnectedCard from '@/components/ui/GoogleSheetConnectedCard';
+import GoogleSheetEmailNotice from '@/components/ui/googlesheet/GoogleSheetEmailNotice';
+import GoogleSheetConnectedCard from '@/components/ui/googlesheet/GoogleSheetConnectedCard';
 import {
    saveSurveySheetLink,
    validateSurveySheetLink,

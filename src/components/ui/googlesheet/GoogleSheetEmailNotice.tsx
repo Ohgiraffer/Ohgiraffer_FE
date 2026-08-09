@@ -9,9 +9,13 @@ import { GOOGLE_SERVICE_ACCOUNT_EMAIL } from '@/lib/googleServiceAccount';
 export default function GoogleSheetEmailNotice() {
    const emailInputId = useId();
 
-   const handleCopyEmail = () => {
-      navigator.clipboard.writeText(GOOGLE_SERVICE_ACCOUNT_EMAIL);
-      toast.success('이메일을 복사했습니다.');
+   const handleCopyEmail = async () => {
+      try {
+         await navigator.clipboard.writeText(GOOGLE_SERVICE_ACCOUNT_EMAIL);
+         toast.success('이메일을 복사했습니다.');
+      } catch {
+         toast.error('이메일 복사에 실패했습니다. 직접 선택해 복사해주세요.');
+      }
    };
 
    return (

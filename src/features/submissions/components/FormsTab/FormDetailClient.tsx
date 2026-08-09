@@ -217,7 +217,7 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
             </div>
          ) : (
             <>
-               <div className="mt-5 rounded-sm border border-[#E5E7EB] bg-white p-6">
+               <div className="mt-5 rounded-xs border border-[#E5E7EB] bg-white p-6">
                   <div className="flex items-start justify-between">
                      <div>
                         <h2 className="text-lg font-bold text-gray-900">{detail.title}</h2>
@@ -238,7 +238,7 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                            href={detail.editUrl}
                            target="_blank"
                            rel="noopener noreferrer"
-                           className="flex items-center gap-1 rounded-xs border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                           className="flex items-center gap-1 rounded-xs border border-gray-200 px-3 py-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
                         >
                            <ExternalLink size={12} />
                            Google Form 편집
@@ -247,7 +247,7 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                   </div>
                </div>
 
-               <div className="mt-6 rounded-sm border border-[#E5E7EB] bg-white">
+               <div className="mt-6 rounded-xs border border-[#E5E7EB] bg-white">
                   <div className="flex items-center justify-between p-5">
                      <div className="flex items-center gap-3">
                         <span className="text-sm font-bold text-gray-900">
@@ -362,7 +362,7 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                         type="button"
                         onClick={handleDownloadPdf}
                         disabled={isDownloadingPdf}
-                        className="flex cursor-pointer items-center gap-1.5 rounded-sm bg-brand-green px-3 py-1.5 text-xs font-medium text-white hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
+                        className="flex cursor-pointer items-center gap-1.5 rounded-xs bg-brand-green px-3 py-2 text-xs font-medium text-white hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
                      >
                         <Download size={12} />
                         {isDownloadingPdf ? '생성 중...' : '평가 요약 결과 다운로드'}

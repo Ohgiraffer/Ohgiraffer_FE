@@ -161,7 +161,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
             </div>
          ) : (
             <>
-               <div className="mt-5 rounded-sm border border-[#E5E7EB] bg-white p-6">
+               <div className="mt-5 rounded-xs border border-[#E5E7EB] bg-white p-6">
                   <div className="flex items-start justify-between">
                      <div>
                         <h2 className="text-lg font-bold text-gray-900">{detail.projectName}</h2>
@@ -188,7 +188,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                         {detail.items.map((item) => (
                            <span
                               key={item.submissionBoxItemId}
-                              className="rounded-xs border border-gray-200 px-3 py-1.5 text-xs text-gray-600"
+                              className="rounded-xs border border-gray-200 px-3 py-1.5 bg-[#F9FAFB] text-xs text-gray-600"
                            >
                               {item.itemName} · {item.allowedFileTypes ?? '링크'}
                            </span>
@@ -197,7 +197,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                   </div>
                </div>
 
-               <div className="mt-6 rounded-sm border border-[#E5E7EB] bg-white">
+               <div className="mt-6 rounded-xs border border-[#E5E7EB] bg-white">
                   <div className="flex items-center justify-between p-5">
                      <div className="flex items-center gap-3">
                         <span className="text-sm font-bold text-gray-900">
