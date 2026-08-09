@@ -44,6 +44,9 @@ interface ChatConversationProps {
    // 스레드(ThreadPanel)에서 루트 메시지를 수정/삭제하면, 이 목록에도 같은 메시지가 들어있을 수 있어
    // 그 최신 상태를 여기로도 반영해달라고 부모(ChatPanel)가 내려주는 값
    incomingMessagePatch?: ChatMessage | null;
+   // 서버가 메시지 조회 시점에 읽음 처리를 하므로, 메시지를 성공적으로 불러올 때마다 호출해
+   // 채널 목록/안읽음 배지를 곧바로 최신화하라고 부모에게 알림
+   onMessagesRead?: () => void;
 }
 
 export default function ChatConversation({
@@ -53,6 +56,7 @@ export default function ChatConversation({
    onOpenThread,
    onBack,
    incomingMessagePatch,
+   onMessagesRead,
 }: ChatConversationProps) {
    const { me } = useAuth();
    const myUserId = me?.userId ?? null;
@@ -127,6 +131,7 @@ export default function ChatConversation({
                .reverse()
                .map((dto) => mapMessageDto(dto, ctx));
             setMessages(mapped);
+            onMessagesRead?.();
 
             if (room.channelType !== 'DM') return;
             // DM은 채널 목록에 상대방 userId가 없어 온라인 여부도 못 구하므로, 나를 뺀 나머지 한 명의 상태를 이어서 조회한다
@@ -176,11 +181,12 @@ export default function ChatConversation({
                      .map((dto) => mapMessageDto(dto, mapCtx));
                   return newOnes.length > 0 ? [...merged, ...newOnes] : merged;
                });
+               onMessagesRead?.();
             })
             .catch(() => {}); // 백그라운드 새로고침이라 실패해도 조용히 무시
       }, MESSAGE_POLL_INTERVAL_MS);
       return () => clearInterval(interval);
-   }, [room.channelId, mapCtx]);
+   }, [room.channelId, mapCtx, onMessagesRead]);
 
    // 검색어가 바뀔 때마다(디바운스 후) 서버 검색 API로 채널 전체 이력에서 매치를 찾는다.
    // 다만 위/아래 이동은 실제로 화면에 그려진 메시지로만 가능하므로(페이지네이션이 없어 최근분만 로드됨),

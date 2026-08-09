@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Plus } from 'lucide-react';
 import ChatRoomList from './ChatRoomList/ChatRoomList';
 import ChatConversation from './ChatConversation/ChatConversation';
@@ -24,6 +24,7 @@ interface ChatPanelProps {
    isLoadingChannels: boolean;
    reloadChannels: () => void;
    totalUnreadCount: number;
+   reloadUnreadCount: () => void;
 }
 
 export default function ChatPanel({
@@ -34,6 +35,7 @@ export default function ChatPanel({
    isLoadingChannels,
    reloadChannels,
    totalUnreadCount,
+   reloadUnreadCount,
 }: ChatPanelProps) {
    const [activeRoom, setActiveRoom] = useState<ChatChannel | null>(null);
    const [isNewChatOpen, setIsNewChatOpen] = useState(false);
@@ -65,6 +67,15 @@ export default function ChatPanel({
    const handleReplySent = (rootId: string) => {
       setReplyCounts((prev) => ({ ...prev, [rootId]: (prev[rootId] ?? 0) + 1 }));
    };
+
+   // 서버는 메시지 조회 시점에 읽음 처리를 하므로, 채널에 들어가 메시지를 불러온 직후
+   // 안읽음 배지가 다음 폴링(최대 20초)까지 낡은 값을 보여주지 않도록 바로 다시 조회한다.
+   // reloadChannels/reloadUnreadCount는 각 훅에서 이미 안정된 참조라, 이 함수도 useCallback으로
+   // 고정해둬야 ChatConversation의 폴링 effect가 매 렌더마다 재시작되지 않는다
+   const handleMessagesRead = useCallback(() => {
+      reloadChannels();
+      reloadUnreadCount();
+   }, [reloadChannels, reloadUnreadCount]);
 
    const handleCreateRoom = async ({ userIds, name }: { userIds: number[]; name?: string }) => {
       try {
@@ -122,6 +133,7 @@ export default function ChatPanel({
                   onOpenThread={setThreadRoot}
                   onBack={handleBack}
                   incomingMessagePatch={rootPatch}
+                  onMessagesRead={handleMessagesRead}
                />
             ) : (
                <>

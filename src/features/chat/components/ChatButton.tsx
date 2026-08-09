@@ -12,7 +12,7 @@ export default function ChatButton() {
    // 헤더 배지와 패널이 같은 값을 보도록 여기서 한 번만 조회해 아래로 내려준다.
    // 각자 따로 조회하면(예전 구조) 두 배지가 서로 다른 시점의 값을 보여줄 수 있었다
    const { channels, isLoading: isLoadingChannels, reload: reloadChannels } = useChatChannels();
-   const { totalUnreadCount } = useUnreadCount();
+   const { totalUnreadCount, reload: reloadUnreadCount } = useUnreadCount();
 
    const handleToggle = () => {
       if (isOpen) {
@@ -56,6 +56,7 @@ export default function ChatButton() {
                isLoadingChannels={isLoadingChannels}
                reloadChannels={reloadChannels}
                totalUnreadCount={totalUnreadCount}
+               reloadUnreadCount={reloadUnreadCount}
             />
          )}
       </>
