@@ -84,9 +84,11 @@ export default function ChangeHistoryTab() {
                         return (
                            <tr key={entry.id} className="border-b border-[#F3F4F6] last:border-b-0">
                               <td className="px-6 py-4 text-gray-500">{rowNumber}</td>
-                              <td className="px-6 py-4 text-center text-gray-900">{entry.changedByName}</td>
+                              <td className="px-6 py-4 text-center text-gray-900">
+                                 {entry.changedByName}
+                              </td>
                               <td className="px-6 py-4 text-center text-gray-700">
-                                 {format(parseISO(entry.changedAt), 'yyyy.MM.dd HH:mm')}
+                                 {format(parseISO(entry.changedAt), 'yyyy-MM-dd HH:mm')}
                               </td>
                               <td className="px-6 py-4  font-semibold text-brand-green">
                                  {entry.changedField}

@@ -1,3 +1,10 @@
+import { Suspense } from 'react';
+import ApprovalsPageClient from '@/features/approvals/components/ApprovalsPageClient';
+
 export default function ApprovalsPage() {
-   return <div>ApprovalsPage</div>;
+   return (
+      <Suspense>
+         <ApprovalsPageClient />
+      </Suspense>
+   );
 }
