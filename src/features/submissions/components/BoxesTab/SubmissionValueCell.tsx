@@ -29,21 +29,21 @@ export default function SubmissionValueCell({
    if (!value) return <span className="text-gray-300">—</span>;
 
    if (value.itemType === 'FILE') {
+      const displayName = value.originalFileName || '이름 없는 파일';
       return (
          <div className="flex items-center gap-1">
             {value.contentType && PREVIEWABLE_CONTENT_TYPES.has(value.contentType) ? (
                <button
                   type="button"
                   onClick={() => onPreview(value.submissionItemValueId)}
+                  aria-label={`${displayName} 미리보기`}
                   className="flex min-w-0 flex-1 cursor-pointer items-center gap-1 rounded-xs border border-gray-200 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
                >
                   <Eye size={12} className="shrink-0" />
-                  <span className="truncate">{value.originalFileName}</span>
+                  <span className="truncate">{displayName}</span>
                </button>
             ) : (
-               <span className="min-w-0 flex-1 truncate text-xs text-gray-700">
-                  {value.originalFileName}
-               </span>
+               <span className="min-w-0 flex-1 truncate text-xs text-gray-700">{displayName}</span>
             )}
             <button
                type="button"

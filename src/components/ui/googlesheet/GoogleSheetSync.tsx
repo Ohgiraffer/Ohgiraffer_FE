@@ -54,6 +54,9 @@ interface Connection {
 
 export default function GoogleSheetSync({ columns, onSave, connectedExtra }: GoogleSheetSyncProps) {
    const urlInputId = useId();
+   // 컬럼 매핑 select가 반복 렌더링되므로 useId를 컬럼 개수만큼 미리 부를 수 없다 -
+   // 한 번만 받은 prefix에 column.key(이미 고유함이 보장된 값)를 붙여 각 select의 id를 만든다
+   const columnFieldPrefix = useId();
    const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
    const [isVerifying, setIsVerifying] = useState(false);
    const [verifyError, setVerifyError] = useState('');
@@ -204,49 +207,62 @@ export default function GoogleSheetSync({ columns, onSave, connectedExtra }: Goo
                   )}
                </p>
                <div className="mt-3 grid grid-cols-3 gap-4">
-                  {columns.map((column) => (
-                     <div key={column.key} className="px-1.5">
-                        <label className="flex items-center gap-1 text-sm text-gray-700">
-                           {column.label}
-                           <span className="text-brand-gold">*</span>
-                        </label>
-                        <Select
-                           value={
-                              columnMapping[column.key] !== undefined
-                                 ? String(columnMapping[column.key])
-                                 : ''
-                           }
-                           onValueChange={(value) => {
-                              if (value === null) return;
-                              setColumnMapping((prev) => ({ ...prev, [column.key]: Number(value) }));
-                           }}
-                           disabled={!connection}
-                        >
-                           <SelectTrigger className="mt-2 h-10 w-full rounded-xs">
-                              <SelectValue placeholder="컬럼 선택">
-                                 {(value: string | null) => {
-                                    const option = value
-                                       ? connection?.columnOptions[Number(value)]
-                                       : undefined;
-                                    if (option === undefined) return null;
-                                    return duplicateColumnNames.has(option)
-                                       ? `${option} (${Number(value) + 1}번째 열)`
-                                       : option;
-                                 }}
-                              </SelectValue>
-                           </SelectTrigger>
-                           <SelectContent alignItemWithTrigger={false}>
-                              {connection?.columnOptions.map((option, index) => (
-                                 <SelectItem key={index} value={String(index)}>
-                                    {duplicateColumnNames.has(option)
-                                       ? `${option} (${index + 1}번째 열)`
-                                       : option}
-                                 </SelectItem>
-                              ))}
-                           </SelectContent>
-                        </Select>
-                     </div>
-                  ))}
+                  {columns.map((column) => {
+                     const fieldId = `${columnFieldPrefix}-${column.key}`;
+                     return (
+                        <div key={column.key} className="px-1.5">
+                           <label
+                              htmlFor={fieldId}
+                              className="flex items-center gap-1 text-sm text-gray-700"
+                           >
+                              {column.label}
+                              <span className="text-brand-gold">*</span>
+                           </label>
+                           <Select
+                              value={
+                                 columnMapping[column.key] !== undefined
+                                    ? String(columnMapping[column.key])
+                                    : ''
+                              }
+                              onValueChange={(value) => {
+                                 if (value === null) return;
+                                 setColumnMapping((prev) => ({
+                                    ...prev,
+                                    [column.key]: Number(value),
+                                 }));
+                              }}
+                              disabled={!connection}
+                           >
+                              <SelectTrigger
+                                 id={fieldId}
+                                 aria-required="true"
+                                 className="mt-2 h-10 w-full rounded-xs"
+                              >
+                                 <SelectValue placeholder="컬럼 선택">
+                                    {(value: string | null) => {
+                                       const option = value
+                                          ? connection?.columnOptions[Number(value)]
+                                          : undefined;
+                                       if (option === undefined) return null;
+                                       return duplicateColumnNames.has(option)
+                                          ? `${option} (${Number(value) + 1}번째 열)`
+                                          : option;
+                                    }}
+                                 </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent alignItemWithTrigger={false}>
+                                 {connection?.columnOptions.map((option, index) => (
+                                    <SelectItem key={index} value={String(index)}>
+                                       {duplicateColumnNames.has(option)
+                                          ? `${option} (${index + 1}번째 열)`
+                                          : option}
+                                    </SelectItem>
+                                 ))}
+                              </SelectContent>
+                           </Select>
+                        </div>
+                     );
+                  })}
                </div>
             </div>
          )}
