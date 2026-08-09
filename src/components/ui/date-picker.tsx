@@ -17,6 +17,7 @@ type DatePickerProps = {
    onChange: (value: string) => void;
    placeholder?: string;
    className?: string;
+   id?: string;
 };
 
 export function DatePicker({
@@ -24,6 +25,7 @@ export function DatePicker({
    onChange,
    placeholder = 'YYYY-MM-DD',
    className,
+   id,
 }: DatePickerProps) {
    const [open, setOpen] = useState(false);
 
@@ -33,6 +35,7 @@ export function DatePicker({
    return (
       <div className={cn('relative flex items-center', className)}>
          <IMaskInput
+            id={id}
             mask="0000-00-00"
             value={value}
             unmask={false}
