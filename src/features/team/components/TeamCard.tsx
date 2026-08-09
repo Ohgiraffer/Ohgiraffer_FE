@@ -63,10 +63,10 @@ export default function TeamCard({
          onDrop={(e) => {
             e.preventDefault();
             onDragOverChange(false);
-            const raw = e.dataTransfer.getData(TEAM_MEMBER_DRAG_TYPE);
+            const raw = e.dataTransfer.getData(TEAM_MEMBER_DRAG_TYPE).trim();
             if (!raw) return;
             const userId = Number(raw);
-            if (Number.isInteger(userId)) onDropUser(userId);
+            if (Number.isSafeInteger(userId) && userId > 0) onDropUser(userId);
          }}
          className={cn(
             'rounded-sm border bg-white p-4 transition-colors',

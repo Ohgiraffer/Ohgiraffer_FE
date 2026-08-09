@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { isValid, parse } from 'date-fns';
 import { X } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -9,6 +10,12 @@ import { ApiError } from '@/lib/http';
 import { createTeam } from '@/services/team.service';
 import { formatTeamPeriod } from '../formatTeamDate';
 import type { Team } from '../types';
+
+// DatePicker는 마스크 입력이 끝나기 전(예: "2025-06-0")에도 onChange를 호출하므로,
+// 열 자리가 다 채워진 유효한 날짜인지 별도로 확인해야 한다
+function isCompleteDate(value: string) {
+   return value.length === 10 && isValid(parse(value, 'yyyy-MM-dd', new Date()));
+}
 
 interface TeamCreateModalProps {
    existingTeams: Team[];
@@ -30,11 +37,13 @@ export default function TeamCreateModal({
    const [endDate, setEndDate] = useState(hasReusablePeriod ? referenceTeam!.endDate! : '');
    const [isSubmitting, setIsSubmitting] = useState(false);
 
-   const isDateRangeInvalid = startDate.length > 0 && endDate.length > 0 && endDate < startDate;
+   const isStartDateComplete = isCompleteDate(startDate);
+   const isEndDateComplete = isCompleteDate(endDate);
+   const isDateRangeInvalid = isStartDateComplete && isEndDateComplete && endDate < startDate;
    const canSubmit =
       name.trim().length > 0 &&
-      startDate.length > 0 &&
-      endDate.length > 0 &&
+      isStartDateComplete &&
+      isEndDateComplete &&
       !isDateRangeInvalid &&
       !isSubmitting;
 
