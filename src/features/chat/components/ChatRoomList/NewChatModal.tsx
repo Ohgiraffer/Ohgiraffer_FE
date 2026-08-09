@@ -5,7 +5,7 @@ import { X } from 'lucide-react';
 import SearchInput from '@/components/ui/SearchInput';
 import ChatAvatar from '../ChatAvatar';
 import { searchChatUsers, type ChatUserSearchResult } from '@/services/chat.service';
-import { ApiError } from '@/lib/http';
+import { getChatErrorMessage } from '../../chatErrors';
 import { toast } from '@/lib/toast';
 
 interface NewChatModalProps {
@@ -40,9 +40,7 @@ export default function NewChatModal({ onClose, onCreate }: NewChatModalProps) {
          const users = await searchChatUsers(value);
          setResults(users);
       } catch (err) {
-         toast.error(
-            err instanceof ApiError ? err.message : '검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
-         );
+         toast.error(getChatErrorMessage(err, '검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'));
       } finally {
          setHasSearched(true);
          setIsSearching(false);
@@ -147,7 +145,7 @@ export default function NewChatModal({ onClose, onCreate }: NewChatModalProps) {
                               onChange={() => toggleUser(user)}
                               className="h-4 w-4 cursor-pointer accent-brand-green"
                            />
-                           <ChatAvatar name={user.name} isOnline={user.isOnline} />
+                           <ChatAvatar name={user.name} imageUrl={user.profileUrl} isOnline={user.isOnline} />
                            <span className="truncate text-sm font-medium text-gray-900">
                               {user.name ?? '알 수 없음'}
                            </span>

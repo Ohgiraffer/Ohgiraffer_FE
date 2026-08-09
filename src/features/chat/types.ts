@@ -3,6 +3,7 @@ export interface ChatMessage {
    senderId: number;
    senderName: string;
    content: string;
+   attachmentUrl: string | null;
    sentAt: string; // 화면 표시용 'HH:mm'
    sentAtISO: string; // 날짜 구분선 계산용 원본 시각
    isMine: boolean;
