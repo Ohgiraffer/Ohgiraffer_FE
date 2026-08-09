@@ -28,9 +28,17 @@ interface ThreadPanelProps {
    rootMessage: ChatMessage;
    onClose: () => void;
    onReplySent: (rootId: string) => void;
+   // 루트 메시지를 여기서 수정/삭제하면, 대화 목록에 있는 같은 메시지도 최신 상태로 맞추라고 부모에게 알림
+   onRootMessageChange: (message: ChatMessage) => void;
 }
 
-export default function ThreadPanel({ room, rootMessage, onClose, onReplySent }: ThreadPanelProps) {
+export default function ThreadPanel({
+   room,
+   rootMessage,
+   onClose,
+   onReplySent,
+   onRootMessageChange,
+}: ThreadPanelProps) {
    const { me } = useAuth();
    const myUserId = me?.userId ?? null;
    const myName = me?.name ?? '나';
@@ -87,16 +95,22 @@ export default function ThreadPanel({ room, rootMessage, onClose, onReplySent }:
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [rootMessage.id, room.channelId]);
 
+   // id로 병합해 기존 답글은 최신 내용(다른 사람의 수정·삭제 포함)으로 갱신하고, 새 답글만 뒤에 붙인다
    useEffect(() => {
       const interval = setInterval(() => {
          getMessageReplies(rootMessage.id)
             .then((dtos) => {
                setReplies((prev) => {
+                  const dtoById = new Map(dtos.map((dto) => [dto.sendbirdMessageId, dto]));
+                  const merged = prev.map((m) => {
+                     const dto = dtoById.get(m.id);
+                     return dto ? mapMessageDto(dto, mapCtx) : m;
+                  });
                   const existingIds = new Set(prev.map((m) => m.id));
                   const newOnes = dtos
-                     .map((dto) => mapMessageDto(dto, mapCtx))
-                     .filter((m) => !existingIds.has(m.id));
-                  return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+                     .filter((dto) => !existingIds.has(dto.sendbirdMessageId))
+                     .map((dto) => mapMessageDto(dto, mapCtx));
+                  return newOnes.length > 0 ? [...merged, ...newOnes] : merged;
                });
             })
             .catch(() => {}); // 백그라운드 새로고침이라 실패해도 조용히 무시
@@ -142,7 +156,9 @@ export default function ThreadPanel({ room, rootMessage, onClose, onReplySent }:
             const attachmentUrl = pendingAttachment?.url ?? null;
             await editMessage(editingMessage.id, { channelId: room.channelId, content, attachmentUrl });
             if (editingMessage.id === root.id) {
-               setRoot((prev) => ({ ...prev, content, attachmentUrl }));
+               const updatedRoot = { ...root, content, attachmentUrl };
+               setRoot(updatedRoot);
+               onRootMessageChange(updatedRoot);
             } else {
                setReplies((prev) =>
                   prev.map((m) => (m.id === editingMessage.id ? { ...m, content, attachmentUrl } : m)),
@@ -174,7 +190,9 @@ export default function ThreadPanel({ room, rootMessage, onClose, onReplySent }:
       try {
          await deleteMessage(deleteTarget.id, room.channelId);
          if (deleteTarget.id === root.id) {
-            setRoot((prev) => ({ ...prev, isDeleted: true, content: '' }));
+            const updatedRoot = { ...root, isDeleted: true, content: '' };
+            setRoot(updatedRoot);
+            onRootMessageChange(updatedRoot);
          } else {
             setReplies((prev) =>
                prev.map((m) => (m.id === deleteTarget.id ? { ...m, isDeleted: true, content: '' } : m)),

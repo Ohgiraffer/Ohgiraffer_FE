@@ -7,6 +7,15 @@ import type { ChatMessage } from '../../types';
 
 const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|webp|svg)$/i;
 
+// 서명 쿼리(?X-Amz-...)나 fragment가 붙은 URL도 있어, 쿼리/fragment를 뺀 pathname만으로 확장자를 판단한다
+function isImageAttachment(url: string) {
+   try {
+      return IMAGE_EXTENSIONS.test(new URL(url).pathname);
+   } catch {
+      return IMAGE_EXTENSIONS.test(url);
+   }
+}
+
 interface ChatMessageBubbleProps {
    message: ChatMessage;
    showSenderName: boolean;
@@ -95,7 +104,7 @@ export default function ChatMessageBubble({
                      '삭제된 메시지입니다'
                   ) : message.attachmentUrl ? (
                      <div className="flex flex-col gap-1.5">
-                        {IMAGE_EXTENSIONS.test(message.attachmentUrl) ? (
+                        {isImageAttachment(message.attachmentUrl) ? (
                            // eslint-disable-next-line @next/next/no-img-element -- 외부(S3) 원본 URL, next/image 도메인 화이트리스트 불필요
                            <img
                               src={message.attachmentUrl}

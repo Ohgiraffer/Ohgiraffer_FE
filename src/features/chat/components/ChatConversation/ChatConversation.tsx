@@ -41,6 +41,9 @@ interface ChatConversationProps {
    onReplySent: (rootId: string) => void;
    onOpenThread: (message: ChatMessage) => void;
    onBack: () => void;
+   // 스레드(ThreadPanel)에서 루트 메시지를 수정/삭제하면, 이 목록에도 같은 메시지가 들어있을 수 있어
+   // 그 최신 상태를 여기로도 반영해달라고 부모(ChatPanel)가 내려주는 값
+   incomingMessagePatch?: ChatMessage | null;
 }
 
 export default function ChatConversation({
@@ -49,6 +52,7 @@ export default function ChatConversation({
    onReplySent,
    onOpenThread,
    onBack,
+   incomingMessagePatch,
 }: ChatConversationProps) {
    const { me } = useAuth();
    const myUserId = me?.userId ?? null;
@@ -64,6 +68,15 @@ export default function ChatConversation({
    );
 
    const [messages, setMessages] = useState<ChatMessage[]>([]);
+   // 렌더 중 prop 변화를 감지해 반영하는 패턴(React의 "prop 변경에 따라 state 조정") - 같은 patch를
+   // 두 번 반영하지 않도록 마지막으로 적용한 patch 객체 자체를 비교 기준으로 삼는다
+   const [appliedPatch, setAppliedPatch] = useState<ChatMessage | null>(null);
+   if (incomingMessagePatch && incomingMessagePatch !== appliedPatch) {
+      setAppliedPatch(incomingMessagePatch);
+      setMessages((prev) =>
+         prev.map((m) => (m.id === incomingMessagePatch.id ? incomingMessagePatch : m)),
+      );
+   }
    const [isLoadingMessages, setIsLoadingMessages] = useState(true);
    const [draft, setDraft] = useState('');
    const [isPartnerOnline, setIsPartnerOnline] = useState<boolean | null>(null);
@@ -140,20 +153,28 @@ export default function ChatConversation({
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [room.channelId, room.channelType]);
 
-   // 실시간 푸시(웹소켓)가 없어, 열려 있는 대화방에 다른 사람이 보낸 새 메시지가 있는지
-   // 주기적으로 조용히 다시 조회해 이미 있는 것과 겹치지 않는 것만 뒤에 붙인다
+   // 실시간 푸시(웹소켓)가 없어, 열려 있는 대화방에 다른 사람이 보낸 새 메시지나 다른 사람의
+   // 수정·삭제가 있는지 주기적으로 조용히 다시 조회한다. id로 병합해 기존 메시지는 최신 내용으로
+   // 갱신하고, 새 메시지만 뒤에 붙인다(단, 답장 인용 미리보기처럼 서버가 안 주는 클라이언트 전용
+   // 필드는 유지)
    useEffect(() => {
       const interval = setInterval(() => {
          getChannelMessages(room.channelId)
             .then((page) => {
                setMessages((prev) => {
+                  const dtoById = new Map(page.content.map((dto) => [dto.sendbirdMessageId, dto]));
+                  const merged = prev.map((m) => {
+                     const dto = dtoById.get(m.id);
+                     if (!dto) return m;
+                     return { ...mapMessageDto(dto, mapCtx), replyToPreview: m.replyToPreview };
+                  });
                   const existingIds = new Set(prev.map((m) => m.id));
                   const newOnes = page.content
                      .slice()
                      .reverse()
-                     .map((dto) => mapMessageDto(dto, mapCtx))
-                     .filter((m) => !existingIds.has(m.id));
-                  return newOnes.length > 0 ? [...prev, ...newOnes] : prev;
+                     .filter((dto) => !existingIds.has(dto.sendbirdMessageId))
+                     .map((dto) => mapMessageDto(dto, mapCtx));
+                  return newOnes.length > 0 ? [...merged, ...newOnes] : merged;
                });
             })
             .catch(() => {}); // 백그라운드 새로고침이라 실패해도 조용히 무시

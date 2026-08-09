@@ -40,6 +40,9 @@ export default function ChatPanel({
    const [threadRoot, setThreadRoot] = useState<ChatMessage | null>(null);
    // 답글 수 필드가 백엔드 응답에 없어, 이번 세션에서 파악된(직접 답장했거나 스레드를 열어본) 만큼만 기록
    const [replyCounts, setReplyCounts] = useState<Record<string, number>>({});
+   // 스레드에서 루트 메시지를 수정/삭제하면 여기에 최신 메시지를 담아 ChatConversation에도 반영시킨다.
+   // 방을 바꾸면(handleSelectRoom/handleBack) 다른 방의 낡은 patch가 새 방에 잘못 적용되지 않도록 비운다
+   const [rootPatch, setRootPatch] = useState<ChatMessage | null>(null);
 
    // 패널이 떠 있는 동안(닫힘 애니메이션 재생 중까지) 배경 페이지 스크롤을 잠가서,
    // 채팅 목록 스크롤바와 페이지 스크롤바가 나란히 붙어 보이는 이중 스크롤을 없앰
@@ -48,12 +51,14 @@ export default function ChatPanel({
    const handleSelectRoom = (room: ChatChannel) => {
       setThreadRoot(null);
       setReplyCounts({});
+      setRootPatch(null);
       setActiveRoom(room);
    };
 
    const handleBack = () => {
       setThreadRoot(null);
       setReplyCounts({});
+      setRootPatch(null);
       setActiveRoom(null);
    };
 
@@ -116,6 +121,7 @@ export default function ChatPanel({
                   onReplySent={handleReplySent}
                   onOpenThread={setThreadRoot}
                   onBack={handleBack}
+                  incomingMessagePatch={rootPatch}
                />
             ) : (
                <>
@@ -157,6 +163,7 @@ export default function ChatPanel({
                rootMessage={threadRoot}
                onClose={() => setThreadRoot(null)}
                onReplySent={handleReplySent}
+               onRootMessageChange={setRootPatch}
             />
          )}
       </div>

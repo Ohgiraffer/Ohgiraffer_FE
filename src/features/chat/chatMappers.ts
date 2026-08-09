@@ -24,6 +24,9 @@ export function mapMessageDto(dto: ChatMessageDto, ctx: MapMessageContext): Chat
       sentAt: isValid(sentAtDate) ? format(sentAtDate, 'HH:mm') : '',
       sentAtISO: dto.sentAt,
       isMine,
+      // DTO엔 삭제 여부 필드가 없지만, 생성 시 content/attachmentUrl 중 하나는 항상 있어야 하므로
+      // 둘 다 비어 있는 경우는 삭제된 메시지로만 나올 수 있다 - 다른 사용자가 지운 메시지도 이렇게 잡아낸다
+      isDeleted: dto.content == null && dto.attachmentUrl == null,
    };
 }
 
@@ -34,7 +37,7 @@ export function getMessagePreviewText(message: Pick<ChatMessage, 'content' | 'at
 }
 
 // 첨부파일 URL에서 파일명만 뽑아 보여주기 위한 헬퍼 - 말풍선 렌더링과 수정 시작 시
-// 기존 첨부파일을 미리보기 배너에 표시하는 곳에서 공통으로 쓴다
+// 기존 첨부파일을 미리보기 배너에 표시하는 곳에서 공통으로 사용
 export function getAttachmentFileName(url: string) {
    try {
       const path = new URL(url).pathname;
