@@ -52,21 +52,47 @@ export default function AIAssistantWidget() {
    const [isLoading, setIsLoading] = useState(false);
    const [errorMessage, setErrorMessage] = useState<string | null>(null);
    const hasLoadedOnceRef = useRef(false);
+   // 로그아웃 시점의 세대값 - 그 이전에 시작된 요청이 나중에 응답으로 돌아와도
+   // 세대가 바뀌었으면 결과를 버려서 다음 로그인 사용자에게 이전 사용자의 요약이 보이지 않게 한다
+   const requestEpochRef = useRef(0);
+   // effect 대신 렌더 중 비교로 인증 상태 변화를 감지한다(React의 "prop 변경에 따라 state 조정" 패턴) -
+   // useEffect 안에서 setState를 호출하면 불필요한 추가 렌더가 발생하기 때문
+   const [prevIsAuthenticated, setPrevIsAuthenticated] = useState(isAuthenticated);
+   if (isAuthenticated !== prevIsAuthenticated) {
+      setPrevIsAuthenticated(isAuthenticated);
+      if (!isAuthenticated) {
+         setIsOpen(false);
+         setSummary(null);
+         setIsLoading(false);
+         setErrorMessage(null);
+      }
+   }
+
+   // ref는 렌더 중에 변경할 수 없으므로, ref 갱신(진행 중 요청 무효화 + 최초 로드 플래그 리셋)은
+   // 커밋 이후에 실행되는 effect에서 처리한다
+   useEffect(() => {
+      if (isAuthenticated) return;
+      requestEpochRef.current += 1;
+      hasLoadedOnceRef.current = false;
+   }, [isAuthenticated]);
 
    const { corner, dragPosition, handlePointerDown, wasDragged } = useCornerDrag({
       onDragStart: () => setIsOpen(false),
    });
 
    const runFetch = useCallback(async (fetcher: () => Promise<AiSummary>) => {
+      const epoch = requestEpochRef.current;
       setIsLoading(true);
       setErrorMessage(null);
       try {
          const result = await fetcher();
+         if (requestEpochRef.current !== epoch) return;
          setSummary(result);
       } catch (err) {
+         if (requestEpochRef.current !== epoch) return;
          setErrorMessage(getErrorMessage(err));
       } finally {
-         setIsLoading(false);
+         if (requestEpochRef.current === epoch) setIsLoading(false);
       }
    }, []);
 

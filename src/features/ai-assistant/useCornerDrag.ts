@@ -42,12 +42,29 @@ export function useCornerDrag({ onDragStart }: UseCornerDragOptions = {}) {
    const isDraggingRef = useRef(false);
    const startRef = useRef({ x: 0, y: 0 });
    const sizeRef = useRef({ width: 56, height: 56 });
+   // 드래그 중 등록한 document 리스너 - 컴포넌트가 드래그 도중 언마운트돼도
+   // effect cleanup에서 항상 제거할 수 있도록 보관해둔다
+   const activeListenersRef = useRef<{
+      move: (e: PointerEvent) => void;
+      up: (e: PointerEvent) => void;
+      cancel: (e: PointerEvent) => void;
+   } | null>(null);
 
    useEffect(() => {
       // 로컬스토리지는 서버에서 알 수 없으므로 SSR/최초 렌더는 기본값으로 맞추고,
       // 마운트 후에만 저장된 값으로 갈아끼워 하이드레이션 불일치를 피한다
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setCorner(readStoredCorner());
+   }, []);
+
+   useEffect(() => {
+      return () => {
+         const listeners = activeListenersRef.current;
+         if (!listeners) return;
+         document.removeEventListener('pointermove', listeners.move);
+         document.removeEventListener('pointerup', listeners.up);
+         document.removeEventListener('pointercancel', listeners.cancel);
+      };
    }, []);
 
    const handlePointerDown = useCallback(
@@ -57,6 +74,13 @@ export function useCornerDrag({ onDragStart }: UseCornerDragOptions = {}) {
          sizeRef.current = { width: rect.width, height: rect.height };
          startRef.current = { x: e.clientX, y: e.clientY };
          isDraggingRef.current = false;
+
+         const cleanupListeners = () => {
+            document.removeEventListener('pointermove', handlePointerMove);
+            document.removeEventListener('pointerup', handlePointerUp);
+            document.removeEventListener('pointercancel', handlePointerCancel);
+            activeListenersRef.current = null;
+         };
 
          const handlePointerMove = (moveEvent: PointerEvent) => {
             const dx = moveEvent.clientX - startRef.current.x;
@@ -77,9 +101,7 @@ export function useCornerDrag({ onDragStart }: UseCornerDragOptions = {}) {
          };
 
          const handlePointerUp = (upEvent: PointerEvent) => {
-            document.removeEventListener('pointermove', handlePointerMove);
-            document.removeEventListener('pointerup', handlePointerUp);
-
+            cleanupListeners();
             if (isDraggingRef.current) {
                const nextCorner = getNearestCorner(upEvent.clientX, upEvent.clientY);
                setCorner(nextCorner);
@@ -88,8 +110,20 @@ export function useCornerDrag({ onDragStart }: UseCornerDragOptions = {}) {
             setDragPosition(null);
          };
 
+         // 브라우저가 드래그를 중간에 취소하면(pointercancel) 새 모서리로 확정하지 않고 원래 자리로 되돌린다
+         const handlePointerCancel = () => {
+            cleanupListeners();
+            setDragPosition(null);
+         };
+
+         activeListenersRef.current = {
+            move: handlePointerMove,
+            up: handlePointerUp,
+            cancel: handlePointerCancel,
+         };
          document.addEventListener('pointermove', handlePointerMove);
          document.addEventListener('pointerup', handlePointerUp);
+         document.addEventListener('pointercancel', handlePointerCancel);
       },
       [onDragStart],
    );
