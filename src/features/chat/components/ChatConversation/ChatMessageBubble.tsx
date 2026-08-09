@@ -1,8 +1,11 @@
-import { CornerDownRight } from 'lucide-react';
+import { CornerDownRight, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ChatAvatar from '../ChatAvatar';
 import MessageActionMenu from './MessageActionMenu';
+import { getAttachmentFileName } from '../../chatMappers';
 import type { ChatMessage } from '../../types';
+
+const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|webp|svg)$/i;
 
 interface ChatMessageBubbleProps {
    message: ChatMessage;
@@ -84,11 +87,37 @@ export default function ChatMessageBubble({
                         ? 'bg-gray-50 text-gray-400 italic'
                         : message.isMine
                           ? 'rounded-br-none bg-[#E8F0EC] text-[#1F2937]'
-                          : 'rounded-bl-none bg-gray-100 text-gray-900',
+                          : 'rounded-tl-none bg-gray-100 text-gray-900',
                      isSearchActive && 'ring-2 ring-brand-green',
                   )}
                >
-                  {message.isDeleted ? '삭제된 메시지입니다' : message.content}
+                  {message.isDeleted ? (
+                     '삭제된 메시지입니다'
+                  ) : message.attachmentUrl ? (
+                     <div className="flex flex-col gap-1.5">
+                        {IMAGE_EXTENSIONS.test(message.attachmentUrl) ? (
+                           // eslint-disable-next-line @next/next/no-img-element -- 외부(S3) 원본 URL, next/image 도메인 화이트리스트 불필요
+                           <img
+                              src={message.attachmentUrl}
+                              alt={getAttachmentFileName(message.attachmentUrl)}
+                              className="max-h-48 max-w-56 rounded-xs object-cover"
+                           />
+                        ) : (
+                           <a
+                              href={message.attachmentUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 underline underline-offset-2 hover:opacity-80"
+                           >
+                              <FileText size={14} className="shrink-0" />
+                              <span className="truncate">{getAttachmentFileName(message.attachmentUrl)}</span>
+                           </a>
+                        )}
+                        {message.content && <span>{message.content}</span>}
+                     </div>
+                  ) : (
+                     message.content
+                  )}
                </div>
                {!message.isMine && (showReplyOnHover ? (
                   <span className="relative flex h-3.5 w-9 shrink-0 items-center justify-end">

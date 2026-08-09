@@ -6,10 +6,10 @@ import ChatRoomList from './ChatRoomList/ChatRoomList';
 import ChatConversation from './ChatConversation/ChatConversation';
 import NewChatModal from './ChatRoomList/NewChatModal';
 import ThreadPanel from './ChatConversation/ThreadPanel';
-import { useChatChannels } from '../hooks/useChatChannels';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { createChannel, type ChatChannel } from '@/services/chat.service';
 import { ApiError } from '@/lib/http';
+import { getChatErrorMessage } from '../chatErrors';
 import { toast } from '@/lib/toast';
 import type { ChatMessage } from '../types';
 
@@ -19,17 +19,27 @@ interface ChatPanelProps {
    isClosing: boolean;
    // 닫힘 애니메이션이 끝난 뒤 실제로 언마운트해도 된다는 신호
    onClosed: () => void;
+   // 헤더 배지(ChatButton)와 값이 갈라지지 않도록, 채널 목록/안읽음 수는 부모가 한 번만 조회해 내려준다
+   channels: ChatChannel[];
+   isLoadingChannels: boolean;
+   reloadChannels: () => void;
+   totalUnreadCount: number;
 }
 
-export default function ChatPanel({ onClose, isClosing, onClosed }: ChatPanelProps) {
+export default function ChatPanel({
+   onClose,
+   isClosing,
+   onClosed,
+   channels,
+   isLoadingChannels,
+   reloadChannels,
+   totalUnreadCount,
+}: ChatPanelProps) {
    const [activeRoom, setActiveRoom] = useState<ChatChannel | null>(null);
    const [isNewChatOpen, setIsNewChatOpen] = useState(false);
    const [threadRoot, setThreadRoot] = useState<ChatMessage | null>(null);
    // 답글 수 필드가 백엔드 응답에 없어, 이번 세션에서 파악된(직접 답장했거나 스레드를 열어본) 만큼만 기록
    const [replyCounts, setReplyCounts] = useState<Record<string, number>>({});
-   const { channels, isLoading, reload } = useChatChannels();
-
-   const totalUnread = channels.reduce((sum, channel) => sum + channel.unreadCount, 0);
 
    // 패널이 떠 있는 동안(닫힘 애니메이션 재생 중까지) 배경 페이지 스크롤을 잠가서,
    // 채팅 목록 스크롤바와 페이지 스크롤바가 나란히 붙어 보이는 이중 스크롤을 없앰
@@ -63,7 +73,7 @@ export default function ChatPanel({ onClose, isClosing, onClosed }: ChatPanelPro
             unreadCount: 0,
          });
          setIsNewChatOpen(false);
-         reload();
+         reloadChannels();
       } catch (err) {
          // 이미 같은 상대와의 1:1 채팅방이 있으면 새로 만들지 않고 그 방을 그대로 상세 조회
          if (err instanceof ApiError && err.status === 409 && typeof err.data?.channelId === 'string') {
@@ -78,11 +88,7 @@ export default function ChatPanel({ onClose, isClosing, onClosed }: ChatPanelPro
             setIsNewChatOpen(false);
             return;
          }
-         toast.error(
-            err instanceof ApiError
-               ? err.message
-               : '채팅방을 만들지 못했습니다. 잠시 후 다시 시도해주세요.',
-         );
+         toast.error(getChatErrorMessage(err, '채팅방을 만들지 못했습니다. 잠시 후 다시 시도해주세요.'));
       }
    };
 
@@ -116,9 +122,9 @@ export default function ChatPanel({ onClose, isClosing, onClosed }: ChatPanelPro
                   <div className="flex items-center justify-between p-5 pb-4">
                      <span className="flex items-center gap-2">
                         <h2 className="text-xl font-bold text-gray-900">채팅</h2>
-                        {totalUnread > 0 && (
+                        {totalUnreadCount > 0 && (
                            <span className="flex h-5 min-w-5 items-center justify-center rounded-xs bg-brand-green px-1 text-[11px] font-medium text-white">
-                              {totalUnread}
+                              {totalUnreadCount}
                            </span>
                         )}
                      </span>
@@ -131,7 +137,11 @@ export default function ChatPanel({ onClose, isClosing, onClosed }: ChatPanelPro
                      </button>
                   </div>
 
-                  <ChatRoomList channels={channels} isLoading={isLoading} onSelectRoom={handleSelectRoom} />
+                  <ChatRoomList
+                     channels={channels}
+                     isLoading={isLoadingChannels}
+                     onSelectRoom={handleSelectRoom}
+                  />
                </>
             )}
 
