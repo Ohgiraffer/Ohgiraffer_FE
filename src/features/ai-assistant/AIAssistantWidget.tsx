@@ -1,20 +1,22 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshCw, Sparkles, X } from 'lucide-react';
 import { format, isValid, parseISO } from 'date-fns';
 import { useAuth } from '@/components/auth/AuthContext';
 import { cn } from '@/lib/utils';
 import { ApiError } from '@/lib/http';
-import { refreshAiSummary, type AiSummary } from '@/services/aiAssistant.service';
+import InlineProgressBar from '@/components/ui/loading/InlineProgressBar';
+import { getAiSummary, refreshAiSummary, type AiSummary } from '@/services/aiAssistant.service';
 import { useCornerDrag } from './useCornerDrag';
 import MarkdownLite from './MarkdownLite';
 
-// 상단 모서리는 전역 헤더(h-14, z-50)에 가려지지 않도록 그 아래로 여백을 준다
+// 상단은 전역 헤더(h-14, z-50), 좌측은 사이드바(w-22.5 = 90px)에 가려지거나 겹치지 않도록
+// 그 바깥으로 여백을 준다 - 드래그로 이동 가능한 모서리는 항상 이 네 곳뿐
 const CORNER_WRAPPER_CLASS = {
-   'top-left': 'top-[4.5rem] left-6',
-   'top-right': 'top-[4.5rem] right-6',
-   'bottom-left': 'bottom-6 left-6',
+   'top-left': 'top-20 left-[7.125rem]',
+   'top-right': 'top-20 right-6',
+   'bottom-left': 'bottom-6 left-[7.125rem]',
    'bottom-right': 'bottom-6 right-6',
 } as const;
 
@@ -55,25 +57,29 @@ export default function AIAssistantWidget() {
       onDragStart: () => setIsOpen(false),
    });
 
-   const loadSummary = async () => {
+   const runFetch = useCallback(async (fetcher: () => Promise<AiSummary>) => {
       setIsLoading(true);
       setErrorMessage(null);
       try {
-         const result = await refreshAiSummary();
+         const result = await fetcher();
          setSummary(result);
       } catch (err) {
          setErrorMessage(getErrorMessage(err));
       } finally {
          setIsLoading(false);
       }
-   };
+   }, []);
+
+   // 열 때/다시 시도할 때는 캐시를 그대로 쓰는 조회 API, "재생성" 버튼만 캐시를 무시하는 API를 쓴다
+   const loadSummary = useCallback(() => runFetch(getAiSummary), [runFetch]);
+   const handleRegenerate = useCallback(() => runFetch(refreshAiSummary), [runFetch]);
 
    useEffect(() => {
       if (isOpen && !hasLoadedOnceRef.current) {
          hasLoadedOnceRef.current = true;
          loadSummary();
       }
-   }, [isOpen]);
+   }, [isOpen, loadSummary]);
 
    if (!isAuthenticated || isInitializing) return null;
 
@@ -86,13 +92,13 @@ export default function AIAssistantWidget() {
             {isOpen && (
                <div
                   className={cn(
-                     'absolute w-80 max-w-[calc(100vw-3rem)] rounded-sm border border-gray-200 bg-white shadow-lg',
+                     'absolute z-10 w-80 max-w-[calc(100vw-3rem)] rounded-xs border border-gray-200 bg-white shadow-lg',
                      PANEL_POSITION_CLASS[corner],
                   )}
                >
-                  <div className="flex items-center justify-between rounded-t-sm bg-brand-green px-4 py-3">
+                  <div className="flex items-center justify-between rounded-t-xs bg-brand-green px-4 py-3">
                      <div className="flex items-center gap-1.5 text-sm font-bold text-white">
-                        <Sparkles size={16} />
+                        <Sparkles size={16} className="text-brand-cream" />
                         AI 개인 비서
                      </div>
                      <button
@@ -105,9 +111,12 @@ export default function AIAssistantWidget() {
                      </button>
                   </div>
 
-                  <div className="max-h-[60vh] overflow-y-auto p-4">
+                  <div className="max-h-[60vh] min-h-[25vh] overflow-y-auto bg-brand-cream/30 p-4">
                      {isLoading && !summary ? (
-                        <p className="py-6 text-center text-sm text-gray-400">요약을 불러오는 중...</p>
+                        <div className="flex flex-col items-center gap-3 py-6">
+                           <InlineProgressBar className="bg-white" />
+                           <p className="text-xs text-gray-400">요약을 불러오는 중...</p>
+                        </div>
                      ) : errorMessage && !summary ? (
                         <div className="flex flex-col items-center gap-3 py-6">
                            <p className="text-center text-sm text-gray-400">{errorMessage}</p>
@@ -135,7 +144,7 @@ export default function AIAssistantWidget() {
                      </span>
                      <button
                         type="button"
-                        onClick={loadSummary}
+                        onClick={handleRegenerate}
                         disabled={isLoading}
                         aria-label="요약 재생성"
                         className="flex cursor-pointer items-center gap-1 rounded-xs px-2 py-1 text-xs font-medium text-brand-green hover:bg-[#EAF3EC] disabled:cursor-not-allowed disabled:opacity-50"
@@ -155,9 +164,9 @@ export default function AIAssistantWidget() {
                   setIsOpen((prev) => !prev);
                }}
                aria-label="AI 개인 비서"
-               className="flex h-14 w-14 cursor-grab touch-none items-center justify-center rounded-full bg-brand-green text-white shadow-lg transition-colors hover:bg-[#4D655A] active:cursor-grabbing"
+               className="relative z-0 flex h-14 w-14 cursor-grab touch-none items-center justify-center rounded-full bg-brand-green text-white shadow-lg transition-colors hover:bg-[#4D655A] active:cursor-grabbing"
             >
-               <Sparkles size={22} />
+               <Sparkles size={22} className={isOpen ? 'animate-ai-bob' : ''} />
             </button>
          </div>
       </div>
