@@ -271,7 +271,7 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
                         className="flex cursor-pointer items-center gap-1.5 rounded-sm bg-brand-green px-4 py-2 text-sm font-semibold text-white hover:bg-[#4D655A]"
                      >
                         <Download size={14} />
-                        pdf 다운로드
+                        PDF 다운로드
                      </button>
                   </div>
                )}

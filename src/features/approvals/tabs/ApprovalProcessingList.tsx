@@ -114,7 +114,7 @@ export default function ApprovalProcessingList() {
                                           className="flex cursor-pointer items-center gap-1 rounded-sm bg-brand-green px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#4D655A]"
                                        >
                                           <Download size={12} />
-                                          pdf 다운로드
+                                          PDF 다운로드
                                        </button>
                                     </div>
                                  )}
