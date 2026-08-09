@@ -62,10 +62,30 @@ export default function ManagerTeamBoard() {
                   next[student.userId] = null;
                });
                setDraftAssignment(next);
+            } else {
+               // 초안은 유지하되, 아직 초안에 없는 사용자(다른 운영진이 새로 배정했거나 새로
+               // 등록된 훈련생)만 서버 값으로 채운다 - 없으면 전부 미배정으로 잘못 표시된다
+               setDraftAssignment((prev) => {
+                  const next = { ...prev };
+                  teamsResult.forEach((team) => {
+                     team.members.forEach((member) => {
+                        if (!(member.userId in next)) next[member.userId] = team.teamId;
+                     });
+                  });
+                  unassignedResult.forEach((student) => {
+                     if (!(student.userId in next)) next[student.userId] = null;
+                  });
+                  return next;
+               });
             }
          })
          .catch(() => {
-            if (isMounted) setHasError(true);
+            if (!isMounted) return;
+            if (shouldResetDraft) {
+               setHasError(true);
+            } else {
+               toast.error('최신 정보를 불러오지 못했습니다. 변경사항은 유지됩니다.');
+            }
          })
          .finally(() => {
             if (isMounted) setIsLoading(false);

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Download, ExternalLink, Eye } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import SearchInput from '@/components/ui/SearchInput';
 import Pagination from '@/components/ui/Pagination';
 import {
@@ -25,6 +25,7 @@ import StatusBadge from '../StatusBadge';
 import ProgressBar from '../ProgressBar';
 import { formatDateTime } from '../../formatSubmissionDate';
 import SubmissionPreviewModal from './SubmissionPreviewModal';
+import SubmissionValueCell from './SubmissionValueCell';
 import StudentBoxDetailClient from './StudentBoxDetailClient';
 import type { SubmissionBoxSubmissionsDetail, SubmissionItemValue } from '../../types';
 
@@ -33,16 +34,6 @@ const STATUS_OPTIONS: Array<{ value: SubmissionStatusFilter; label: string }> = 
    { value: 'SUBMITTED', label: '제출완료' },
    { value: 'NOT_SUBMITTED', label: '미제출' },
 ];
-
-const PREVIEWABLE_CONTENT_TYPES = new Set([
-   'application/pdf',
-   'video/mp4',
-   'video/quicktime',
-   'image/jpeg',
-   'image/png',
-   'image/webp',
-   'image/gif',
-]);
 
 const PAGE_SIZE = 20;
 
@@ -170,7 +161,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
             </div>
          ) : (
             <>
-               <div className="mt-5 rounded-sm border border-[#E5E7EB] bg-white p-6">
+               <div className="mt-5 rounded-xs border border-[#E5E7EB] bg-white p-6">
                   <div className="flex items-start justify-between">
                      <div>
                         <h2 className="text-lg font-bold text-gray-900">{detail.projectName}</h2>
@@ -197,7 +188,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                         {detail.items.map((item) => (
                            <span
                               key={item.submissionBoxItemId}
-                              className="rounded-xs border border-gray-200 px-3 py-1.5 text-xs text-gray-600"
+                              className="rounded-xs border border-gray-200 px-3 py-1.5 bg-[#F9FAFB] text-xs text-gray-600"
                            >
                               {item.itemName} · {item.allowedFileTypes ?? '링크'}
                            </span>
@@ -206,7 +197,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                   </div>
                </div>
 
-               <div className="mt-6 rounded-sm border border-[#E5E7EB] bg-white">
+               <div className="mt-6 rounded-xs border border-[#E5E7EB] bg-white">
                   <div className="flex items-center justify-between p-5">
                      <div className="flex items-center gap-3">
                         <span className="text-sm font-bold text-gray-900">
@@ -281,51 +272,11 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                                  );
                                  return (
                                     <td key={item.submissionBoxItemId} className="px-6 py-4">
-                                       {!value ? (
-                                          <span className="text-gray-300">—</span>
-                                       ) : value.itemType === 'FILE' ? (
-                                          <div className="flex items-center gap-1">
-                                             {value.contentType &&
-                                             PREVIEWABLE_CONTENT_TYPES.has(value.contentType) ? (
-                                                <button
-                                                   type="button"
-                                                   onClick={() =>
-                                                      setPreviewTarget(value.submissionItemValueId)
-                                                   }
-                                                   className="flex min-w-0 flex-1 cursor-pointer items-center gap-1 rounded-xs border border-gray-200 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
-                                                >
-                                                   <Eye size={12} className="shrink-0" />
-                                                   <span className="truncate">
-                                                      {value.originalFileName}
-                                                   </span>
-                                                </button>
-                                             ) : (
-                                                <span className="min-w-0 flex-1 truncate text-xs text-gray-700">
-                                                   {value.originalFileName}
-                                                </span>
-                                             )}
-                                             <button
-                                                type="button"
-                                                onClick={() => handleDownload(value)}
-                                                aria-label="다운로드"
-                                                className="shrink-0 cursor-pointer rounded-xs p-1.5 text-gray-400 hover:bg-gray-100"
-                                             >
-                                                <Download size={14} />
-                                             </button>
-                                          </div>
-                                       ) : (
-                                          <button
-                                             type="button"
-                                             onClick={() =>
-                                                value.externalUrl &&
-                                                window.open(value.externalUrl, '_blank', 'noopener,noreferrer')
-                                             }
-                                             className="flex cursor-pointer items-center gap-1 rounded-xs border border-gray-200 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
-                                          >
-                                             <ExternalLink size={12} />
-                                             링크 확인
-                                          </button>
-                                       )}
+                                       <SubmissionValueCell
+                                          value={value}
+                                          onPreview={setPreviewTarget}
+                                          onDownload={handleDownload}
+                                       />
                                     </td>
                                  );
                               })}

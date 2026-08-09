@@ -200,6 +200,21 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
       }
    };
 
+   if (!Number.isInteger(submissionBoxId)) {
+      return (
+         <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
+            <Link
+               href="/submissions"
+               className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+            >
+               <ChevronLeft size={16} />
+               목록으로
+            </Link>
+            <p className="mt-10 text-center text-sm text-gray-400">제출함을 찾을 수 없습니다.</p>
+         </div>
+      );
+   }
+
    if (isLoading) {
       return (
          <div className="flex-1 bg-[#F7F8FA] px-10 py-8">

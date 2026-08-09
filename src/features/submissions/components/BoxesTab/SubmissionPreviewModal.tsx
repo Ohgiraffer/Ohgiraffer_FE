@@ -69,6 +69,7 @@ export default function SubmissionPreviewModal({
                   src={preview.previewUrl}
                   className="h-full w-full"
                   title={preview.originalFileName}
+                  sandbox=""
                />
             ) : preview.contentType.startsWith('video/') ? (
                <video src={preview.previewUrl} controls className="max-h-full max-w-full" />

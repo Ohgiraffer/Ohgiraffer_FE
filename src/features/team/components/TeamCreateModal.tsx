@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { isValid, parse } from 'date-fns';
 import { X } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -9,6 +10,12 @@ import { ApiError } from '@/lib/http';
 import { createTeam } from '@/services/team.service';
 import { formatTeamPeriod } from '../formatTeamDate';
 import type { Team } from '../types';
+
+// DatePicker는 마스크 입력이 끝나기 전(예: "2025-06-0")에도 onChange를 호출하므로,
+// 열 자리가 다 채워진 유효한 날짜인지 별도로 확인해야 한다
+function isCompleteDate(value: string) {
+   return value.length === 10 && isValid(parse(value, 'yyyy-MM-dd', new Date()));
+}
 
 interface TeamCreateModalProps {
    existingTeams: Team[];
@@ -30,8 +37,15 @@ export default function TeamCreateModal({
    const [endDate, setEndDate] = useState(hasReusablePeriod ? referenceTeam!.endDate! : '');
    const [isSubmitting, setIsSubmitting] = useState(false);
 
+   const isStartDateComplete = isCompleteDate(startDate);
+   const isEndDateComplete = isCompleteDate(endDate);
+   const isDateRangeInvalid = isStartDateComplete && isEndDateComplete && endDate < startDate;
    const canSubmit =
-      name.trim().length > 0 && startDate.length > 0 && endDate.length > 0 && !isSubmitting;
+      name.trim().length > 0 &&
+      isStartDateComplete &&
+      isEndDateComplete &&
+      !isDateRangeInvalid &&
+      !isSubmitting;
 
    const handleSubmit = async () => {
       if (!canSubmit) return;
@@ -94,7 +108,14 @@ export default function TeamCreateModal({
                   </label>
                   <div className="mt-2 grid grid-cols-2 gap-3">
                      <DatePicker value={startDate} onChange={setStartDate} placeholder="시작 일자" />
-                     <DatePicker value={endDate} onChange={setEndDate} placeholder="종료 일자" />
+                     <div>
+                        <DatePicker value={endDate} onChange={setEndDate} placeholder="종료 일자" />
+                        {isDateRangeInvalid && (
+                           <p className="mt-1 text-xs text-brand-red">
+                              종료일은 시작일보다 빠를 수 없습니다
+                           </p>
+                        )}
+                     </div>
                   </div>
                </>
             ) : (

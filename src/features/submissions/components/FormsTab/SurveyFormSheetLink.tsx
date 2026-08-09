@@ -1,7 +1,6 @@
 'use client';
 
 import { useId, useState } from 'react';
-import { Copy, ExternalLink } from 'lucide-react';
 import {
    Select,
    SelectContent,
@@ -11,7 +10,8 @@ import {
 } from '@/components/ui/shadcn/select';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
-import { GOOGLE_SERVICE_ACCOUNT_EMAIL } from '@/lib/googleServiceAccount';
+import GoogleSheetEmailNotice from '@/components/ui/googlesheet/GoogleSheetEmailNotice';
+import GoogleSheetConnectedCard from '@/components/ui/googlesheet/GoogleSheetConnectedCard';
 import {
    saveSurveySheetLink,
    validateSurveySheetLink,
@@ -30,7 +30,6 @@ export default function SurveyFormSheetLink({
    sheetLink,
    onLinked,
 }: SurveyFormSheetLinkProps) {
-   const emailInputId = useId();
    const urlInputId = useId();
    const [isEditing, setIsEditing] = useState(false);
    const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
@@ -40,11 +39,6 @@ export default function SurveyFormSheetLink({
    const [respondentColumn, setRespondentColumn] = useState('');
    const [submittedAtColumn, setSubmittedAtColumn] = useState('');
    const [isSaving, setIsSaving] = useState(false);
-
-   const handleCopyEmail = () => {
-      navigator.clipboard.writeText(GOOGLE_SERVICE_ACCOUNT_EMAIL);
-      toast.success('이메일을 복사했습니다.');
-   };
 
    const startEditing = () => {
       setSpreadsheetUrl(sheetLink?.spreadsheetUrl ?? '');
@@ -139,38 +133,11 @@ export default function SurveyFormSheetLink({
 
    if (!isEditing && sheetLink?.connected) {
       return (
-         <div className="rounded-xs border border-gray-200 p-5">
-            <h3 className="text-sm font-bold text-gray-900">Google Sheet 연동</h3>
-            <div className="mt-4 flex items-center justify-between gap-3">
-               <div className="min-w-0">
-                  <p className="text-xs text-gray-500">
-                     스프레드시트 URL · {sheetLink.sheetName}
-                  </p>
-                  <a
-                     href={sheetLink.spreadsheetUrl}
-                     target="_blank"
-                     rel="noopener noreferrer"
-                     className="mt-1 flex items-center gap-1 text-sm text-brand-green hover:underline"
-                  >
-                     <ExternalLink size={14} className="shrink-0" />
-                     <span className="truncate">{sheetLink.spreadsheetUrl}</span>
-                  </a>
-               </div>
-               <div className="flex shrink-0 items-center gap-2">
-                  <span className="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-brand-green">
-                     <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
-                     연결됨
-                  </span>
-                  <button
-                     type="button"
-                     onClick={startEditing}
-                     className="cursor-pointer rounded-xs border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                     수정
-                  </button>
-               </div>
-            </div>
-         </div>
+         <GoogleSheetConnectedCard
+            urlLabel={`스프레드시트 URL · ${sheetLink.sheetName}`}
+            spreadsheetUrl={sheetLink.spreadsheetUrl}
+            onEdit={startEditing}
+         />
       );
    }
 
@@ -179,25 +146,7 @@ export default function SurveyFormSheetLink({
          <h3 className="text-sm font-bold text-gray-900">Google Sheet 연동</h3>
 
          <div className="mt-4 rounded-xs border border-[#C8D9CE] bg-[#F0F4F2] px-6 py-5">
-            <label htmlFor={emailInputId} className="block text-xs text-gray-700">
-               아래 이메일을 시트의 공유 대상(뷰어 이상)으로 추가해주세요.
-            </label>
-            <div className="mt-2 flex gap-2">
-               <input
-                  id={emailInputId}
-                  readOnly
-                  value={GOOGLE_SERVICE_ACCOUNT_EMAIL}
-                  className="h-8 flex-1 rounded-xs border border-gray-200 bg-white px-3 text-sm text-brand-green"
-               />
-               <button
-                  type="button"
-                  onClick={handleCopyEmail}
-                  className="flex shrink-0 cursor-pointer items-center gap-1 rounded-xs border border-gray-200 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-               >
-                  <Copy size={14} />
-                  복사
-               </button>
-            </div>
+            <GoogleSheetEmailNotice />
 
             <label htmlFor={urlInputId} className="mt-4 block text-xs font-medium text-gray-700">
                스프레드시트 URL

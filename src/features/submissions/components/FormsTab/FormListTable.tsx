@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Pencil, Trash2 } from 'lucide-react';
 import StatusBadge from '../StatusBadge';
@@ -35,10 +36,10 @@ export default function FormListTable({ forms, onEdit, onDelete }: FormListTable
                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
                   <th className="w-[8%] px-6 py-3 font-medium">#</th>
                   <th className="w-[26%] px-6 py-3 font-medium">폼 제목</th>
-                  <th className="w-[14%] px-6 py-3 font-medium text-center">상태</th>
+                  <th className="w-[12%] px-6 py-3 font-medium text-center">상태</th>
                   <th className="w-[16%] px-6 py-3 font-medium text-center">응답 마감일</th>
-                  <th className="w-[16%] px-6 py-3 font-medium text-center">응답 현황</th>
-                  <th className="w-[20%] px-6 py-3 font-medium text-center">관리</th>
+                  <th className="w-[20%] px-6 py-3 font-medium text-center">응답 현황</th>
+                  <th className="w-[18%] px-6 py-3 font-medium text-center">관리</th>
                </tr>
             </thead>
             <tbody>
@@ -50,9 +51,13 @@ export default function FormListTable({ forms, onEdit, onDelete }: FormListTable
                   >
                      <td className="px-6 py-4 text-gray-500">{index + 1}</td>
                      <td className="px-6 py-4 font-medium text-gray-900">
-                        <span className="group-hover:font-bold group-hover:underline">
+                        <Link
+                           href={`/submissions/forms/${form.surveyFormId}`}
+                           onClick={(e) => e.stopPropagation()}
+                           className="group-hover:font-bold group-hover:underline"
+                        >
                            {form.title}
-                        </span>
+                        </Link>
                      </td>
                      <td className="px-6 py-4">
                         <div className="flex items-center justify-center">
