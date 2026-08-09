@@ -20,14 +20,14 @@ export default function LeaveRequestForm() {
    } = useLeaveRequestForm();
 
    return (
-      <div className="rounded-sm border border-[#E5E7EB] bg-white px-8 py-8">
+      <div className="rounded-sm border border-[#E5E7EB] bg-white px-8 py-7">
          <h2 className="text-lg font-bold text-gray-900">휴가 신청</h2>
 
-         <div className="mt-4 rounded-xs border border-[#F3DFA0] bg-[#FFF9EC] px-4 py-3 text-sm text-gray-700">
+         <div className="mt-2 rounded-xs border border-[#F3DFA0] bg-[#FFF9EC] px-4 py-3 text-sm text-gray-700">
             잔여 휴가: <span className="font-bold">{remainingLeaveDays}일</span>
          </div>
 
-         <div className="mt-6 grid grid-cols-2 gap-6">
+         <div className="mt-4 grid grid-cols-2 gap-6">
             <div>
                <label className="text-[15px] font-semibold text-gray-900">
                   휴가 시작일 <span className="font-bold text-[16px] text-brand-gold">*</span>
@@ -55,11 +55,9 @@ export default function LeaveRequestForm() {
             </div>
          </div>
 
-         <div className="mt-6">
-            <SignatureUpload onStatusChange={setHasSignature} />
-         </div>
+         <SignatureUpload onStatusChange={setHasSignature} />
 
-         <div className="mt-6 flex justify-end border-t border-[#F3F4F6] pt-6">
+         <div className="mt-2 flex justify-end border-t border-[#F3F4F6] pt-6">
             <button
                type="button"
                disabled={!isFilled}

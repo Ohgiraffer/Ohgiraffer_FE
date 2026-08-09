@@ -143,7 +143,7 @@ export default function SignatureUpload({ onStatusChange }: Props) {
             )}
          </div>
 
-         <div className="mt-2 flex items-center justify-between">
+         <div className="mt-1.5 flex items-center justify-between">
             <p className="text-xs text-gray-500">
                등록된 서명 파일을 확인하거나 신규 서명 파일을 등록해주세요.
             </p>
