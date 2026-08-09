@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import SearchInput from '@/components/ui/SearchInput';
 import MemberActionMenu from './MemberActionMenu';
-import type { Team } from '../types';
+import { TEAM_MEMBER_DRAG_TYPE, type Team } from '../types';
 
 export interface UnassignedStudentItem {
    userId: number;
@@ -47,8 +47,10 @@ export default function UnassignedPanel({
          onDrop={(e) => {
             e.preventDefault();
             onDragOverChange(false);
-            const userId = Number(e.dataTransfer.getData('text/plain'));
-            if (Number.isInteger(userId)) onDropUser(userId);
+            const raw = e.dataTransfer.getData(TEAM_MEMBER_DRAG_TYPE).trim();
+            if (!raw) return;
+            const userId = Number(raw);
+            if (Number.isSafeInteger(userId) && userId > 0) onDropUser(userId);
          }}
          className={cn(
             'h-fit rounded-sm border bg-white p-4 transition-colors',
@@ -81,7 +83,7 @@ export default function UnassignedPanel({
                      key={student.userId}
                      draggable
                      onDragStart={(e) => {
-                        e.dataTransfer.setData('text/plain', String(student.userId));
+                        e.dataTransfer.setData(TEAM_MEMBER_DRAG_TYPE, String(student.userId));
                         onDragStartUser(student.userId);
                      }}
                      className="flex cursor-grab items-center justify-between gap-2 rounded-xs border border-gray-100 bg-[#F9FAFB] px-2.5 py-2 active:cursor-grabbing"

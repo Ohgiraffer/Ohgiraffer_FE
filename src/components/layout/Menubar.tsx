@@ -38,13 +38,14 @@ const STAFF_MENU_ITEMS: MenuItem[] = [
    { label: '평가 관리', href: '/evaluations', icon: BarChart2 },
 ];
 
-// 학생 메뉴 - 평가 관리만 제외, "상담 이력"→"상담 신청" 라벨만 다름 (href는 동일, 화면 내용만 role별로 다름)
+// 학생 메뉴 - 평가 관리만 제외, "상담 이력"→"상담 신청" / "팀 관리"→"팀 현황"(조회 전용 화면이라
+// 편집 권한이 있다는 인상을 주지 않도록) 라벨만 다름 (href는 동일, 화면 내용만 role별로 다름)
 const STUDENT_MENU_ITEMS: MenuItem[] = [
    { label: '대시보드', href: '/', icon: Home },
    { label: '공지사항', href: '/notices', icon: Megaphone },
    { label: '출결 관리', href: '/attendance', icon: ClipboardList },
    { label: '상담 신청', href: '/counseling', icon: CalendarDays },
-   { label: '팀 관리', href: '/team', icon: Users },
+   { label: '팀 현황', href: '/team', icon: Users },
    { label: '제출물 관리', href: '/submissions', icon: Upload },
    { label: '공간 예약', href: '/space-reservations', icon: Building },
    { label: '전자결재', href: '/approvals', icon: FileCheck2 },
