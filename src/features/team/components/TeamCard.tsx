@@ -5,7 +5,7 @@ import { Check, Pencil, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatTeamPeriod } from '../formatTeamDate';
 import MemberActionMenu from './MemberActionMenu';
-import type { Team } from '../types';
+import { TEAM_MEMBER_DRAG_TYPE, type Team } from '../types';
 
 export interface TeamCardMember {
    userId: number;
@@ -63,7 +63,9 @@ export default function TeamCard({
          onDrop={(e) => {
             e.preventDefault();
             onDragOverChange(false);
-            const userId = Number(e.dataTransfer.getData('text/plain'));
+            const raw = e.dataTransfer.getData(TEAM_MEMBER_DRAG_TYPE);
+            if (!raw) return;
+            const userId = Number(raw);
             if (Number.isInteger(userId)) onDropUser(userId);
          }}
          className={cn(
@@ -115,7 +117,7 @@ export default function TeamCard({
                   key={member.userId}
                   draggable
                   onDragStart={(e) => {
-                     e.dataTransfer.setData('text/plain', String(member.userId));
+                     e.dataTransfer.setData(TEAM_MEMBER_DRAG_TYPE, String(member.userId));
                      onDragStartUser(member.userId);
                   }}
                   className="flex cursor-grab items-center justify-between rounded-xs border border-gray-100 bg-[#F9FAFB] px-2.5 py-2 active:cursor-grabbing"

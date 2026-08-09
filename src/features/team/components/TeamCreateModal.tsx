@@ -30,8 +30,13 @@ export default function TeamCreateModal({
    const [endDate, setEndDate] = useState(hasReusablePeriod ? referenceTeam!.endDate! : '');
    const [isSubmitting, setIsSubmitting] = useState(false);
 
+   const isDateRangeInvalid = startDate.length > 0 && endDate.length > 0 && endDate < startDate;
    const canSubmit =
-      name.trim().length > 0 && startDate.length > 0 && endDate.length > 0 && !isSubmitting;
+      name.trim().length > 0 &&
+      startDate.length > 0 &&
+      endDate.length > 0 &&
+      !isDateRangeInvalid &&
+      !isSubmitting;
 
    const handleSubmit = async () => {
       if (!canSubmit) return;
@@ -94,7 +99,14 @@ export default function TeamCreateModal({
                   </label>
                   <div className="mt-2 grid grid-cols-2 gap-3">
                      <DatePicker value={startDate} onChange={setStartDate} placeholder="시작 일자" />
-                     <DatePicker value={endDate} onChange={setEndDate} placeholder="종료 일자" />
+                     <div>
+                        <DatePicker value={endDate} onChange={setEndDate} placeholder="종료 일자" />
+                        {isDateRangeInvalid && (
+                           <p className="mt-1 text-xs text-brand-red">
+                              종료일은 시작일보다 빠를 수 없습니다
+                           </p>
+                        )}
+                     </div>
                   </div>
                </>
             ) : (

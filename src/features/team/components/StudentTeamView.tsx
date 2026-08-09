@@ -59,7 +59,7 @@ export default function StudentTeamView() {
 
    return (
       <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
-         <h1 className="text-lg font-bold text-gray-900">팀 관리</h1>
+         <h1 className="text-lg font-bold text-gray-900">팀 현황</h1>
 
          {teams.length === 0 ? (
             <p className="py-16 text-center text-sm text-gray-400">생성된 팀이 없습니다</p>
