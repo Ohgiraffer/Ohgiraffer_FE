@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import { X } from 'lucide-react';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/components/auth/AuthContext';
+import AIAssistantWidget from '@/features/ai-assistant/AIAssistantWidget';
 import './globals.css';
 
 const geistSans = Geist({
@@ -28,7 +29,10 @@ export default function RootLayout({
    return (
       <html lang="ko" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
          <body className="min-h-full flex flex-col">
-            <AuthProvider>{children}</AuthProvider>
+            <AuthProvider>
+               {children}
+               <AIAssistantWidget />
+            </AuthProvider>
             <Toaster
                position="top-center"
                closeButton
