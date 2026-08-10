@@ -12,7 +12,7 @@ type Props = {
 // "AI 수정사항 요약" 카드 - 동기화 실행 직후(SyncRunTab)와 이력 상세(SyncHistoryDetail)가 공용으로 씀
 export default function AiSyncSummaryCard({ subtitle, items, footer }: Props) {
    return (
-      <div className="rounded-sm border border-brand-gold bg-white p-6">
+      <div className="rounded-sm border border-[#E5E7EB] bg-white p-6">
          <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
             <Sparkles size={16} className="text-brand-gold" />
             AI 수정사항 요약
@@ -48,7 +48,7 @@ export default function AiSyncSummaryCard({ subtitle, items, footer }: Props) {
                         {item.needsCheckNote && (
                            <div className="flex flex-wrap items-center gap-2">
                               <span className="w-16 shrink-0 text-gray-400">확인 필요</span>
-                              <span className="rounded-xs bg-[#F5DFDC] px-2 py-0.5 text-xs font-semibold text-[#C0392B]">
+                              <span className="rounded-xs bg-[#F5DFDC] px-2 py-0.5 text-xs font-semibold text-brand-red">
                                  확인 필요
                               </span>
                               <span className="text-gray-700">{item.needsCheckNote}</span>
