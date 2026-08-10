@@ -11,15 +11,26 @@ import {
    SelectTrigger,
    SelectValue,
 } from '@/components/ui/shadcn/select';
+import { ApiError } from '@/lib/http';
+import { toast } from '@/lib/toast';
+import { updateUserStatus, type UserStatus } from '@/services/user.service';
 import UserRegisterModal from '../components/UserRegisterModal';
-import { MOCK_USERS } from '../mockData';
+import UserStatusChangeModal, {
+   type UserStatusChangeReason,
+} from '../components/UserStatusChangeModal';
+import { useUserList } from '../hooks/useUserList';
 import type { ManagerSettingUser, UserRole } from '../types';
+
+const REASON_TO_STATUS: Record<UserStatusChangeReason, UserStatus> = {
+   자퇴: 'WITHDRAWN',
+   제적: 'EXPELLED',
+};
 
 const PAGE_SIZE = 6;
 
 const ROLE_BADGE_STYLE: Record<UserRole, string> = {
    훈련생: 'bg-brand-sage text-white',
-   강사: 'bg-brand-green text-white',
+   강사: 'bg-[#E8B84B] text-white',
    매니저: 'bg-brand-maroon text-white',
 };
 
@@ -31,11 +42,12 @@ const ROLE_OPTIONS: Array<{ value: 'all' | UserRole; label: string }> = [
 ];
 
 export default function UserPermissionTab() {
-   const [users, setUsers] = useState<ManagerSettingUser[]>(MOCK_USERS);
+   const { users, isLoading, loadError, refetch } = useUserList();
    const [keyword, setKeyword] = useState('');
    const [roleFilter, setRoleFilter] = useState<'all' | UserRole>('all');
    const [currentPage, setCurrentPage] = useState(1);
    const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+   const [statusChangeTarget, setStatusChangeTarget] = useState<ManagerSettingUser | null>(null);
 
    const filteredUsers = useMemo(() => {
       return users.filter((user) => {
@@ -62,10 +74,42 @@ export default function UserPermissionTab() {
       setCurrentPage(1);
    };
 
-   const removeUser = (id: string) => {
-      // TODO: 백엔드 준비되면 실제 삭제 API 연동
-      setUsers((prev) => prev.filter((user) => user.id !== id));
+   // 실패하면 토스트만 띄우고 다시 던져서 모달이 열린 채로 남아 재시도할 수 있게 한다
+   const handleConfirmStatusChange = async (reason: UserStatusChangeReason) => {
+      if (!statusChangeTarget) return;
+      try {
+         await updateUserStatus({
+            userId: Number(statusChangeTarget.id),
+            status: REASON_TO_STATUS[reason],
+         });
+         toast.success('사용자 상태가 정상적으로 변경되었습니다.');
+         setStatusChangeTarget(null);
+         refetch();
+      } catch (err) {
+         toast.error(
+            err instanceof ApiError
+               ? err.message
+               : '사용자 상태 변경 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+         );
+         throw err;
+      }
    };
+
+   if (isLoading) {
+      return (
+         <div className="rounded-sm border border-[#E5E7EB] bg-white px-8 py-10 text-center text-sm text-gray-400">
+            불러오는 중...
+         </div>
+      );
+   }
+
+   if (loadError) {
+      return (
+         <div className="rounded-sm border border-[#E5E7EB] bg-white px-8 py-10 text-center text-sm text-brand-red">
+            {loadError}
+         </div>
+      );
+   }
 
    return (
       <div>
@@ -110,7 +154,13 @@ export default function UserPermissionTab() {
          <UserRegisterModal
             open={isRegisterModalOpen}
             onClose={() => setIsRegisterModalOpen(false)}
-            onRegister={(newUsers) => setUsers((prev) => [...prev, ...newUsers])}
+            onRegistered={refetch}
+         />
+
+         <UserStatusChangeModal
+            user={statusChangeTarget}
+            onClose={() => setStatusChangeTarget(null)}
+            onConfirm={handleConfirmStatusChange}
          />
 
          <div className="mt-4 overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
@@ -127,64 +177,72 @@ export default function UserPermissionTab() {
                   </tr>
                </thead>
                <tbody>
-                  {pagedUsers.map((user, index) => {
-                     const isDeleted = user.status === '삭제됨';
-                     const rowNumber = (currentPage - 1) * PAGE_SIZE + index + 1;
+                  {pagedUsers.length === 0 ? (
+                     <tr>
+                        <td colSpan={7} className="px-6 py-10 text-center text-gray-400">
+                           조건에 맞는 사용자가 없습니다.
+                        </td>
+                     </tr>
+                  ) : (
+                     pagedUsers.map((user, index) => {
+                        const isDeleted = user.status === '삭제됨';
+                        const rowNumber = (currentPage - 1) * PAGE_SIZE + index + 1;
 
-                     return (
-                        <tr key={user.id} className="border-b border-[#F3F4F6] last:border-b-0">
-                           <td className="px-6 py-4 text-gray-500">{rowNumber}</td>
-                           <td
-                              className={`px-6 py-4 font-medium ${isDeleted ? 'text-gray-400' : 'text-gray-900'}`}
-                           >
-                              {user.name}
-                           </td>
-                           <td
-                              className={`px-6 py-4 ${isDeleted ? 'text-gray-400' : 'text-gray-700'}`}
-                           >
-                              {user.email}
-                           </td>
-                           <td className="px-6 py-4">
-                              <span
-                                 className={`rounded-sm px-2.5 py-1 text-xs font-semibold ${
-                                    isDeleted
-                                       ? 'bg-gray-200 text-gray-400'
-                                       : ROLE_BADGE_STYLE[user.role]
-                                 }`}
+                        return (
+                           <tr key={user.id} className="border-b border-[#F3F4F6] last:border-b-0">
+                              <td className="px-6 py-4 text-gray-500">{rowNumber}</td>
+                              <td
+                                 className={`px-6 py-4 font-medium ${isDeleted ? 'text-gray-400' : 'text-gray-900'}`}
                               >
-                                 {user.role}
-                              </span>
-                           </td>
-                           <td
-                              className={`px-6 py-4 ${isDeleted ? 'text-gray-400' : 'text-gray-700'}`}
-                           >
-                              {user.team ?? '—'}
-                           </td>
-                           <td className="px-6 py-4">
-                              {isDeleted ? (
-                                 <span className="text-gray-400">삭제됨</span>
-                              ) : (
-                                 <span className="inline-flex items-center justify-center gap-1.5 text-gray-700">
-                                    <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
-                                    활성
-                                 </span>
-                              )}
-                           </td>
-                           <td className="px-6 py-4 text-right">
-                              {!isDeleted && (
-                                 <button
-                                    type="button"
-                                    onClick={() => removeUser(user.id)}
-                                    aria-label="사용자 삭제"
-                                    className="cursor-pointer rounded-sm p-1.5 text-gray-400 hover:bg-gray-50 hover:text-brand-maroon"
+                                 {user.name}
+                              </td>
+                              <td
+                                 className={`px-6 py-4 ${isDeleted ? 'text-gray-400' : 'text-gray-700'}`}
+                              >
+                                 {user.email}
+                              </td>
+                              <td className="px-6 py-4">
+                                 <span
+                                    className={`rounded-sm px-2.5 py-1 text-xs font-semibold ${
+                                       isDeleted
+                                          ? 'bg-gray-200 text-gray-400'
+                                          : ROLE_BADGE_STYLE[user.role]
+                                    }`}
                                  >
-                                    <Trash2 size={16} />
-                                 </button>
-                              )}
-                           </td>
-                        </tr>
-                     );
-                  })}
+                                    {user.role}
+                                 </span>
+                              </td>
+                              <td
+                                 className={`px-6 py-4 ${isDeleted ? 'text-gray-400' : 'text-gray-700'}`}
+                              >
+                                 {user.team ?? '—'}
+                              </td>
+                              <td className="px-6 py-4">
+                                 {isDeleted ? (
+                                    <span className="text-gray-400">삭제됨</span>
+                                 ) : (
+                                    <span className="inline-flex items-center justify-center gap-1.5 text-brand-green">
+                                       <span className="h-1.5 w-1.5 rounded-full bg-brand-sage" />
+                                       활성
+                                    </span>
+                                 )}
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                 {!isDeleted && (
+                                    <button
+                                       type="button"
+                                       onClick={() => setStatusChangeTarget(user)}
+                                       aria-label="사용자 상태 변경"
+                                       className="cursor-pointer rounded-sm p-1.5 text-gray-400 hover:bg-gray-50 hover:text-brand-maroon"
+                                    >
+                                       <Trash2 size={16} />
+                                    </button>
+                                 )}
+                              </td>
+                           </tr>
+                        );
+                     })
+                  )}
                </tbody>
             </table>
          </div>
