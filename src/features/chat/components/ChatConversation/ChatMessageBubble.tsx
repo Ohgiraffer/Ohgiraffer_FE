@@ -50,7 +50,9 @@ export default function ChatMessageBubble({
       >
          {!message.isMine && (
             <div className="mr-2 w-7 shrink-0">
-               {showSenderName && <ChatAvatar name={message.senderName} size="sm" />}
+               {showSenderName && (
+                  <ChatAvatar name={message.senderName} imageUrl={message.senderProfileImageUrl} size="sm" />
+               )}
             </div>
          )}
          <div className={cn('flex flex-col', message.isMine ? 'items-end' : 'items-start')}>

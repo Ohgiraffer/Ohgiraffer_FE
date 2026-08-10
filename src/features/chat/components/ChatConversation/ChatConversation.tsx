@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isSameDay } from 'date-fns';
+import { GroupChannelHandler } from '@sendbird/chat/groupChannel';
 import { ChevronLeft, Paperclip, Search, Send, Users, X } from 'lucide-react';
 import ChatMessageBubble from './ChatMessageBubble';
 import MessageSearchBar from './MessageSearchBar';
@@ -15,6 +16,7 @@ import {
    editMessage,
    getChannelDetail,
    getChannelMessages,
+   getMessageReplyCount,
    getUserStatus,
    searchMessages,
    sendMessage,
@@ -26,6 +28,7 @@ import {
 import { getAttachmentFileName, getMessagePreviewText, mapMessageDto } from '../../chatMappers';
 import { formatChatDateDivider } from '../../formatChatTimestamp';
 import { useAuth } from '@/components/auth/AuthContext';
+import { useSendbird } from '../SendbirdProvider';
 import { getChatErrorMessage } from '../../chatErrors';
 import { toast } from '@/lib/toast';
 import type { ChatMessage, ChatMentionUser } from '../../types';
@@ -44,9 +47,12 @@ interface ChatConversationProps {
    // 스레드(ThreadPanel)에서 루트 메시지를 수정/삭제하면, 이 목록에도 같은 메시지가 들어있을 수 있어
    // 그 최신 상태를 여기로도 반영해달라고 부모(ChatPanel)가 내려주는 값
    incomingMessagePatch?: ChatMessage | null;
-   // 서버가 메시지 조회 시점에 읽음 처리를 하므로, 메시지를 성공적으로 불러올 때마다 호출해
-   // 채널 목록/안읽음 배지를 곧바로 최신화하라고 부모에게 알림
+   // 채널 목록/안읽음 배지를 곧바로 최신화해달라고 부모에게 알림 - 서버가 메시지 조회 시점에
+   // 읽음 처리를 하므로 메시지를 성공적으로 불러올 때, 그리고 메시지를 보내/수정해 채널의
+   // 마지막 메시지가 바뀌었을 때 호출한다
    onMessagesRead?: () => void;
+   // 방을 처음 열었을 때 각 메시지의 실제 답글 수를 서버에서 받아와 replyCounts에 반영해달라고 부모에게 알림
+   onReplyCountsLoaded?: (counts: Record<string, number>) => void;
 }
 
 export default function ChatConversation({
@@ -57,8 +63,10 @@ export default function ChatConversation({
    onBack,
    incomingMessagePatch,
    onMessagesRead,
+   onReplyCountsLoaded,
 }: ChatConversationProps) {
    const { me } = useAuth();
+   const { sdk, status: sendbirdStatus } = useSendbird();
    const myUserId = me?.userId ?? null;
    const myName = me?.name ?? '나';
    const [members, setMembers] = useState<ChatChannelMember[]>([]);
@@ -124,7 +132,7 @@ export default function ChatConversation({
       const uid = myUserId;
 
       Promise.all([getChannelDetail(room.channelId), getChannelMessages(room.channelId)])
-         .then(([detail, page]) => {
+         .then(([detail, list]) => {
             if (!isMounted) return;
             setMembers(detail.members);
             const ctx = {
@@ -133,13 +141,28 @@ export default function ChatConversation({
                members: detail.members,
             };
             // 백엔드가 최신순(sentAt DESC)으로 내려주므로 화면 표시용으로 오래된 순으로 뒤집는다.
-            // 새로 만든 채널처럼 메시지 이력이 없으면 content가 아예 안 올 수 있어(스펙 미확인 구간) 기본값 처리
-            const mapped = (page.content ?? [])
+            // 새로 만든 채널처럼 메시지 이력이 없으면 빈 배열이 올 수 있어 기본값 처리
+            const mapped = (list ?? [])
                .slice()
                .reverse()
                .map((dto) => mapMessageDto(dto, ctx));
             setMessages(mapped);
             onMessagesRead?.();
+
+            // 각 메시지의 실제 답글 수를 서버에서 받아와 로컬 세션 추정치를 정확한 값으로 덮어쓴다.
+            // 방을 열 때 한 번만 조회하고, 이후 새로 보낸 답글은 onReplySent로 로컬 증가만 반영한다
+            if (onReplyCountsLoaded && mapped.length > 0) {
+               Promise.all(
+                  mapped.map((m) =>
+                     getMessageReplyCount(m.id)
+                        .then((res): [string, number] => [m.id, res.replyCount])
+                        .catch((): [string, number] => [m.id, 0]),
+                  ),
+               ).then((entries) => {
+                  if (!isMounted) return;
+                  onReplyCountsLoaded(Object.fromEntries(entries));
+               });
+            }
 
             if (room.channelType !== 'DM') return;
             // DM은 채널 목록에 상대방 userId가 없어 온라인 여부도 못 구하므로, 나를 뺀 나머지 한 명의 상태를 이어서 조회한다
@@ -166,40 +189,62 @@ export default function ChatConversation({
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [room.channelId, room.channelType]);
 
-   // 실시간 푸시(웹소켓)가 없어, 열려 있는 대화방에 다른 사람이 보낸 새 메시지나 다른 사람의
-   // 수정·삭제가 있는지 주기적으로 조용히 다시 조회한다. id로 병합해 기존 메시지는 최신 내용으로
-   // 갱신하고, 새 메시지만 뒤에 붙인다(단, 답장 인용 미리보기처럼 서버가 안 주는 클라이언트 전용
-   // 필드는 유지)
-   useEffect(() => {
-      const interval = setInterval(() => {
-         getChannelMessages(room.channelId)
-            .then((page) => {
-               setMessages((prev) => {
-                  const content = page.content ?? [];
-                  const dtoById = new Map(content.map((dto) => [dto.sendbirdMessageId, dto]));
-                  const merged = prev.map((m) => {
-                     const dto = dtoById.get(m.id);
-                     if (!dto) return m;
-                     return { ...mapMessageDto(dto, mapCtx), replyToPreview: m.replyToPreview };
-                  });
-                  const existingIds = new Set(prev.map((m) => m.id));
-                  const newOnes = content
-                     .slice()
-                     .reverse()
-                     .filter((dto) => !existingIds.has(dto.sendbirdMessageId))
-                     .map((dto) => mapMessageDto(dto, mapCtx));
-                  return newOnes.length > 0 ? [...merged, ...newOnes] : merged;
+   // 열려 있는 대화방에 다른 사람이 보낸 새 메시지나 다른 사람의 수정·삭제가 있는지 다시 조회한다.
+   // id로 병합해 기존 메시지는 최신 내용으로 갱신하고, 새 메시지만 뒤에 붙인다(단, 답장 인용
+   // 미리보기처럼 서버가 안 주는 클라이언트 전용 필드는 유지)
+   const refreshMessages = useCallback(() => {
+      return getChannelMessages(room.channelId)
+         .then((list) => {
+            setMessages((prev) => {
+               const content = list ?? [];
+               const dtoById = new Map(content.map((dto) => [dto.sendbirdMessageId, dto]));
+               const merged = prev.map((m) => {
+                  const dto = dtoById.get(m.id);
+                  if (!dto) return m;
+                  return { ...mapMessageDto(dto, mapCtx), replyToPreview: m.replyToPreview };
                });
-               onMessagesRead?.();
-            })
-            .catch(() => {}); // 백그라운드 새로고침이라 실패해도 조용히 무시
-      }, MESSAGE_POLL_INTERVAL_MS);
-      return () => clearInterval(interval);
+               const existingIds = new Set(prev.map((m) => m.id));
+               const newOnes = content
+                  .slice()
+                  .reverse()
+                  .filter((dto) => !existingIds.has(dto.sendbirdMessageId))
+                  .map((dto) => mapMessageDto(dto, mapCtx));
+               return newOnes.length > 0 ? [...merged, ...newOnes] : merged;
+            });
+            onMessagesRead?.();
+         })
+         .catch(() => {}); // 백그라운드 새로고침이라 실패해도 조용히 무시
    }, [room.channelId, mapCtx, onMessagesRead]);
 
+   // Sendbird 실시간 연결이 되어 있으면 이 채널로 새 메시지가 올 때마다 바로 다시 조회한다
+   useEffect(() => {
+      if (sendbirdStatus !== 'connected' || !sdk) return;
+      const key = `chat-conversation-${room.channelId}`;
+      sdk.groupChannel.addGroupChannelHandler(
+         key,
+         new GroupChannelHandler({
+            onMessageReceived: (channel) => {
+               if (channel.url !== room.channelId) return;
+               refreshMessages();
+            },
+         }),
+      );
+      return () => {
+         sdk.groupChannel.removeGroupChannelHandler(key);
+      };
+   }, [sdk, sendbirdStatus, room.channelId, refreshMessages]);
+
+   // 연결이 안 됐을 때만 폴링으로 보완
+   useEffect(() => {
+      if (sendbirdStatus === 'connected') return;
+      const interval = setInterval(refreshMessages, MESSAGE_POLL_INTERVAL_MS);
+      return () => clearInterval(interval);
+   }, [sendbirdStatus, refreshMessages]);
+
    // 검색어가 바뀔 때마다(디바운스 후) 서버 검색 API로 채널 전체 이력에서 매치를 찾는다.
-   // 다만 위/아래 이동은 실제로 화면에 그려진 메시지로만 가능하므로(페이지네이션이 없어 최근분만 로드됨),
-   // 서버 매치 결과와 현재 로드된 messages의 교집합만 이동 가능한 결과로 취급한다
+   // 검색 결과가 여러 페이지에 걸쳐 있을 수 있어 마지막 페이지까지 전부 모아온다.
+   // 위/아래 이동을 위해 매치된 메시지가 화면에 로드돼 있어야 하는 문제는 아래
+   // "검색 매치 중 아직 안 불러온 메시지가 있으면 채널 이력을 더 불러온다" effect가 처리한다
    useEffect(() => {
       const query = searchQuery.trim();
       let isMounted = true;
@@ -210,13 +255,23 @@ export default function ChatConversation({
             if (isMounted) setRemoteSearchMatches([]);
             return;
          }
-         searchMessages({ channelId: room.channelId, keyword: query })
-            .then((page) => {
-               if (isMounted) setRemoteSearchMatches(page.content ?? []);
-            })
-            .catch(() => {
-               if (isMounted) setRemoteSearchMatches([]);
-            });
+         (async () => {
+            const all: ChatMessageDto[] = [];
+            let page = 0;
+            // 검색 결과가 아무리 많아도 무한 루프에 빠지지 않도록 안전 상한을 둔다(최대 5,000건)
+            while (page < 100) {
+               let result;
+               try {
+                  result = await searchMessages({ channelId: room.channelId, keyword: query, page, size: 50 });
+               } catch {
+                  break;
+               }
+               all.push(...(result.content ?? []));
+               if (result.last || (result.content?.length ?? 0) === 0) break;
+               page += 1;
+            }
+            if (isMounted) setRemoteSearchMatches(all);
+         })();
       }, query ? SEARCH_DEBOUNCE_MS : 0);
       return () => {
          isMounted = false;
@@ -224,12 +279,65 @@ export default function ChatConversation({
       };
    }, [searchQuery, room.channelId]);
 
+   // 검색 매치 중 지금 화면에 로드돼 있지 않은 메시지가 있으면(최근 일부만 로드된 상태),
+   // 채널 이력을 끝까지 불러와 병합한다 - 위/아래 이동으로 모든 매치에 스크롤할 수 있으려면 필요
+   useEffect(() => {
+      if (remoteSearchMatches.length === 0) return;
+      const loadedIds = new Set(messages.map((m) => m.id));
+      const hasMissing = remoteSearchMatches.some((dto) => !loadedIds.has(dto.sendbirdMessageId));
+      if (!hasMissing) return;
+
+      let isMounted = true;
+      (async () => {
+         const all: ChatMessageDto[] = [];
+         const pageSize = 100;
+         let page = 0;
+         while (page < 100) {
+            let result;
+            try {
+               result = await getChannelMessages(room.channelId, page, pageSize);
+            } catch {
+               break;
+            }
+            const batch = result ?? [];
+            all.push(...batch);
+            // 이 엔드포인트는 전체 개수/마지막 페이지 여부를 안 내려줘서, 받아온 개수가
+            // 요청한 size보다 적으면 마지막 페이지로 간주해 멈춘다
+            if (batch.length < pageSize) break;
+            page += 1;
+         }
+         if (!isMounted || all.length === 0) return;
+         const mapped = all
+            .slice()
+            .reverse()
+            .map((dto) => mapMessageDto(dto, mapCtx));
+         setMessages((prev) => {
+            const existingIds = new Set(prev.map((m) => m.id));
+            const additions = mapped.filter((m) => !existingIds.has(m.id));
+            if (additions.length === 0) return prev;
+            // 오래된 순 정렬을 유지하도록 합친 뒤 시각 기준으로 다시 정렬한다
+            return [...prev, ...additions].sort((a, b) => a.sentAtISO.localeCompare(b.sentAtISO));
+         });
+      })();
+      return () => {
+         isMounted = false;
+      };
+      // messages/mapCtx는 이 effect가 직접 갱신 대상이라 deps에 넣으면 매번 재실행된다 -
+      // remoteSearchMatches가 바뀔 때만(새 검색 시) 다시 확인하면 충분하다
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [remoteSearchMatches, room.channelId]);
+
    // 채널 상세 조회로 받은 실제 멤버 목록에서 나를 제외하고 멘션 후보로 쓴다
    const mentionCandidates: ChatMentionUser[] = useMemo(
       () =>
          members
             .filter((member) => member.userId !== myUserId)
-            .map((member) => ({ id: member.userId, name: member.memberName, roleLabel: '' })),
+            .map((member) => ({
+               id: member.userId,
+               name: member.memberName,
+               roleLabel: '',
+               profileImageUrl: member.profileImageUrl,
+            })),
       [members, myUserId],
    );
 
@@ -374,6 +482,9 @@ export default function ChatConversation({
          setDraft('');
          setPendingAttachment(null);
          setMentionedUsers([]);
+         // 방금 보낸/수정한 메시지가 채널의 마지막 메시지가 되므로, 채널 목록의 미리보기·시각도
+         // 다음 폴링/푸시를 기다리지 않고 바로 최신화한다
+         onMessagesRead?.();
       } catch (err) {
          toast.error(getChatErrorMessage(err, '메시지 전송에 실패했습니다. 잠시 후 다시 시도해주세요.'));
       } finally {

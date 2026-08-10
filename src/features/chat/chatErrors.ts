@@ -12,6 +12,7 @@ const CHAT_ERROR_MESSAGES: Record<string, string> = {
    COMMON_001: '입력값이 올바르지 않습니다.',
    COMMON_002: '요청 본문이 올바르지 않습니다.',
    COMMON_003: '필수 요청 파라미터가 누락되었습니다.',
+   COMMON_004: '요청 파라미터 타입이 올바르지 않습니다.',
 };
 
 // err.code가 위 표에 있으면 고정 문구, 없으면 백엔드가 내려준 message, 그것도 없으면 fallback을 쓴다
