@@ -40,7 +40,10 @@ export default function UserStatusChangeModal({ user, onClose, onConfirm }: Prop
    const canSubmit = reason !== '' && isAcknowledged && !isSubmitting;
 
    const handleClose = () => {
-      if (isSubmitting) return;
+      // Modal 내부의 Escape 리스너는 최초 마운트 시점의 handleClose 클로저를 그대로 쓰기 때문에
+      // state(isSubmitting)를 직접 참조하면 이후 값이 바뀌어도 여기선 항상 최초값(false)으로 보인다.
+      // ref는 클로저와 무관하게 항상 최신값을 읽으므로 이 가드에는 반드시 ref를 써야 한다
+      if (isSubmittingRef.current) return;
       setReason('');
       setIsAcknowledged(false);
       onClose();

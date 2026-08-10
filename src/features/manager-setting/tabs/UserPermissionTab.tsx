@@ -185,26 +185,27 @@ export default function UserPermissionTab() {
                      </tr>
                   ) : (
                      pagedUsers.map((user, index) => {
-                        const isDeleted = user.status === '삭제됨';
+                        // 수료·삭제됨 둘 다 더 이상 상태를 바꿀 수 없는 최종 상태라 읽기 전용으로 표시한다
+                        const isReadOnly = user.status !== '활성';
                         const rowNumber = (currentPage - 1) * PAGE_SIZE + index + 1;
 
                         return (
                            <tr key={user.id} className="border-b border-[#F3F4F6] last:border-b-0">
                               <td className="px-6 py-4 text-gray-500">{rowNumber}</td>
                               <td
-                                 className={`px-6 py-4 font-medium ${isDeleted ? 'text-gray-400' : 'text-gray-900'}`}
+                                 className={`px-6 py-4 font-medium ${isReadOnly ? 'text-gray-400' : 'text-gray-900'}`}
                               >
                                  {user.name}
                               </td>
                               <td
-                                 className={`px-6 py-4 ${isDeleted ? 'text-gray-400' : 'text-gray-700'}`}
+                                 className={`px-6 py-4 ${isReadOnly ? 'text-gray-400' : 'text-gray-700'}`}
                               >
                                  {user.email}
                               </td>
                               <td className="px-6 py-4">
                                  <span
                                     className={`rounded-sm px-2.5 py-1 text-xs font-semibold ${
-                                       isDeleted
+                                       isReadOnly
                                           ? 'bg-gray-200 text-gray-400'
                                           : ROLE_BADGE_STYLE[user.role]
                                     }`}
@@ -213,22 +214,29 @@ export default function UserPermissionTab() {
                                  </span>
                               </td>
                               <td
-                                 className={`px-6 py-4 ${isDeleted ? 'text-gray-400' : 'text-gray-700'}`}
+                                 className={`px-6 py-4 ${isReadOnly ? 'text-gray-400' : 'text-gray-700'}`}
                               >
                                  {user.team ?? '—'}
                               </td>
                               <td className="px-6 py-4">
-                                 {isDeleted ? (
-                                    <span className="text-gray-400">삭제됨</span>
-                                 ) : (
+                                 {user.status === '활성' && (
                                     <span className="inline-flex items-center justify-center gap-1.5 text-brand-green">
                                        <span className="h-1.5 w-1.5 rounded-full bg-brand-sage" />
                                        활성
                                     </span>
                                  )}
+                                 {user.status === '수료' && (
+                                    <span className="inline-flex items-center justify-center gap-1.5 text-gray-500">
+                                       <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />
+                                       수료
+                                    </span>
+                                 )}
+                                 {user.status === '삭제됨' && (
+                                    <span className="text-gray-400">삭제됨</span>
+                                 )}
                               </td>
                               <td className="px-6 py-4 text-right">
-                                 {!isDeleted && (
+                                 {!isReadOnly && (
                                     <button
                                        type="button"
                                        onClick={() => setStatusChangeTarget(user)}

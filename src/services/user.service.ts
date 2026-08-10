@@ -44,7 +44,7 @@ export interface UserListItem {
    role: UserRole;
    // 훈련생만 소속 팀이 있고, 강사·매니저는 항상 null
    teamName: string | null;
-   status: string;
+   status: UserStatus;
 }
 
 // 관리자 설정 > 사용자 및 권한 관리 - 전체 사용자 목록 조회

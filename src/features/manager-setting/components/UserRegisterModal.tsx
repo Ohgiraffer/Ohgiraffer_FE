@@ -60,6 +60,11 @@ export default function UserRegisterModal({ open, onClose, onRegistered }: Props
    const [isRegistering, setIsRegistering] = useState(false);
    // 더블클릭으로 인한 중복 등록 방지 - state는 비동기라 클릭 시점에 바로 막아줄 동기 가드가 필요
    const isRegisteringRef = useRef(false);
+   // 추출 요청이 겹칠 때(파일을 빠르게 다시 고름) 더 최신 선택의 응답만 반영하기 위한 순번
+   const extractionRequestIdRef = useRef(0);
+   // 추출 실패로 파일을 비웠을 때 <input type="file">의 네이티브 값도 같이 리셋하기 위한 key -
+   // 값을 안 비우면 같은 파일을 다시 골라도 change 이벤트가 발생하지 않아 재시도가 안 된다
+   const [fileInputResetKey, setFileInputResetKey] = useState(0);
 
    const addRow = () => setRows((prev) => [...prev, createEmptyDraftRow()]);
    const removeRow = (id: string) => setRows((prev) => prev.filter((row) => row.id !== id));
@@ -83,8 +88,10 @@ export default function UserRegisterModal({ open, onClose, onRegistered }: Props
       onClose();
    };
 
-   // 파일을 고르거나(드래그/선택) 다시 선택으로 비울 때 공통으로 거치는 경로 - 고른 즉시 추출 API를 호출한다
+   // 파일을 고르거나(드래그/선택) 다시 선택으로 비울 때 공통으로 거치는 경로 - 고른 즉시 추출 API를 호출한다.
+   // 추출 도중 다른 파일을 다시 고르면 이전 요청은 무시하고 가장 최근 선택의 응답만 반영한다
    const handleFileSelect = async (file: File | null) => {
+      const requestId = ++extractionRequestIdRef.current;
       setSelectedFile(file);
       setExtractedRows(null);
       setSelectedRowNumbers(new Set());
@@ -93,12 +100,14 @@ export default function UserRegisterModal({ open, onClose, onRegistered }: Props
       setIsExtracting(true);
       try {
          const result = await extractUsersFromFile(file);
+         if (extractionRequestIdRef.current !== requestId) return; // 더 최신 선택이 있으면 이 결과는 버림
          setExtractedRows(result.rows);
          // 오류 없는 행은 기본으로 전부 체크해둔다
          setSelectedRowNumbers(
             new Set(result.rows.filter((row) => row.valid).map((row) => row.rowNumber)),
          );
       } catch (err) {
+         if (extractionRequestIdRef.current !== requestId) return;
          toast.error(
             getApiErrorMessage(
                err,
@@ -106,8 +115,10 @@ export default function UserRegisterModal({ open, onClose, onRegistered }: Props
             ),
          );
          setSelectedFile(null);
+         // 같은 파일을 다시 골라도 선택할 수 있도록 네이티브 input을 강제로 리마운트시킨다
+         setFileInputResetKey((key) => key + 1);
       } finally {
-         setIsExtracting(false);
+         if (extractionRequestIdRef.current === requestId) setIsExtracting(false);
       }
    };
 
@@ -314,6 +325,7 @@ export default function UserRegisterModal({ open, onClose, onRegistered }: Props
                      selectedRowNumbers={selectedRowNumbers}
                      onToggleRow={toggleRowSelected}
                      onToggleAll={toggleAllRowsSelected}
+                     fileInputResetKey={fileInputResetKey}
                   />
                )}
             </div>

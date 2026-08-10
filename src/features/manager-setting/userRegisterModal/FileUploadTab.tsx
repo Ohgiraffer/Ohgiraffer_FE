@@ -16,6 +16,8 @@ type Props = {
    selectedRowNumbers: Set<number>;
    onToggleRow: (rowNumber: number) => void;
    onToggleAll: () => void;
+   // 값이 바뀌면 <input type="file">을 강제로 리마운트해 네이티브 값을 비운다(추출 실패 후 같은 파일 재선택용)
+   fileInputResetKey: number;
 };
 
 export default function FileUploadTab({
@@ -28,6 +30,7 @@ export default function FileUploadTab({
    selectedRowNumbers,
    onToggleRow,
    onToggleAll,
+   fileInputResetKey,
 }: Props) {
    const inputRef = useRef<HTMLInputElement>(null);
 
@@ -192,6 +195,7 @@ export default function FileUploadTab({
                </span>
                <span className="text-xs text-gray-400">.csv, .xlsx 지원</span>
                <input
+                  key={fileInputResetKey}
                   ref={inputRef}
                   type="file"
                   accept=".csv,.xlsx"
