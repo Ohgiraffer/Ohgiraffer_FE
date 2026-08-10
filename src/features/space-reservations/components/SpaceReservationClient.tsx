@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Building, LayoutGrid, List, TriangleAlert } from 'lucide-react';
+import { useAuth } from '@/components/auth/AuthContext';
 import SearchInput from '@/components/ui/SearchInput';
 import SpaceGridView from './SpaceGridView';
 import SpaceListView from './SpaceListView';
@@ -10,9 +11,14 @@ import { useSpaceReservation } from '../hooks/useSpaceReservation';
 
 // 공간 예약(자리 현황) 페이지 - 헤더(제목+검색+뷰토글) + 안내 배너 + 그리드/리스트 뷰 조립
 export default function SpaceReservationClient() {
+   const { role } = useAuth();
+   // 공간 관리(등록/삭제)는 강사·매니저 전용 기능 - 훈련생 화면에는 버튼 자체를 노출하지 않음
+   const canManageSpaces = role === 'INSTRUCTOR' || role === 'MANAGER';
    const {
-      zones,
-      people,
+      spaces,
+      isLoading,
+      hasError,
+      refetch,
       viewMode,
       setViewMode,
       searchKeyword,
@@ -20,25 +26,22 @@ export default function SpaceReservationClient() {
       handleSearch,
       checkIn,
       checkOut,
-      addZone,
-      removeZone,
+      addSpace,
+      removeSpace,
    } = useSpaceReservation();
    const [isManagePanelOpen, setIsManagePanelOpen] = useState(false);
 
-   // 구역별 재실 인원 수 - 0명일 때만 삭제 가능
+   // 공간 관리 패널에 넘길 행 - 재실 인원이 있으면 삭제 불가
    const manageRows = useMemo(
       () =>
-         zones.map((zone) => {
-            const occupantCount = people.filter((person) => person.zoneId === zone.id).length;
-            return {
-               id: zone.id,
-               name: zone.name,
-               capacity: zone.capacity,
-               occupantCount,
-               canDelete: occupantCount === 0,
-            };
-         }),
-      [zones, people],
+         spaces.map((space) => ({
+            id: space.spaceId,
+            name: space.spaceName,
+            capacity: space.capacity,
+            occupantCount: space.currentCount,
+            canDelete: space.currentCount === 0,
+         })),
+      [spaces],
    );
 
    return (
@@ -51,14 +54,16 @@ export default function SpaceReservationClient() {
                   placeholder="이름으로 자리 검색"
                   className="w-72"
                />
-               <button
-                  type="button"
-                  onClick={() => setIsManagePanelOpen(true)}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-sm border border-brand-green bg-white px-3 h-9 text-sm font-semibold text-brand-green hover:bg-gray-50"
-               >
-                  <Building size={16} />
-                  공간 관리
-               </button>
+               {canManageSpaces && (
+                  <button
+                     type="button"
+                     onClick={() => setIsManagePanelOpen(true)}
+                     className="flex cursor-pointer items-center gap-1.5 rounded-xs border border-brand-green bg-white px-3 h-9 text-sm font-semibold text-brand-green hover:bg-gray-50"
+                  >
+                     <Building size={16} />
+                     공간 관리
+                  </button>
+               )}
                <div className="flex items-center rounded-xs border border-[#E5E7EB] bg-white">
                   <button
                      type="button"
@@ -98,10 +103,28 @@ export default function SpaceReservationClient() {
          </div>
 
          <div className="mt-4">
-            {viewMode === 'grid' ? (
+            {isLoading ? (
+               <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+            ) : hasError ? (
+               <div className="flex flex-col items-center gap-3 py-16">
+                  <p className="text-sm text-gray-400">공간 정보를 불러오지 못했습니다.</p>
+                  <button
+                     type="button"
+                     onClick={refetch}
+                     className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                     다시 시도
+                  </button>
+               </div>
+            ) : spaces.length === 0 ? (
+               <p className="py-16 text-center text-sm text-gray-400">
+                  {canManageSpaces
+                     ? '등록된 장소가 없습니다. [공간 관리] 버튼을 통해 장소를 추가해보세요.'
+                     : '아직 등록된 공간이 없습니다.'}
+               </p>
+            ) : viewMode === 'grid' ? (
                <SpaceGridView
-                  zones={zones}
-                  people={people}
+                  spaces={spaces}
                   searchKeyword={searchKeyword}
                   searchTrigger={searchTrigger}
                   onCheckIn={checkIn}
@@ -109,8 +132,7 @@ export default function SpaceReservationClient() {
                />
             ) : (
                <SpaceListView
-                  zones={zones}
-                  people={people}
+                  spaces={spaces}
                   searchKeyword={searchKeyword}
                   onCheckIn={checkIn}
                   onCheckOut={checkOut}
@@ -118,13 +140,15 @@ export default function SpaceReservationClient() {
             )}
          </div>
 
-         <SpaceManagePanel
-            open={isManagePanelOpen}
-            onClose={() => setIsManagePanelOpen(false)}
-            zones={manageRows}
-            onAddZone={addZone}
-            onRemoveZone={removeZone}
-         />
+         {canManageSpaces && (
+            <SpaceManagePanel
+               open={isManagePanelOpen}
+               onClose={() => setIsManagePanelOpen(false)}
+               spaces={manageRows}
+               onAddSpace={addSpace}
+               onRemoveSpace={removeSpace}
+            />
+         )}
       </div>
    );
 }
