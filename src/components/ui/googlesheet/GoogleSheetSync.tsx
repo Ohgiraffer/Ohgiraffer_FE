@@ -17,6 +17,9 @@ import GoogleSheetConnectedCard from './GoogleSheetConnectedCard';
 export interface GoogleSheetColumnField {
    key: string;
    label: string;
+   // 기본값 true. false로 주면 매핑하지 않아도 저장 가능(예: 평가 시트의 "의견")하고,
+   // 라벨 옆에도 필수(*) 대신 "(선택)"이 표시된다
+   required?: boolean;
 }
 
 export interface GoogleSheetColumnMapping {
@@ -69,7 +72,9 @@ export default function GoogleSheetSync({ columns, onSave, connectedExtra }: Goo
    const canVerify = spreadsheetUrl.trim().length > 0 && !isVerifying;
    const canSave =
       connection !== null &&
-      columns.every((column) => columnMapping[column.key] !== undefined) &&
+      columns.every(
+         (column) => column.required === false || columnMapping[column.key] !== undefined,
+      ) &&
       !isSaving;
 
    // 같은 이름의 컬럼이 여러 개면 선택 목록에서 구분할 수 있도록 표시해준다.
@@ -216,7 +221,11 @@ export default function GoogleSheetSync({ columns, onSave, connectedExtra }: Goo
                               className="flex items-center gap-1 text-sm text-gray-700"
                            >
                               {column.label}
-                              <span className="text-brand-gold">*</span>
+                              {column.required === false ? (
+                                 <span className="text-xs font-normal text-gray-400">(선택)</span>
+                              ) : (
+                                 <span className="text-brand-gold">*</span>
+                              )}
                            </label>
                            <Select
                               value={

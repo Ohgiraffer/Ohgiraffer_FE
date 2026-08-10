@@ -1,3 +1,5 @@
+import EvaluationsPageClient from '@/features/evaluations/components/EvaluationsPageClient';
+
 export default function EvaluationsPage() {
-   return <div>EvaluationsPage</div>;
+   return <EvaluationsPageClient />;
 }
