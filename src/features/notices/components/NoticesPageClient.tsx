@@ -1,55 +1,93 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Pin, Settings } from 'lucide-react';
+import { useAuth } from '@/components/auth/AuthContext';
 import SearchInput from '@/components/ui/SearchInput';
 import Pagination from '@/components/ui/Pagination';
+import { ApiError } from '@/lib/http';
+import { toast } from '@/lib/toast';
+import { format } from 'date-fns';
+import {
+   createNoticeCategory,
+   deleteNoticeCategory,
+   getNoticeCategories,
+   getNotices,
+   type NoticeCategory,
+   type NoticeListItem,
+} from '@/services/notice.service';
 import CategoryManageModal from './CategoryManageModal';
-import { MOCK_NOTICE_CATEGORIES, MOCK_NOTICES } from '../mockData';
-import type { NoticeCategory, NoticeEntry } from '../types';
 
 const PAGE_SIZE = 6;
 
-function createId() {
-   return crypto.randomUUID();
-}
-
 export default function NoticesPageClient() {
    const router = useRouter();
-   const [categories, setCategories] = useState<NoticeCategory[]>(MOCK_NOTICE_CATEGORIES);
-   const [notices] = useState<NoticeEntry[]>(MOCK_NOTICES);
-   const [activeTab, setActiveTab] = useState('all');
+   const { role } = useAuth();
+   // 카테고리 등록/삭제는 운영진(강사·매니저)만 가능 - 훈련생에게는 관리 버튼 자체를 숨긴다
+   const canManageCategories = role === 'INSTRUCTOR' || role === 'MANAGER';
+   const [categories, setCategories] = useState<NoticeCategory[]>([]);
+   const [notices, setNotices] = useState<NoticeListItem[]>([]);
+   const [isLoading, setIsLoading] = useState(true);
+   const [activeCategoryId, setActiveCategoryId] = useState<number | 'all'>('all');
    const [keyword, setKeyword] = useState('');
    const [currentPage, setCurrentPage] = useState(1);
    const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
+   useEffect(() => {
+      let isMounted = true;
+
+      // 카테고리별 공지 수(카테고리 관리 모달의 "삭제 가능 여부" 판단용)를 정확히 계산하려면
+      // 전체 목록이 있어야 해서, categoryId 필터 없이 한 번에 받아 탭 전환은 클라이언트에서 처리한다
+      Promise.all([getNoticeCategories(), getNotices()])
+         .then(([categoryList, noticeList]) => {
+            if (!isMounted) return;
+            setCategories(categoryList);
+            setNotices(noticeList);
+         })
+         .catch((err) => {
+            if (!isMounted) return;
+            toast.error(
+               err instanceof ApiError
+                  ? err.message
+                  : '공지사항을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+            );
+         })
+         .finally(() => {
+            if (isMounted) setIsLoading(false);
+         });
+
+      return () => {
+         isMounted = false;
+      };
+   }, []);
+
    // 카테고리별로 이 카테고리를 쓰는 공지가 몇 개인지 - 0개일 때만 삭제 가능
    const categoryNoticeCounts = useMemo(() => {
-      const counts = new Map<string, number>();
+      const counts = new Map<number, number>();
       for (const notice of notices) {
-         counts.set(notice.category, (counts.get(notice.category) ?? 0) + 1);
+         counts.set(notice.categoryId, (counts.get(notice.categoryId) ?? 0) + 1);
       }
       return counts;
    }, [notices]);
 
    const categoryRows = categories.map((category) => ({
-      id: category.id,
+      id: category.categoryId,
       name: category.name,
-      canDelete: (categoryNoticeCounts.get(category.name) ?? 0) === 0,
+      canDelete: (categoryNoticeCounts.get(category.categoryId) ?? 0) === 0,
    }));
 
    const filteredNotices = useMemo(() => {
       return notices.filter((notice) => {
-         const matchesTab = activeTab === 'all' || notice.category === activeTab;
+         const matchesTab = activeCategoryId === 'all' || notice.categoryId === activeCategoryId;
          const matchesKeyword =
             !keyword ||
             notice.title.toLowerCase().includes(keyword.toLowerCase()) ||
-            notice.author.toLowerCase().includes(keyword.toLowerCase());
+            (notice.authorName ?? '').toLowerCase().includes(keyword.toLowerCase());
          return matchesTab && matchesKeyword;
       });
-   }, [notices, activeTab, keyword]);
+   }, [notices, activeCategoryId, keyword]);
 
    const totalPages = Math.max(1, Math.ceil(filteredNotices.length / PAGE_SIZE));
    const pagedNotices = filteredNotices.slice(
@@ -57,8 +95,8 @@ export default function NoticesPageClient() {
       currentPage * PAGE_SIZE,
    );
 
-   const handleTabChange = (tab: string) => {
-      setActiveTab(tab);
+   const handleTabChange = (categoryId: number | 'all') => {
+      setActiveCategoryId(categoryId);
       setCurrentPage(1);
    };
 
@@ -67,16 +105,41 @@ export default function NoticesPageClient() {
       setCurrentPage(1);
    };
 
-   const addCategory = (name: string) => {
-      setCategories((prev) => [...prev, { id: createId(), name }]);
+   // 등록에 실패하면 에러를 다시 던져서 모달이 입력값을 지우지 않고 재시도할 수 있게 한다
+   const addCategory = async (name: string) => {
+      try {
+         const created = await createNoticeCategory(name);
+         setCategories((prev) => [...prev, created]);
+      } catch (err) {
+         toast.error(
+            err instanceof ApiError
+               ? err.message
+               : '카테고리 등록 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+         );
+         throw err;
+      }
    };
 
-   const removeCategory = (id: string) => {
-      const target = categories.find((category) => category.id === id);
-      setCategories((prev) => prev.filter((category) => category.id !== id));
+   const removeCategory = async (id: number) => {
+      try {
+         await deleteNoticeCategory(id);
+      } catch (err) {
+         // 이미 삭제된 카테고리(404)는 화면에서도 지워주고 넘어간다 - 그 외(주로 409, 사용 중)는
+         // 목록에 그대로 두고 에러만 안내한다
+         if (!(err instanceof ApiError && err.code === 'NOTICE_002')) {
+            toast.error(
+               err instanceof ApiError
+                  ? err.message
+                  : '카테고리 삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+            );
+            throw err;
+         }
+      }
+
+      setCategories((prev) => prev.filter((category) => category.categoryId !== id));
       // 삭제한 카테고리가 현재 선택된 탭이었다면 전체 탭으로 되돌림
-      if (target && activeTab === target.name) {
-         setActiveTab('all');
+      if (activeCategoryId === id) {
+         setActiveCategoryId('all');
          setCurrentPage(1);
       }
    };
@@ -100,7 +163,7 @@ export default function NoticesPageClient() {
                      type="button"
                      onClick={() => handleTabChange('all')}
                      className={`flex cursor-pointer items-center border-b-2 px-3 text-sm transition-colors ${
-                        activeTab === 'all'
+                        activeCategoryId === 'all'
                            ? 'border-brand-green font-bold text-gray-900'
                            : 'border-transparent font-medium text-gray-400 hover:text-gray-700'
                      }`}
@@ -109,11 +172,11 @@ export default function NoticesPageClient() {
                   </button>
                   {categories.map((category) => (
                      <button
-                        key={category.id}
+                        key={category.categoryId}
                         type="button"
-                        onClick={() => handleTabChange(category.name)}
+                        onClick={() => handleTabChange(category.categoryId)}
                         className={`flex cursor-pointer items-center border-b-2 px-3 text-sm transition-colors ${
-                           activeTab === category.name
+                           activeCategoryId === category.categoryId
                               ? 'border-brand-green font-bold text-gray-900'
                               : 'border-transparent font-medium text-gray-400 hover:text-gray-700'
                         }`}
@@ -121,14 +184,16 @@ export default function NoticesPageClient() {
                         {category.name}
                      </button>
                   ))}
-                  <button
-                     type="button"
-                     onClick={() => setIsCategoryModalOpen(true)}
-                     aria-label="카테고리 관리"
-                     className="mt-1.5 flex cursor-pointer items-center justify-center w-8 h-8 rounded-sm px-1 text-gray-400 hover:bg-gray-50 hover:text-gray-700"
-                  >
-                     <Settings size={16} />
-                  </button>
+                  {canManageCategories && (
+                     <button
+                        type="button"
+                        onClick={() => setIsCategoryModalOpen(true)}
+                        aria-label="카테고리 관리"
+                        className="mt-1.5 flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm px-1 text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                     >
+                        <Settings size={16} />
+                     </button>
+                  )}
                </div>
 
                <div className="flex items-center py-2">
@@ -142,7 +207,7 @@ export default function NoticesPageClient() {
 
             <table className="w-full table-fixed text-center text-sm">
                <thead>
-                  <tr className="border-b border-[#E5E7EB] text-[#6B7280] bg-[#F9FAFB]">
+                  <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
                      <th className="w-[6%] px-6 py-3 font-medium">#</th>
                      <th className="w-[8%] px-6 py-3 font-medium">고정</th>
                      <th className="w-[32%] px-6 py-3 font-medium">제목</th>
@@ -153,41 +218,59 @@ export default function NoticesPageClient() {
                   </tr>
                </thead>
                <tbody>
-                  {pagedNotices.map((notice, index) => {
-                     const rowNumber = (currentPage - 1) * PAGE_SIZE + index + 1;
+                  {isLoading ? (
+                     <tr>
+                        <td colSpan={7} className="px-6 py-10 text-center text-gray-400">
+                           불러오는 중...
+                        </td>
+                     </tr>
+                  ) : pagedNotices.length === 0 ? (
+                     <tr>
+                        <td colSpan={7} className="px-6 py-10 text-center text-gray-400">
+                           등록된 공지사항이 없습니다.
+                        </td>
+                     </tr>
+                  ) : (
+                     pagedNotices.map((notice, index) => {
+                        const rowNumber = (currentPage - 1) * PAGE_SIZE + index + 1;
 
-                     return (
-                        <tr
-                           key={notice.id}
-                           onClick={() => router.push(`/notices/${notice.id}`)}
-                           className={`cursor-pointer border-b border-[#F3F4F6] transition-colors last:border-b-0 hover:bg-[#F9FAFB] ${
-                              notice.isPinned ? 'border-l-4 border-l-brand-maroon' : ''
-                           }`}
-                        >
-                           <td className="px-6 py-4 text-gray-500">{rowNumber}</td>
-                           <td className="px-6 py-4">
-                              {notice.isPinned && (
-                                 <div className="flex justify-center">
-                                    <Pin size={14} className="text-brand-maroon" />
-                                 </div>
-                              )}
-                           </td>
-                           <td className="px-6 py-4 text-left font-medium text-gray-900">
-                              {notice.title}
-                           </td>
-                           <td className="px-6 py-4 font-semibold">
-                              {notice.confirmStatus === '완료' ? (
-                                 <span className="text-gray-500">완료</span>
-                              ) : (
-                                 <span className="text-brand-maroon">미완료</span>
-                              )}
-                           </td>
-                           <td className="px-6 py-4 text-gray-700">{notice.category}</td>
-                           <td className="px-6 py-4 text-gray-700">{notice.author}</td>
-                           <td className="px-6 py-4 text-gray-500">{notice.createdAt}</td>
-                        </tr>
-                     );
-                  })}
+                        return (
+                           <tr
+                              key={notice.noticeId}
+                              onClick={() => router.push(`/notices/${notice.noticeId}`)}
+                              className={`cursor-pointer border-b border-[#F3F4F6] transition-colors last:border-b-0 hover:bg-[#F9FAFB] ${
+                                 notice.pinned ? 'border-l-4 border-l-brand-maroon' : ''
+                              }`}
+                           >
+                              <td className="px-6 py-4 text-gray-500">{rowNumber}</td>
+                              <td className="px-6 py-4">
+                                 {notice.pinned && (
+                                    <div className="flex justify-center">
+                                       <Pin size={14} className="text-brand-maroon" />
+                                    </div>
+                                 )}
+                              </td>
+                              <td className="px-6 py-4 text-left font-medium text-gray-900">
+                                 {notice.title}
+                              </td>
+                              <td className="px-6 py-4 font-semibold">
+                                 {notice.confirmedByMe ? (
+                                    <span className="text-gray-500">완료</span>
+                                 ) : (
+                                    <span className="text-brand-maroon">미완료</span>
+                                 )}
+                              </td>
+                              <td className="px-6 py-4 text-gray-700">{notice.categoryName}</td>
+                              <td className="px-6 py-4 text-gray-700">
+                                 {notice.authorName ?? '(알 수 없음)'}
+                              </td>
+                              <td className="px-6 py-4 text-gray-500">
+                                 {format(new Date(notice.createdAt), 'yyyy-MM-dd')}
+                              </td>
+                           </tr>
+                        );
+                     })
+                  )}
                </tbody>
             </table>
          </div>
