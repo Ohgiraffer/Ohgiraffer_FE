@@ -1,6 +1,9 @@
 import { getAccessToken, setAccessToken } from '@/lib/auth/token-store';
 
 const BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
+// 백엔드가 상대 경로로만 내려주는 리소스(공지 본문 이미지 등)를 <img src="...">에 쓸 수 있는
+// 절대 주소로 만들 때 씀 - apiFetch는 이미 상대 경로 기준으로 동작해서 내부적으로는 필요 없음
+export const API_BASE_URL = BASE_URL;
 
 export interface ApiErrorBody {
    timestamp?: string;
@@ -47,7 +50,7 @@ export interface RefreshApiData {
 let refreshPromise: Promise<RefreshApiData> | null = null;
 
 // role/status까지 포함한 응답 전체를 돌려줌
-// (apiFetch의 401 재시도는 accessToken만 쓰지만, 
+// (apiFetch의 401 재시도는 accessToken만 쓰지만,
 // AuthContext가 세션 복구 시 role/status를 다시 세팅하려면 전체 데이터가 필요)
 export async function refreshAccessToken(): Promise<RefreshApiData> {
    if (!refreshPromise) {
@@ -76,7 +79,9 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
    const { skipAuth, skipRefreshRetry, headers, ...rest } = options;
 
    const buildHeaders = (): HeadersInit => ({
-      ...(rest.body && !(rest.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
+      ...(rest.body && !(rest.body instanceof FormData)
+         ? { 'Content-Type': 'application/json' }
+         : {}),
       ...(!skipAuth && getAccessToken() ? { Authorization: `Bearer ${getAccessToken()}` } : {}),
       ...headers,
    });
