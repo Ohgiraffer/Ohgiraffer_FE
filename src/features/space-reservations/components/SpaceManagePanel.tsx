@@ -293,7 +293,7 @@ export default function SpaceManagePanel({
 
          <ConfirmModal
             open={deleteTarget !== null}
-            title={`'${deleteTarget?.name}' 공간을 삭제할까요?`}
+            title={`[${deleteTarget?.name}] 공간을 삭제하겠습니까?`}
             description="삭제하면 되돌릴 수 없습니다."
             variant="danger"
             confirmLabel="확인"

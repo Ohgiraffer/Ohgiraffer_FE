@@ -58,7 +58,7 @@ export default function SpaceReservationClient() {
                   <button
                      type="button"
                      onClick={() => setIsManagePanelOpen(true)}
-                     className="flex cursor-pointer items-center gap-1.5 rounded-sm border border-brand-green bg-white px-3 h-9 text-sm font-semibold text-brand-green hover:bg-gray-50"
+                     className="flex cursor-pointer items-center gap-1.5 rounded-xs border border-brand-green bg-white px-3 h-9 text-sm font-semibold text-brand-green hover:bg-gray-50"
                   >
                      <Building size={16} />
                      공간 관리
