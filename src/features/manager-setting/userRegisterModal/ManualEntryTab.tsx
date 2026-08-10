@@ -15,7 +15,7 @@ const ROLE_OPTIONS: UserRole[] = ['훈련생', '강사', '매니저'];
 
 // 이름/이메일/연락처/역할/삭제버튼 컬럼 너비 비율. 헤더 행과 입력 행이 항상 같은 값을 써야 열이 어긋나지 않음
 const GRID_COLUMNS =
-   'grid-cols-[minmax(0,0.7fr)_minmax(0,1.8fr)_minmax(0,1.1fr)_minmax(0,0.8fr)_28px]';
+   'grid-cols-[minmax(0,0.8fr)_minmax(0,1.8fr)_minmax(0,1.1fr)_minmax(0,0.8fr)_28px]';
 
 type Props = {
    rows: UserDraftRow[];
