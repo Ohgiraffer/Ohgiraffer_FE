@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import { setAccessToken, subscribeAccessToken } from '@/lib/auth/token-store';
+import { getSessionEpoch, setAccessTokenForNewSession, subscribeAccessToken } from '@/lib/auth/token-store';
 import * as authService from '@/services/auth.service';
 import type { UserRole } from '@/services/auth.service';
 import { getMe, type Me } from '@/services/user.service';
@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
          await authService.logout();
       } finally {
-         setAccessToken(null);
+         setAccessTokenForNewSession(null);
          setRole(null);
          setStatus(null);
          setMe(null);
@@ -82,15 +82,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
          try {
             const { exp } = jwtDecode<{ exp: number }>(token);
             const delay = exp * 1000 - Date.now() - 60_000; // 만료 1분 전 갱신
+            // 이 타이머가 실행되는 동안(네트워크 왕복 중) 로그아웃했거나 다른 계정으로 로그인했다면
+            // 세션이 바뀐 것이므로, 응답이 오더라도 그 새 세션의 role/status/me를 덮어쓰면 안 된다
+            const epochAtSchedule = getSessionEpoch();
             refreshTimerRef.current = setTimeout(async () => {
                let data;
                try {
                   data = await authService.refresh();
                } catch {
-                  // 리프레시 토큰 만료 등 — 토큰/role/status/me 모두 정리
-                  await logout().catch(() => {});
+                  // 리프레시 토큰 만료 등 — 단, 그 사이 다른 계정으로 로그인했다면 그 세션은 그대로 둔다
+                  if (getSessionEpoch() === epochAtSchedule) await logout().catch(() => {});
                   return;
                }
+               if (getSessionEpoch() !== epochAtSchedule) return;
                setRole(data.role);
                setStatus(data.status);
                // 실패 시 verifyAndSetMe 내부에서 이미 logout까지 처리하므로 여기선 조용히 종료
@@ -139,7 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
          const data = await authService.login({ email: emailInput, password });
          setRole(data.role);
          setStatus(data.status);
-         setAccessToken(data.accessToken);
+         setAccessTokenForNewSession(data.accessToken);
 
          const meData = await verifyAndSetMe(data.role);
 

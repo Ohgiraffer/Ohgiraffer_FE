@@ -2,6 +2,7 @@ import { ApiError } from '@/lib/http';
 
 const CHAT_ERROR_MESSAGES: Record<string, string> = {
    AUTH_001: '인증이 필요합니다. 다시 로그인해주세요.',
+   AUTH_002: '접근 권한이 없습니다.',
    CHAT_001: '채팅 채널을 찾을 수 없습니다.',
    CHAT_002: '메시지를 찾을 수 없습니다.',
    CHAT_003: '답글을 찾을 수 없습니다.',

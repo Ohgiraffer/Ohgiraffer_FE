@@ -1,4 +1,4 @@
-import { getAccessToken, setAccessToken } from '@/lib/auth/token-store';
+import { getAccessToken, getSessionEpoch, setAccessToken } from '@/lib/auth/token-store';
 
 const BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
 
@@ -51,11 +51,16 @@ let refreshPromise: Promise<RefreshApiData> | null = null;
 // AuthContext가 세션 복구 시 role/status를 다시 세팅하려면 전체 데이터가 필요)
 export async function refreshAccessToken(): Promise<RefreshApiData> {
    if (!refreshPromise) {
+      // 이 요청이 응답을 받기 전에 로그아웃했거나 다른 계정으로 로그인했다면(세션이 바뀜)
+      // 응답이 오더라도 낡은 것이므로 토큰을 덮어쓰지 않는다
+      const epochAtStart = getSessionEpoch();
       refreshPromise = rawRequest('/auth/refresh', { method: 'POST' })
          .then(async (res) => {
             if (!res.ok) throw new ApiError(await res.json().catch(() => null), res.status);
             const data = (await res.json()) as RefreshApiData;
-            setAccessToken(data.accessToken);
+            if (getSessionEpoch() === epochAtStart) {
+               setAccessToken(data.accessToken);
+            }
             return data;
          })
          .finally(() => {
@@ -84,11 +89,14 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
    let res = await rawRequest(path, { ...rest, headers: buildHeaders() });
 
    if (res.status === 401 && !skipAuth && !skipRefreshRetry) {
+      const epochBeforeRefresh = getSessionEpoch();
       try {
          await refreshAccessToken();
          res = await rawRequest(path, { ...rest, headers: buildHeaders() });
       } catch {
-         setAccessToken(null);
+         // 갱신이 실패한 시점에 이미 다른 계정으로 로그인돼 있다면(세션이 바뀜) 그 새 세션을
+         // 로그아웃시키면 안 되므로, 이 재시도를 시작했던 세션이 아직 그대로일 때만 토큰을 지운다
+         if (getSessionEpoch() === epochBeforeRefresh) setAccessToken(null);
       }
    }
 

@@ -19,14 +19,15 @@ export function mapMessageDto(dto: ChatMessageDto, ctx: MapMessageContext): Chat
       id: dto.sendbirdMessageId,
       senderId: dto.senderId,
       senderName,
+      // 백엔드가 삭제된 메시지도 목록에 그대로 포함시키되 content를 자체 삭제 표시 문구로
+      // 대체해서 내려준다(스펙 확인됨) - null이 되는 게 아니라서 별도 isDeleted 추론은 하지 않고
+      // 그 문구를 그대로 보여준다. 이번 세션에서 내가 직접 삭제한 메시지만 아래 delete 핸들러들이
+      // 로컬에서 isDeleted를 true로 세팅해 즉시 스타일을 바꿔준다
       content: dto.content ?? '',
       attachmentUrl: dto.attachmentUrl,
       sentAt: isValid(sentAtDate) ? format(sentAtDate, 'HH:mm') : '',
       sentAtISO: dto.sentAt,
       isMine,
-      // DTO엔 삭제 여부 필드가 없지만, 생성 시 content/attachmentUrl 중 하나는 항상 있어야 하므로
-      // 둘 다 비어 있는 경우는 삭제된 메시지로만 나올 수 있다 - 다른 사용자가 지운 메시지도 이렇게 잡아낸다
-      isDeleted: dto.content == null && dto.attachmentUrl == null,
    };
 }
 

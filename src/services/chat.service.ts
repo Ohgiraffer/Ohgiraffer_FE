@@ -1,5 +1,4 @@
 import { apiFetch } from '@/lib/http';
-import type { UserRole } from '@/services/auth.service';
 
 export interface ChatChannel {
    channelId: string;
@@ -12,19 +11,6 @@ export interface ChatChannel {
 
 export function getChannels(type?: 'dm' | 'group') {
    return apiFetch<ChatChannel[]>(`/chat/channels${type ? `?type=${type}` : ''}`);
-}
-
-export interface ChatUserSearchResult {
-   userId: number;
-   // 실제 데이터에 이름이 비어있는 사용자가 있어(백엔드 확인됨) null도 허용한다
-   name: string | null;
-   profileUrl: string | null;
-   isOnline: boolean;
-   role: UserRole;
-}
-
-export function searchChatUsers(search: string) {
-   return apiFetch<ChatUserSearchResult[]>(`/chat/users?search=${encodeURIComponent(search)}`);
 }
 
 export interface ChatUserStatus {

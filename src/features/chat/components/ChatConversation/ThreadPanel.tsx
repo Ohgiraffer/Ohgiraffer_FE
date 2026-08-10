@@ -81,7 +81,7 @@ export default function ThreadPanel({
             if (!isMounted) return;
             setMembers(detail.members);
             const ctx = { currentUserId: uid ?? -1, currentUserName: myName, members: detail.members };
-            setReplies(dtos.map((dto) => mapMessageDto(dto, ctx)));
+            setReplies((dtos ?? []).map((dto) => mapMessageDto(dto, ctx)));
          })
          .catch((err) => {
             toast.error(getChatErrorMessage(err, '답글을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'));
@@ -101,13 +101,14 @@ export default function ThreadPanel({
          getMessageReplies(rootMessage.id)
             .then((dtos) => {
                setReplies((prev) => {
-                  const dtoById = new Map(dtos.map((dto) => [dto.sendbirdMessageId, dto]));
+                  const list = dtos ?? [];
+                  const dtoById = new Map(list.map((dto) => [dto.sendbirdMessageId, dto]));
                   const merged = prev.map((m) => {
                      const dto = dtoById.get(m.id);
                      return dto ? mapMessageDto(dto, mapCtx) : m;
                   });
                   const existingIds = new Set(prev.map((m) => m.id));
-                  const newOnes = dtos
+                  const newOnes = list
                      .filter((dto) => !existingIds.has(dto.sendbirdMessageId))
                      .map((dto) => mapMessageDto(dto, mapCtx));
                   return newOnes.length > 0 ? [...merged, ...newOnes] : merged;

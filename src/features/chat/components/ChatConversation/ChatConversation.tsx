@@ -104,7 +104,14 @@ export default function ChatConversation({
    const isSubmittingRef = useRef(false);
    const isDeletingRef = useRef(false);
 
-   const title = room.name;
+   // 1:1 채팅방의 room.name은 생성 시점에 만든 사람 기준으로 정해진 고정 문구라(예: 상대방이
+   // 봐도 똑같은 문구로 보임) 상대방 입장에선 이름이 잘못 보인다. 채널 상세로 받은 멤버 목록에서
+   // 나를 뺀 나머지 한 명의 실제 이름으로 항상 다시 계산해서 보여준다
+   const partnerName = useMemo(() => {
+      if (room.channelType !== 'DM') return null;
+      return members.find((member) => member.userId !== myUserId)?.memberName ?? null;
+   }, [room.channelType, members, myUserId]);
+   const title = partnerName ?? room.name;
    const subtitle = room.channelType === 'DM' ? '1:1 채팅' : '단체 채팅';
 
    // 채널 상세(멤버 목록)와 메시지 이력을 함께 받아온다. 멤버 목록은 GROUP 메시지 발신자 이름과
@@ -125,8 +132,9 @@ export default function ChatConversation({
                currentUserName: myName,
                members: detail.members,
             };
-            // 백엔드가 최신순(sentAt DESC)으로 내려주므로 화면 표시용으로 오래된 순으로 뒤집는다
-            const mapped = page.content
+            // 백엔드가 최신순(sentAt DESC)으로 내려주므로 화면 표시용으로 오래된 순으로 뒤집는다.
+            // 새로 만든 채널처럼 메시지 이력이 없으면 content가 아예 안 올 수 있어(스펙 미확인 구간) 기본값 처리
+            const mapped = (page.content ?? [])
                .slice()
                .reverse()
                .map((dto) => mapMessageDto(dto, ctx));
@@ -167,14 +175,15 @@ export default function ChatConversation({
          getChannelMessages(room.channelId)
             .then((page) => {
                setMessages((prev) => {
-                  const dtoById = new Map(page.content.map((dto) => [dto.sendbirdMessageId, dto]));
+                  const content = page.content ?? [];
+                  const dtoById = new Map(content.map((dto) => [dto.sendbirdMessageId, dto]));
                   const merged = prev.map((m) => {
                      const dto = dtoById.get(m.id);
                      if (!dto) return m;
                      return { ...mapMessageDto(dto, mapCtx), replyToPreview: m.replyToPreview };
                   });
                   const existingIds = new Set(prev.map((m) => m.id));
-                  const newOnes = page.content
+                  const newOnes = content
                      .slice()
                      .reverse()
                      .filter((dto) => !existingIds.has(dto.sendbirdMessageId))
@@ -203,7 +212,7 @@ export default function ChatConversation({
          }
          searchMessages({ channelId: room.channelId, keyword: query })
             .then((page) => {
-               if (isMounted) setRemoteSearchMatches(page.content);
+               if (isMounted) setRemoteSearchMatches(page.content ?? []);
             })
             .catch(() => {
                if (isMounted) setRemoteSearchMatches([]);

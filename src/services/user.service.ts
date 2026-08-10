@@ -17,6 +17,20 @@ export function getMe() {
    return apiFetch<Me>('/user/me');
 }
 
+export interface UserListItem {
+   userId: number;
+   name: string;
+   email: string;
+   role: UserRole;
+   teamName: string | null;
+   status: string;
+}
+
+// 새 채팅 상대 선택 목록 등 전체 사용자 명단이 필요한 곳에서 사용 - 운영진(매니저/강사)만 호출 가능
+export function getUserList() {
+   return apiFetch<UserListItem[]>('/user/list');
+}
+
 export interface RegisterUserRow {
    name: string;
    email: string;
