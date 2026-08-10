@@ -59,7 +59,11 @@ export default function ConfirmModal({
             <h2 id="confirm-modal-title" className="text-[18px] font-bold break-keep text-gray-900">
                {title}
             </h2>
-            {description && <p className="mt-2 text-sm break-keep text-gray-500">{description}</p>}
+            {description && (
+               <p className="mt-2 text-sm break-keep whitespace-pre-line text-gray-500">
+                  {description}
+               </p>
+            )}
 
             <div className="mt-6 flex gap-2">
                <button

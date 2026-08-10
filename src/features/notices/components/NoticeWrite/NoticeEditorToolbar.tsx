@@ -1,7 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import type { Editor } from '@tiptap/react';
 import { Bold, ImagePlus, Italic, List, ListOrdered, Underline, Wand2 } from 'lucide-react';
+import { API_BASE_URL, ApiError } from '@/lib/http';
+import { toast } from '@/lib/toast';
+import { uploadNoticeImage } from '@/services/notice.service';
 
 type Props = {
    editor: Editor;
@@ -36,20 +40,23 @@ function ToolbarButton({
    active,
    onClick,
    label,
+   disabled = false,
    children,
 }: {
    active: boolean;
    onClick: () => void;
    label: string;
+   disabled?: boolean;
    children: React.ReactNode;
 }) {
    return (
       <button
          type="button"
          onClick={onClick}
+         disabled={disabled}
          aria-label={label}
          aria-pressed={active}
-         className={`cursor-pointer rounded-xs p-1.5 transition-colors ${
+         className={`cursor-pointer rounded-xs p-1.5 transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
             active ? 'bg-gray-100 text-gray-900' : 'text-gray-500 hover:bg-[#E6E7EB]'
          }`}
       >
@@ -58,17 +65,46 @@ function ToolbarButton({
    );
 }
 
+const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png'];
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+
 export default function NoticeEditorToolbar({ editor }: Props) {
+   const [isUploadingImage, setIsUploadingImage] = useState(false);
+
    const handleImageInsert = () => {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = 'image/*';
-      input.onchange = () => {
+      input.accept = 'image/jpeg,image/png';
+      input.onchange = async () => {
          const file = input.files?.[0];
          if (!file) return;
-         // TODO: 백엔드 준비되면 실제 이미지 업로드 후 반환된 URL로 교체
-         const objectUrl = URL.createObjectURL(file);
-         editor.chain().focus().setImage({ src: objectUrl }).run();
+
+         if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+            toast.error('본문 이미지는 JPG, PNG 형식만 넣을 수 있습니다.');
+            return;
+         }
+         if (file.size > MAX_IMAGE_SIZE_BYTES) {
+            toast.error('본문 이미지는 장당 5MB를 넘을 수 없습니다.');
+            return;
+         }
+
+         setIsUploadingImage(true);
+         try {
+            const { imageUrl } = await uploadNoticeImage(file);
+            editor
+               .chain()
+               .focus()
+               .setImage({ src: `${API_BASE_URL}${imageUrl}` })
+               .run();
+         } catch (err) {
+            toast.error(
+               err instanceof ApiError
+                  ? err.message
+                  : '이미지 업로드 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+            );
+         } finally {
+            setIsUploadingImage(false);
+         }
       };
       input.click();
    };
@@ -118,7 +154,12 @@ export default function NoticeEditorToolbar({ editor }: Props) {
             </div>
 
             <div className="flex items-center gap-1">
-               <ToolbarButton label="이미지 삽입" active={false} onClick={handleImageInsert}>
+               <ToolbarButton
+                  label="이미지 삽입"
+                  active={false}
+                  disabled={isUploadingImage}
+                  onClick={handleImageInsert}
+               >
                   <ImagePlus size={16} />
                </ToolbarButton>
                <ToolbarButton
