@@ -1,5 +1,11 @@
 import { apiFetch } from '@/lib/http';
-import type { Team, TeamMember, TeamWriteRequest, UnassignedStudent } from '@/features/team/types';
+import type {
+   Team,
+   TeamHistoryResult,
+   TeamMember,
+   TeamWriteRequest,
+   UnassignedStudent,
+} from '@/features/team/types';
 
 export function getTeams() {
    return apiFetch<{ teams: Team[] }>('/teams').then((res) => res.teams);
@@ -43,4 +49,10 @@ export function removeTeamMember(teamId: number, memberId: number) {
    return apiFetch<void>(`/teams/${teamId}/members/${memberId}`, {
       method: 'DELETE',
    });
+}
+
+export function getTeamHistories(startDate: string, endDate: string) {
+   return apiFetch<TeamHistoryResult>(
+      `/teams/histories?startDate=${startDate}&endDate=${endDate}`,
+   );
 }

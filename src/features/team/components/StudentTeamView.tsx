@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { Clock } from 'lucide-react';
 import { getTeams } from '@/services/team.service';
 import { formatTeamPeriod } from '../formatTeamDate';
 import type { Team } from '../types';
@@ -59,7 +61,16 @@ export default function StudentTeamView() {
 
    return (
       <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
-         <h1 className="text-lg font-bold text-gray-900">팀 현황</h1>
+         <div className="flex items-center justify-between">
+            <h1 className="text-lg font-bold text-gray-900">팀 현황</h1>
+            <Link
+               href="/team/history"
+               className="flex cursor-pointer items-center gap-1.5 rounded-xs border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+               <Clock size={14} />
+               이력 보기
+            </Link>
+         </div>
 
          {teams.length === 0 ? (
             <p className="py-16 text-center text-sm text-gray-400">생성된 팀이 없습니다</p>

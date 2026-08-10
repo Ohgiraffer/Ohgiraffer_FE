@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Clock, Plus } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { toast } from '@/lib/toast';
@@ -276,10 +277,6 @@ export default function ManagerTeamBoard() {
       refetchAndResetDraft();
    };
 
-   const handleHistoryClick = () => {
-      toast.warning('팀 변경 이력 조회는 추후 지원될 예정입니다.');
-   };
-
    if (isLoading) {
       return (
          <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
@@ -310,14 +307,13 @@ export default function ManagerTeamBoard() {
          <div className="flex items-center justify-between">
             <h1 className="text-lg font-bold text-gray-900">팀 관리</h1>
             <div className="flex items-center gap-2">
-               <button
-                  type="button"
-                  onClick={handleHistoryClick}
+               <Link
+                  href="/team/history"
                   className="flex cursor-pointer items-center gap-1.5 rounded-xs border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                >
                   <Clock size={14} />
                   이력 보기
-               </button>
+               </Link>
                <button
                   type="button"
                   onClick={handleSaveClick}

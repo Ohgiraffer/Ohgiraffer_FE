@@ -31,3 +31,31 @@ export interface TeamWriteRequest {
    startDate: string;
    endDate: string;
 }
+
+export interface TeamHistorySnapshotMember {
+   userId: number;
+   userName: string;
+}
+
+export interface TeamHistorySnapshotTeam {
+   teamId: number;
+   teamName: string;
+   memberCount: number;
+   members: TeamHistorySnapshotMember[];
+}
+
+export interface TeamChangeHistoryEntry {
+   userId: number;
+   userName: string;
+   fromTeamId: number | null;
+   fromTeamName: string;
+   toTeamId: number | null;
+   toTeamName: string;
+   changedAt: string;
+}
+
+export interface TeamHistoryResult {
+   snapshotDate: string;
+   teams: TeamHistorySnapshotTeam[];
+   histories: TeamChangeHistoryEntry[];
+}
