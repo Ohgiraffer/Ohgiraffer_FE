@@ -10,23 +10,35 @@ import {
    editMessage,
    getChannelDetail,
    getMessageReplies,
+   uploadChatAttachment,
    type ChatChannel,
    type ChatChannelMember,
 } from '@/services/chat.service';
-import { mapMessageDto } from '../../chatMappers';
+import { getAttachmentFileName, mapMessageDto } from '../../chatMappers';
 import { useAuth } from '@/components/auth/AuthContext';
-import { ApiError } from '@/lib/http';
+import { getChatErrorMessage } from '../../chatErrors';
 import { toast } from '@/lib/toast';
 import type { ChatMessage } from '../../types';
+
+// 실시간 푸시가 없어, 스레드가 열려 있는 동안 새 답글이 있는지 주기적으로 조용히 다시 확인
+const REPLY_POLL_INTERVAL_MS = 8000;
 
 interface ThreadPanelProps {
    room: ChatChannel;
    rootMessage: ChatMessage;
    onClose: () => void;
    onReplySent: (rootId: string) => void;
+   // 루트 메시지를 여기서 수정/삭제하면, 대화 목록에 있는 같은 메시지도 최신 상태로 맞추라고 부모에게 알림
+   onRootMessageChange: (message: ChatMessage) => void;
 }
 
-export default function ThreadPanel({ room, rootMessage, onClose, onReplySent }: ThreadPanelProps) {
+export default function ThreadPanel({
+   room,
+   rootMessage,
+   onClose,
+   onReplySent,
+   onRootMessageChange,
+}: ThreadPanelProps) {
    const { me } = useAuth();
    const myUserId = me?.userId ?? null;
    const myName = me?.name ?? '나';
@@ -46,7 +58,12 @@ export default function ThreadPanel({ room, rootMessage, onClose, onReplySent }:
    const [draft, setDraft] = useState('');
    const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
    const [deleteTarget, setDeleteTarget] = useState<ChatMessage | null>(null);
+   const [pendingAttachment, setPendingAttachment] = useState<{ url: string; name: string } | null>(
+      null,
+   );
+   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
    const inputRef = useRef<HTMLInputElement>(null);
+   const fileInputRef = useRef<HTMLInputElement>(null);
    const isSubmittingRef = useRef(false);
    const isDeletingRef = useRef(false);
 
@@ -67,7 +84,7 @@ export default function ThreadPanel({ room, rootMessage, onClose, onReplySent }:
             setReplies(dtos.map((dto) => mapMessageDto(dto, ctx)));
          })
          .catch((err) => {
-            toast.error(err instanceof ApiError ? err.message : '답글을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+            toast.error(getChatErrorMessage(err, '답글을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'));
          })
          .finally(() => {
             if (isMounted) setIsLoading(false);
@@ -78,34 +95,89 @@ export default function ThreadPanel({ room, rootMessage, onClose, onReplySent }:
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [rootMessage.id, room.channelId]);
 
+   // id로 병합해 기존 답글은 최신 내용(다른 사람의 수정·삭제 포함)으로 갱신하고, 새 답글만 뒤에 붙인다
+   useEffect(() => {
+      const interval = setInterval(() => {
+         getMessageReplies(rootMessage.id)
+            .then((dtos) => {
+               setReplies((prev) => {
+                  const dtoById = new Map(dtos.map((dto) => [dto.sendbirdMessageId, dto]));
+                  const merged = prev.map((m) => {
+                     const dto = dtoById.get(m.id);
+                     return dto ? mapMessageDto(dto, mapCtx) : m;
+                  });
+                  const existingIds = new Set(prev.map((m) => m.id));
+                  const newOnes = dtos
+                     .filter((dto) => !existingIds.has(dto.sendbirdMessageId))
+                     .map((dto) => mapMessageDto(dto, mapCtx));
+                  return newOnes.length > 0 ? [...merged, ...newOnes] : merged;
+               });
+            })
+            .catch(() => {}); // 백그라운드 새로고침이라 실패해도 조용히 무시
+      }, REPLY_POLL_INTERVAL_MS);
+      return () => clearInterval(interval);
+   }, [rootMessage.id, mapCtx]);
+
    const handleStartEdit = (message: ChatMessage) => {
       setEditingMessage(message);
       setDraft(message.content);
+      setPendingAttachment(
+         message.attachmentUrl
+            ? { url: message.attachmentUrl, name: getAttachmentFileName(message.attachmentUrl) }
+            : null,
+      );
+   };
+
+   const handleAttachClick = () => fileInputRef.current?.click();
+
+   const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = '';
+      if (!file) return;
+      setIsUploadingAttachment(true);
+      try {
+         const { url } = await uploadChatAttachment(room.channelId, file);
+         setPendingAttachment({ url, name: file.name });
+      } catch (err) {
+         toast.error(getChatErrorMessage(err, '파일 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.'));
+      } finally {
+         setIsUploadingAttachment(false);
+      }
    };
 
    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       const content = draft.trim();
-      if (!content || isSubmittingRef.current) return;
+      if ((!content && !pendingAttachment) || isSubmittingRef.current) return;
 
       isSubmittingRef.current = true;
       try {
          if (editingMessage) {
-            await editMessage(editingMessage.id, { channelId: room.channelId, content });
+            const attachmentUrl = pendingAttachment?.url ?? null;
+            await editMessage(editingMessage.id, { channelId: room.channelId, content, attachmentUrl });
             if (editingMessage.id === root.id) {
-               setRoot((prev) => ({ ...prev, content }));
+               const updatedRoot = { ...root, content, attachmentUrl };
+               setRoot(updatedRoot);
+               onRootMessageChange(updatedRoot);
             } else {
-               setReplies((prev) => prev.map((m) => (m.id === editingMessage.id ? { ...m, content } : m)));
+               setReplies((prev) =>
+                  prev.map((m) => (m.id === editingMessage.id ? { ...m, content, attachmentUrl } : m)),
+               );
             }
             setEditingMessage(null);
          } else {
-            const dto = await createReply(root.id, { channelId: room.channelId, content });
+            const dto = await createReply(root.id, {
+               channelId: room.channelId,
+               content: content || null,
+               attachmentUrl: pendingAttachment?.url ?? null,
+            });
             setReplies((prev) => [...prev, mapMessageDto(dto, mapCtx)]);
             onReplySent(root.id);
          }
          setDraft('');
+         setPendingAttachment(null);
       } catch (err) {
-         toast.error(err instanceof ApiError ? err.message : '전송에 실패했습니다. 잠시 후 다시 시도해주세요.');
+         toast.error(getChatErrorMessage(err, '전송에 실패했습니다. 잠시 후 다시 시도해주세요.'));
       } finally {
          isSubmittingRef.current = false;
          inputRef.current?.focus();
@@ -116,9 +188,11 @@ export default function ThreadPanel({ room, rootMessage, onClose, onReplySent }:
       if (!deleteTarget || isDeletingRef.current) return;
       isDeletingRef.current = true;
       try {
-         await deleteMessage(deleteTarget.id);
+         await deleteMessage(deleteTarget.id, room.channelId);
          if (deleteTarget.id === root.id) {
-            setRoot((prev) => ({ ...prev, isDeleted: true, content: '' }));
+            const updatedRoot = { ...root, isDeleted: true, content: '' };
+            setRoot(updatedRoot);
+            onRootMessageChange(updatedRoot);
          } else {
             setReplies((prev) =>
                prev.map((m) => (m.id === deleteTarget.id ? { ...m, isDeleted: true, content: '' } : m)),
@@ -128,9 +202,10 @@ export default function ThreadPanel({ room, rootMessage, onClose, onReplySent }:
          if (editingMessage?.id === deleteTarget.id) {
             setEditingMessage(null);
             setDraft('');
+            setPendingAttachment(null);
          }
       } catch (err) {
-         toast.error(err instanceof ApiError ? err.message : '삭제에 실패했습니다. 잠시 후 다시 시도해주세요.');
+         toast.error(getChatErrorMessage(err, '삭제에 실패했습니다. 잠시 후 다시 시도해주세요.'));
       } finally {
          isDeletingRef.current = false;
          setDeleteTarget(null);
@@ -196,6 +271,22 @@ export default function ThreadPanel({ room, rootMessage, onClose, onReplySent }:
             )}
          </div>
 
+         {pendingAttachment && (
+            <div className="flex items-center justify-between gap-2 border-t border-gray-100 bg-gray-50 px-3 py-2">
+               <p className="flex items-center gap-1.5 truncate text-xs text-gray-500">
+                  <Paperclip size={12} className="shrink-0" />
+                  {pendingAttachment.name}
+               </p>
+               <button
+                  type="button"
+                  onClick={() => setPendingAttachment(null)}
+                  aria-label="첨부파일 취소"
+                  className="cursor-pointer rounded-xs p-1 text-gray-400 hover:bg-gray-200"
+               >
+                  <X size={14} />
+               </button>
+            </div>
+         )}
          {editingMessage && (
             <div className="flex items-center justify-between gap-2 border-t border-gray-100 bg-gray-50 px-3 py-2">
                <p className="truncate text-xs text-gray-500">메시지 수정 중</p>
@@ -204,6 +295,7 @@ export default function ThreadPanel({ room, rootMessage, onClose, onReplySent }:
                   onClick={() => {
                      setEditingMessage(null);
                      setDraft('');
+                     setPendingAttachment(null);
                   }}
                   aria-label="수정 취소"
                   className="cursor-pointer rounded-xs p-1 text-gray-400 hover:bg-gray-200"
@@ -214,12 +306,15 @@ export default function ThreadPanel({ room, rootMessage, onClose, onReplySent }:
          )}
 
          <form onSubmit={handleSubmit} className="flex items-center gap-2 border-t border-gray-200 p-3">
+            <input ref={fileInputRef} type="file" onChange={handleFileSelected} className="hidden" />
             <button
                type="button"
+               onClick={handleAttachClick}
+               disabled={isUploadingAttachment}
                aria-label="파일 첨부"
-               className="shrink-0 cursor-pointer rounded-xs p-2 text-gray-400 hover:bg-gray-100"
+               className="shrink-0 cursor-pointer rounded-xs p-2 text-gray-400 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
-               <Paperclip size={18} />
+               <Paperclip size={18} className={isUploadingAttachment ? 'animate-pulse' : ''} />
             </button>
             <input
                ref={inputRef}
@@ -230,7 +325,7 @@ export default function ThreadPanel({ room, rootMessage, onClose, onReplySent }:
             />
             <button
                type="submit"
-               disabled={!draft.trim()}
+               disabled={!draft.trim() && !pendingAttachment}
                aria-label="전송"
                className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-sm bg-brand-green text-white transition-colors hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-gray-200"
             >

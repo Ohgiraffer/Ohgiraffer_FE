@@ -56,10 +56,14 @@ export default function ConfirmModal({
             onClick={(event) => event.stopPropagation()}
             className="w-full max-w-sm rounded-sm bg-white px-8 py-11 text-center shadow-lg"
          >
-            <h2 id="confirm-modal-title" className="text-[18px] font-bold text-gray-900">
+            <h2 id="confirm-modal-title" className="text-[18px] font-bold break-keep text-gray-900">
                {title}
             </h2>
-            {description && <p className="mt-2 text-sm text-gray-500">{description}</p>}
+            {description && (
+               <p className="mt-2 text-sm break-keep whitespace-pre-line text-gray-500">
+                  {description}
+               </p>
+            )}
 
             <div className="mt-6 flex gap-2">
                <button

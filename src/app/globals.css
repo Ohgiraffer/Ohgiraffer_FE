@@ -222,6 +222,26 @@
    }
 }
 
+/* AI 개인 비서 버튼 아이콘 - 패널이 열려있는 동안 중심을 기준으로 위/아래로 흔들림.
+   키프레임을 위/아래 끝에만 두고 alternate로 왕복시켜야 중앙을 지날 때 멈추지 않고
+   양쪽 끝에서만 자연스럽게 감속-가속된다 (중앙에 키프레임을 두면 거기서도 멈춰 보인다) */
+@keyframes ai-assistant-bob {
+   from {
+      transform: translateY(-3px);
+   }
+   to {
+      transform: translateY(3px);
+   }
+}
+.animate-ai-bob {
+   animation: ai-assistant-bob 1.2s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+   .animate-ai-bob {
+      animation: none;
+   }
+}
+
 .progress-sweep {
    animation: sweep 1.2s ease-in-out infinite;
 }

@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { getBootcampSettings } from '@/services/bootcampSettings.service';
+import { ApiError } from '@/lib/http';
+import { getBootcampBasicInfo } from '@/services/bootcamp.service';
 
 export default function DashboardHeader() {
    const [bootcampName, setBootcampName] = useState('');
@@ -13,15 +14,18 @@ export default function DashboardHeader() {
    useEffect(() => {
       let isMounted = true;
 
-      getBootcampSettings()
+      getBootcampBasicInfo()
          .then((data) => {
             if (!isMounted) return;
             setBootcampName(`${data.orgName} - ${data.proName}`);
          })
-         .catch(() => {
+         .catch((err) => {
             if (!isMounted) return;
-            // 백엔드/네트워크가 불안정한 상황으로 보고, 빈 제목 대신 재시도를 유도하는 안내로 대체
-            setLoadError('정보를 불러오지 못했습니다. 다시 한번 시도해주세요.');
+            setLoadError(
+               err instanceof ApiError
+                  ? err.message
+                  : '정보를 불러오지 못했습니다. 다시 한번 시도해주세요.',
+            );
          });
 
       return () => {

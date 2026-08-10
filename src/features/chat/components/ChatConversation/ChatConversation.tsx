@@ -16,16 +16,24 @@ import {
    getChannelDetail,
    getChannelMessages,
    getUserStatus,
+   searchMessages,
    sendMessage,
+   uploadChatAttachment,
    type ChatChannel,
    type ChatChannelMember,
+   type ChatMessageDto,
 } from '@/services/chat.service';
-import { mapMessageDto } from '../../chatMappers';
+import { getAttachmentFileName, getMessagePreviewText, mapMessageDto } from '../../chatMappers';
 import { formatChatDateDivider } from '../../formatChatTimestamp';
 import { useAuth } from '@/components/auth/AuthContext';
-import { ApiError } from '@/lib/http';
+import { getChatErrorMessage } from '../../chatErrors';
 import { toast } from '@/lib/toast';
 import type { ChatMessage, ChatMentionUser } from '../../types';
+
+// 열려 있는 대화방에 다른 참여자가 보낸 새 메시지가 있는지 주기적으로 확인 (실시간 푸시가 없어 근사치)
+const MESSAGE_POLL_INTERVAL_MS = 8000;
+// 검색어를 입력하는 동안마다 서버로 요청을 보내지 않도록 잠깐 대기
+const SEARCH_DEBOUNCE_MS = 300;
 
 interface ChatConversationProps {
    room: ChatChannel;
@@ -33,6 +41,12 @@ interface ChatConversationProps {
    onReplySent: (rootId: string) => void;
    onOpenThread: (message: ChatMessage) => void;
    onBack: () => void;
+   // 스레드(ThreadPanel)에서 루트 메시지를 수정/삭제하면, 이 목록에도 같은 메시지가 들어있을 수 있어
+   // 그 최신 상태를 여기로도 반영해달라고 부모(ChatPanel)가 내려주는 값
+   incomingMessagePatch?: ChatMessage | null;
+   // 서버가 메시지 조회 시점에 읽음 처리를 하므로, 메시지를 성공적으로 불러올 때마다 호출해
+   // 채널 목록/안읽음 배지를 곧바로 최신화하라고 부모에게 알림
+   onMessagesRead?: () => void;
 }
 
 export default function ChatConversation({
@@ -41,6 +55,8 @@ export default function ChatConversation({
    onReplySent,
    onOpenThread,
    onBack,
+   incomingMessagePatch,
+   onMessagesRead,
 }: ChatConversationProps) {
    const { me } = useAuth();
    const myUserId = me?.userId ?? null;
@@ -56,6 +72,15 @@ export default function ChatConversation({
    );
 
    const [messages, setMessages] = useState<ChatMessage[]>([]);
+   // 렌더 중 prop 변화를 감지해 반영하는 패턴(React의 "prop 변경에 따라 state 조정") - 같은 patch를
+   // 두 번 반영하지 않도록 마지막으로 적용한 patch 객체 자체를 비교 기준으로 삼는다
+   const [appliedPatch, setAppliedPatch] = useState<ChatMessage | null>(null);
+   if (incomingMessagePatch && incomingMessagePatch !== appliedPatch) {
+      setAppliedPatch(incomingMessagePatch);
+      setMessages((prev) =>
+         prev.map((m) => (m.id === incomingMessagePatch.id ? incomingMessagePatch : m)),
+      );
+   }
    const [isLoadingMessages, setIsLoadingMessages] = useState(true);
    const [draft, setDraft] = useState('');
    const [isPartnerOnline, setIsPartnerOnline] = useState<boolean | null>(null);
@@ -67,7 +92,15 @@ export default function ChatConversation({
    const [searchQuery, setSearchQuery] = useState('');
    const [activeSearchIndex, setActiveSearchIndex] = useState(0);
    const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
+   // 지금까지 입력창에서 선택한 멘션 대상들 - 전송 시 본문에 "@이름"이 아직 남아있는 사람만 추려 id로 보낸다
+   const [mentionedUsers, setMentionedUsers] = useState<ChatMentionUser[]>([]);
+   const [remoteSearchMatches, setRemoteSearchMatches] = useState<ChatMessageDto[]>([]);
+   const [pendingAttachment, setPendingAttachment] = useState<{ url: string; name: string } | null>(
+      null,
+   );
+   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
    const inputRef = useRef<HTMLInputElement>(null);
+   const fileInputRef = useRef<HTMLInputElement>(null);
    const isSubmittingRef = useRef(false);
    const isDeletingRef = useRef(false);
 
@@ -98,6 +131,7 @@ export default function ChatConversation({
                .reverse()
                .map((dto) => mapMessageDto(dto, ctx));
             setMessages(mapped);
+            onMessagesRead?.();
 
             if (room.channelType !== 'DM') return;
             // DM은 채널 목록에 상대방 userId가 없어 온라인 여부도 못 구하므로, 나를 뺀 나머지 한 명의 상태를 이어서 조회한다
@@ -112,11 +146,7 @@ export default function ChatConversation({
                });
          })
          .catch((err) => {
-            toast.error(
-               err instanceof ApiError
-                  ? err.message
-                  : '메시지를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
-            );
+            toast.error(getChatErrorMessage(err, '메시지를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'));
          })
          .finally(() => {
             if (isMounted) setIsLoadingMessages(false);
@@ -127,6 +157,63 @@ export default function ChatConversation({
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [room.channelId, room.channelType]);
+
+   // 실시간 푸시(웹소켓)가 없어, 열려 있는 대화방에 다른 사람이 보낸 새 메시지나 다른 사람의
+   // 수정·삭제가 있는지 주기적으로 조용히 다시 조회한다. id로 병합해 기존 메시지는 최신 내용으로
+   // 갱신하고, 새 메시지만 뒤에 붙인다(단, 답장 인용 미리보기처럼 서버가 안 주는 클라이언트 전용
+   // 필드는 유지)
+   useEffect(() => {
+      const interval = setInterval(() => {
+         getChannelMessages(room.channelId)
+            .then((page) => {
+               setMessages((prev) => {
+                  const dtoById = new Map(page.content.map((dto) => [dto.sendbirdMessageId, dto]));
+                  const merged = prev.map((m) => {
+                     const dto = dtoById.get(m.id);
+                     if (!dto) return m;
+                     return { ...mapMessageDto(dto, mapCtx), replyToPreview: m.replyToPreview };
+                  });
+                  const existingIds = new Set(prev.map((m) => m.id));
+                  const newOnes = page.content
+                     .slice()
+                     .reverse()
+                     .filter((dto) => !existingIds.has(dto.sendbirdMessageId))
+                     .map((dto) => mapMessageDto(dto, mapCtx));
+                  return newOnes.length > 0 ? [...merged, ...newOnes] : merged;
+               });
+               onMessagesRead?.();
+            })
+            .catch(() => {}); // 백그라운드 새로고침이라 실패해도 조용히 무시
+      }, MESSAGE_POLL_INTERVAL_MS);
+      return () => clearInterval(interval);
+   }, [room.channelId, mapCtx, onMessagesRead]);
+
+   // 검색어가 바뀔 때마다(디바운스 후) 서버 검색 API로 채널 전체 이력에서 매치를 찾는다.
+   // 다만 위/아래 이동은 실제로 화면에 그려진 메시지로만 가능하므로(페이지네이션이 없어 최근분만 로드됨),
+   // 서버 매치 결과와 현재 로드된 messages의 교집합만 이동 가능한 결과로 취급한다
+   useEffect(() => {
+      const query = searchQuery.trim();
+      let isMounted = true;
+      // 검색어를 지웠을 때는 기다릴 필요가 없어 0ms로 바로 처리하지만, setState는 항상
+      // 콜백(타이머) 안에서만 호출해 effect 본문에서 직접 호출하지 않도록 한다
+      const timer = setTimeout(() => {
+         if (!query) {
+            if (isMounted) setRemoteSearchMatches([]);
+            return;
+         }
+         searchMessages({ channelId: room.channelId, keyword: query })
+            .then((page) => {
+               if (isMounted) setRemoteSearchMatches(page.content);
+            })
+            .catch(() => {
+               if (isMounted) setRemoteSearchMatches([]);
+            });
+      }, query ? SEARCH_DEBOUNCE_MS : 0);
+      return () => {
+         isMounted = false;
+         clearTimeout(timer);
+      };
+   }, [searchQuery, room.channelId]);
 
    // 채널 상세 조회로 받은 실제 멤버 목록에서 나를 제외하고 멘션 후보로 쓴다
    const mentionCandidates: ChatMentionUser[] = useMemo(
@@ -148,10 +235,10 @@ export default function ChatConversation({
          : [];
 
    const searchMatches = useMemo(() => {
-      const q = searchQuery.trim().toLowerCase();
-      if (!q) return [];
-      return messages.filter((m) => !m.isDeleted && m.content.toLowerCase().includes(q));
-   }, [messages, searchQuery]);
+      if (!searchQuery.trim()) return [];
+      const remoteIds = new Set(remoteSearchMatches.map((m) => m.sendbirdMessageId));
+      return messages.filter((m) => !m.isDeleted && remoteIds.has(m.id));
+   }, [messages, remoteSearchMatches, searchQuery]);
 
    const handleDraftChange = (value: string) => {
       setDraft(value);
@@ -179,6 +266,7 @@ export default function ChatConversation({
 
    const handleSelectMention = (user: ChatMentionUser) => {
       setDraft((prev) => prev.replace(/@([^\s@]*)$/, `@${user.name} `));
+      setMentionedUsers((prev) => (prev.some((u) => u.id === user.id) ? prev : [...prev, user]));
       inputRef.current?.focus();
    };
 
@@ -208,45 +296,77 @@ export default function ChatConversation({
       setReplyTarget(null);
       setEditingMessage(message);
       setDraft(message.content);
+      setPendingAttachment(
+         message.attachmentUrl
+            ? { url: message.attachmentUrl, name: getAttachmentFileName(message.attachmentUrl) }
+            : null,
+      );
       inputRef.current?.focus();
+   };
+
+   const handleAttachClick = () => fileInputRef.current?.click();
+
+   const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      e.target.value = '';
+      if (!file) return;
+      setIsUploadingAttachment(true);
+      try {
+         const { url } = await uploadChatAttachment(room.channelId, file);
+         setPendingAttachment({ url, name: file.name });
+      } catch (err) {
+         toast.error(getChatErrorMessage(err, '파일 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.'));
+      } finally {
+         setIsUploadingAttachment(false);
+      }
    };
 
    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       if (mentionResults.length > 0) return; // 멘션 목록이 떠 있을 땐 Enter가 선택으로 처리되므로 전송 막기
       const content = draft.trim();
-      if (!content || isSubmittingRef.current) return;
+      if ((!content && !pendingAttachment) || isSubmittingRef.current) return;
 
       isSubmittingRef.current = true;
       try {
          if (editingMessage) {
-            await editMessage(editingMessage.id, { channelId: room.channelId, content });
+            const attachmentUrl = pendingAttachment?.url ?? null;
+            await editMessage(editingMessage.id, { channelId: room.channelId, content, attachmentUrl });
             setMessages((prev) =>
-               prev.map((m) => (m.id === editingMessage.id ? { ...m, content } : m)),
+               prev.map((m) => (m.id === editingMessage.id ? { ...m, content, attachmentUrl } : m)),
             );
             setEditingMessage(null);
          } else if (replyTarget) {
-            const dto = await createReply(replyTarget.id, { channelId: room.channelId, content });
+            const dto = await createReply(replyTarget.id, {
+               channelId: room.channelId,
+               content: content || null,
+               attachmentUrl: pendingAttachment?.url ?? null,
+            });
             const mapped = mapMessageDto(dto, mapCtx);
             mapped.replyToPreview = {
                senderName: replyTarget.senderName,
-               content: replyTarget.content,
+               content: getMessagePreviewText(replyTarget),
             };
             setMessages((prev) => [...prev, mapped]);
             onReplySent(replyTarget.id);
             setReplyTarget(null);
          } else {
-            // 텍스트에서 @멘션을 어떤 사용자 id로 보낼지 추적하는 기능은 아직 없어 항상 빈 배열로 보낸다
-            const dto = await sendMessage(room.channelId, { content, mentionedUserIds: [] });
+            // 본문에 "@이름"이 아직 남아있는(도중에 지우지 않은) 멘션만 대상 id로 보낸다
+            const mentionedUserIds = mentionedUsers
+               .filter((user) => content.includes(`@${user.name}`))
+               .map((user) => user.id);
+            const dto = await sendMessage(room.channelId, {
+               content: content || null,
+               attachmentUrl: pendingAttachment?.url ?? null,
+               mentionedUserIds,
+            });
             setMessages((prev) => [...prev, mapMessageDto(dto, mapCtx)]);
          }
          setDraft('');
+         setPendingAttachment(null);
+         setMentionedUsers([]);
       } catch (err) {
-         toast.error(
-            err instanceof ApiError
-               ? err.message
-               : '메시지 전송에 실패했습니다. 잠시 후 다시 시도해주세요.',
-         );
+         toast.error(getChatErrorMessage(err, '메시지 전송에 실패했습니다. 잠시 후 다시 시도해주세요.'));
       } finally {
          isSubmittingRef.current = false;
          inputRef.current?.focus();
@@ -257,7 +377,7 @@ export default function ChatConversation({
       if (!deleteTarget || isDeletingRef.current) return;
       isDeletingRef.current = true;
       try {
-         await deleteMessage(deleteTarget.id);
+         await deleteMessage(deleteTarget.id, room.channelId);
          setMessages((prev) =>
             prev.map((m) =>
                m.id === deleteTarget.id ? { ...m, isDeleted: true, content: '' } : m,
@@ -267,13 +387,10 @@ export default function ChatConversation({
          if (editingMessage?.id === deleteTarget.id) {
             setEditingMessage(null);
             setDraft('');
+            setPendingAttachment(null);
          }
       } catch (err) {
-         toast.error(
-            err instanceof ApiError
-               ? err.message
-               : '삭제에 실패했습니다. 잠시 후 다시 시도해주세요.',
-         );
+         toast.error(getChatErrorMessage(err, '삭제에 실패했습니다. 잠시 후 다시 시도해주세요.'));
       } finally {
          isDeletingRef.current = false;
          setDeleteTarget(null);
@@ -381,9 +498,25 @@ export default function ChatConversation({
          {replyTarget && (
             <ReplyPreview
                senderName={replyTarget.senderName}
-               content={replyTarget.content}
+               content={getMessagePreviewText(replyTarget)}
                onCancel={() => setReplyTarget(null)}
             />
+         )}
+         {pendingAttachment && (
+            <div className="flex items-center justify-between gap-2 border-t border-gray-100 bg-gray-50 px-3 py-2">
+               <p className="flex items-center gap-1.5 truncate text-xs text-gray-500">
+                  <Paperclip size={12} className="shrink-0" />
+                  {pendingAttachment.name}
+               </p>
+               <button
+                  type="button"
+                  onClick={() => setPendingAttachment(null)}
+                  aria-label="첨부파일 취소"
+                  className="cursor-pointer rounded-xs p-1 text-gray-400 hover:bg-gray-200"
+               >
+                  <X size={14} />
+               </button>
+            </div>
          )}
          {editingMessage && (
             <div className="flex items-center justify-between gap-2 border-t border-gray-100 bg-gray-50 px-3 py-2">
@@ -393,6 +526,7 @@ export default function ChatConversation({
                   onClick={() => {
                      setEditingMessage(null);
                      setDraft('');
+                     setPendingAttachment(null);
                   }}
                   aria-label="수정 취소"
                   className="cursor-pointer rounded-xs p-1 text-gray-400 hover:bg-gray-200"
@@ -413,12 +547,20 @@ export default function ChatConversation({
                   onSelect={handleSelectMention}
                />
             )}
+            <input
+               ref={fileInputRef}
+               type="file"
+               onChange={handleFileSelected}
+               className="hidden"
+            />
             <button
                type="button"
+               onClick={handleAttachClick}
+               disabled={isUploadingAttachment}
                aria-label="파일 첨부"
-               className="shrink-0 cursor-pointer rounded-xs p-2 text-gray-400 hover:bg-gray-100"
+               className="shrink-0 cursor-pointer rounded-xs p-2 text-gray-400 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
-               <Paperclip size={18} />
+               <Paperclip size={18} className={isUploadingAttachment ? 'animate-pulse' : ''} />
             </button>
             <input
                ref={inputRef}
@@ -430,7 +572,7 @@ export default function ChatConversation({
             />
             <button
                type="submit"
-               disabled={!draft.trim()}
+               disabled={!draft.trim() && !pendingAttachment}
                aria-label="전송"
                className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-sm bg-brand-green text-white transition-colors hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-gray-200"
             >
