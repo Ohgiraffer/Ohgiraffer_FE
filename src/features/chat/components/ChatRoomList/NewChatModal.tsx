@@ -165,7 +165,7 @@ export default function NewChatModal({ onClose, onCreate }: NewChatModalProps) {
                               onChange={() => toggleUser(user)}
                               className="h-4 w-4 cursor-pointer accent-brand-green"
                            />
-                           <ChatAvatar name={user.name} />
+                           <ChatAvatar name={user.name} imageUrl={user.profileImageUrl} />
                            <span className="flex min-w-0 flex-col">
                               <span className="truncate text-sm font-medium text-gray-900">{user.name}</span>
                               <span className="truncate text-xs text-gray-400">

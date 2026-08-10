@@ -235,6 +235,7 @@ export default function ThreadPanel({
                isSearchActive={false}
                showReplyQuote={false}
                showReplyOnHover={false}
+               showUnreadCountForOthers={room.channelType === 'GROUP'}
                onReply={() => {}}
                onEdit={() => handleStartEdit(root)}
                onDelete={() => setDeleteTarget(root)}
@@ -262,6 +263,7 @@ export default function ThreadPanel({
                         isSearchActive={false}
                         showReplyQuote={false}
                         showReplyOnHover={false}
+                        showUnreadCountForOthers={room.channelType === 'GROUP'}
                         onReply={() => {}}
                         onEdit={() => handleStartEdit(reply)}
                         onDelete={() => setDeleteTarget(reply)}

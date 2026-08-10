@@ -25,6 +25,9 @@ interface ChatMessageBubbleProps {
    showReplyQuote?: boolean;
    // 상대방 메시지에서 시간 대신 호버 시 답장 아이콘을 보여줄지 - 스레드 안에서는 끔
    showReplyOnHover?: boolean;
+   // 단체 채팅방에서는 다른 사람이 보낸 메시지에도 안읽음 수를 보여준다(누가 공지를 안 읽었는지
+   // 관리자가 확인할 수 있게). 1:1은 나 아니면 상대뿐이라 상대 메시지에 표시할 의미가 없어 끔
+   showUnreadCountForOthers?: boolean;
    onReply: () => void;
    onEdit: () => void;
    onDelete: () => void;
@@ -38,6 +41,7 @@ export default function ChatMessageBubble({
    isSearchActive,
    showReplyQuote = true,
    showReplyOnHover = true,
+   showUnreadCountForOthers = false,
    onReply,
    onEdit,
    onDelete,
@@ -67,29 +71,38 @@ export default function ChatMessageBubble({
             )}
             <div className="flex items-end gap-1">
                {message.isMine && (
-                  <span className="relative flex h-3.5 w-9 shrink-0 items-center justify-end">
-                     <span
-                        className={cn(
-                           'whitespace-nowrap text-[11px] text-gray-400 transition-opacity',
-                           !message.isDeleted && 'group-hover:opacity-0',
-                        )}
-                     >
-                        {message.sentAt}
-                     </span>
-                     {!message.isDeleted && (
-                        <div className="absolute right-0 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                           <MessageActionMenu onEdit={onEdit} onDelete={onDelete} />
-                           <button
-                              type="button"
-                              onClick={onReply}
-                              aria-label="답장"
-                              className="cursor-pointer rounded-xs p-1 text-gray-400 hover:bg-gray-100"
-                           >
-                              <CornerDownRight size={14} />
-                           </button>
-                        </div>
+                  <div className="flex flex-col items-end gap-0.5">
+                     {/* 내가 보낸 메시지를 아직 안 읽은 참여자 수 - 0이 되면(모두 읽으면) 사라진다.
+                         1:1은 0 또는 1, 단체는 남은 인원 수로 표시(카카오톡 안읽음 숫자와 동일한 방식) */}
+                     {!message.isDeleted && message.unreadCount > 0 && (
+                        <span className="text-[11px] leading-none font-medium text-brand-green">
+                           {message.unreadCount}
+                        </span>
                      )}
-                  </span>
+                     <span className="relative flex h-3.5 w-9 shrink-0 items-center justify-end">
+                        <span
+                           className={cn(
+                              'whitespace-nowrap text-[11px] text-gray-400 transition-opacity',
+                              !message.isDeleted && 'group-hover:opacity-0',
+                           )}
+                        >
+                           {message.sentAt}
+                        </span>
+                        {!message.isDeleted && (
+                           <div className="absolute right-0 flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                              <MessageActionMenu onEdit={onEdit} onDelete={onDelete} />
+                              <button
+                                 type="button"
+                                 onClick={onReply}
+                                 aria-label="답장"
+                                 className="cursor-pointer rounded-xs p-1 text-gray-400 hover:bg-gray-100"
+                              >
+                                 <CornerDownRight size={14} />
+                              </button>
+                           </div>
+                        )}
+                     </span>
+                  </div>
                )}
                <div
                   className={cn(
@@ -130,32 +143,41 @@ export default function ChatMessageBubble({
                      message.content
                   )}
                </div>
-               {!message.isMine && (showReplyOnHover ? (
-                  <span className="relative flex h-3.5 w-9 shrink-0 items-center justify-end">
-                     <span
-                        className={cn(
-                           'whitespace-nowrap text-[11px] text-gray-400 transition-opacity',
-                           !message.isDeleted && 'group-hover:opacity-0',
-                        )}
-                     >
-                        {message.sentAt}
-                     </span>
-                     {!message.isDeleted && (
-                        <button
-                           type="button"
-                           onClick={onReply}
-                           aria-label="답장"
-                           className="absolute left-0 cursor-pointer text-gray-400 opacity-0 transition-opacity hover:text-gray-600 group-hover:opacity-100"
-                        >
-                           <CornerDownRight size={14} />
-                        </button>
+               {!message.isMine && (
+                  <div className="flex flex-col items-start gap-0.5">
+                     {showUnreadCountForOthers && !message.isDeleted && message.unreadCount > 0 && (
+                        <span className="text-[11px] leading-none font-medium text-brand-green">
+                           {message.unreadCount}
+                        </span>
                      )}
-                  </span>
-               ) : (
-                  <span className="shrink-0 whitespace-nowrap text-[11px] text-gray-400">
-                     {message.sentAt}
-                  </span>
-               ))}
+                     {showReplyOnHover ? (
+                        <span className="relative flex h-3.5 w-9 shrink-0 items-center justify-end">
+                           <span
+                              className={cn(
+                                 'whitespace-nowrap text-[11px] text-gray-400 transition-opacity',
+                                 !message.isDeleted && 'group-hover:opacity-0',
+                              )}
+                           >
+                              {message.sentAt}
+                           </span>
+                           {!message.isDeleted && (
+                              <button
+                                 type="button"
+                                 onClick={onReply}
+                                 aria-label="답장"
+                                 className="absolute left-0 cursor-pointer text-gray-400 opacity-0 transition-opacity hover:text-gray-600 group-hover:opacity-100"
+                              >
+                                 <CornerDownRight size={14} />
+                              </button>
+                           )}
+                        </span>
+                     ) : (
+                        <span className="shrink-0 whitespace-nowrap text-[11px] text-gray-400">
+                           {message.sentAt}
+                        </span>
+                     )}
+                  </div>
+               )}
             </div>
 
             {replyCount >= 2 && (

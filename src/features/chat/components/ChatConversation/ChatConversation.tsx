@@ -227,6 +227,12 @@ export default function ChatConversation({
                if (channel.url !== room.channelId) return;
                refreshMessages();
             },
+            // 상대가 새 메시지 없이 읽기만 해도 메시지별 읽음 안읽음 숫자가 바뀌므로,
+            // 이때도 다시 조회해서 반영한다 (안 그러면 새 메시지가 올 때만 갱신됨)
+            onUserMarkedRead: (channel) => {
+               if (channel.url !== room.channelId) return;
+               refreshMessages();
+            },
          }),
       );
       return () => {
@@ -604,6 +610,7 @@ export default function ChatConversation({
                            showSenderName={showSenderName}
                            replyCount={replyCounts[message.id] ?? 0}
                            isSearchActive={isSearchOpen && message.id === activeSearchMessageId}
+                           showUnreadCountForOthers={room.channelType === 'GROUP'}
                            onReply={() => handleStartReply(message)}
                            onEdit={() => handleStartEdit(message)}
                            onDelete={() => setDeleteTarget(message)}

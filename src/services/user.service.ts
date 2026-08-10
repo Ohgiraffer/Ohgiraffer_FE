@@ -24,6 +24,8 @@ export interface UserListItem {
    role: UserRole;
    teamName: string | null;
    status: string;
+   // 백엔드 지원 예정(합의됨) - 아직 없거나 로드 실패 시 ChatAvatar가 기본 아이콘으로 대체
+   profileImageUrl: string | null;
 }
 
 // 새 채팅 상대 선택 목록 등 전체 사용자 명단이 필요한 곳에서 사용 - 운영진(매니저/강사)만 호출 가능
