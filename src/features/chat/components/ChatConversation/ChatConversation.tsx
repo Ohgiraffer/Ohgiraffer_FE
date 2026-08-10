@@ -37,6 +37,26 @@ import type { ChatMessage, ChatMentionUser } from '../../types';
 const MESSAGE_POLL_INTERVAL_MS = 8000;
 // 검색어를 입력하는 동안마다 서버로 요청을 보내지 않도록 잠깐 대기
 const SEARCH_DEBOUNCE_MS = 300;
+// 채널 단위로 답글 수를 한 번에 받아오는 엔드포인트가 없어 메시지마다 개별 호출해야 하는데,
+// 메시지가 많은 방(기본 페이지 100건)을 열 때마다 동시에 다 쏘면 브라우저 연결 한도/서버
+// 부하에 영향을 주므로 이 개수만큼씩 나눠서 순차적으로 요청한다
+const REPLY_COUNT_CONCURRENCY = 5;
+
+async function fetchReplyCounts(messageIds: string[]): Promise<[string, number][]> {
+   const entries: [string, number][] = [];
+   for (let i = 0; i < messageIds.length; i += REPLY_COUNT_CONCURRENCY) {
+      const batch = messageIds.slice(i, i + REPLY_COUNT_CONCURRENCY);
+      const batchEntries = await Promise.all(
+         batch.map((id) =>
+            getMessageReplyCount(id)
+               .then((res): [string, number] => [id, res.replyCount])
+               .catch((): [string, number] => [id, 0]),
+         ),
+      );
+      entries.push(...batchEntries);
+   }
+   return entries;
+}
 
 interface ChatConversationProps {
    room: ChatChannel;
@@ -116,7 +136,9 @@ export default function ChatConversation({
    // 봐도 똑같은 문구로 보임) 상대방 입장에선 이름이 잘못 보인다. 채널 상세로 받은 멤버 목록에서
    // 나를 뺀 나머지 한 명의 실제 이름으로 항상 다시 계산해서 보여준다
    const partnerName = useMemo(() => {
-      if (room.channelType !== 'DM') return null;
+      // myUserId가 아직 없으면(인증 정보 로딩 중) "나를 뺀 나머지"라는 조건이 모든 멤버에 대해
+      // 참이 돼버려, 나 자신이나 아무 멤버나 상대방으로 잘못 뽑힐 수 있다 - 그때까진 room.name을 쓴다
+      if (room.channelType !== 'DM' || myUserId == null) return null;
       return members.find((member) => member.userId !== myUserId)?.memberName ?? null;
    }, [room.channelType, members, myUserId]);
    const title = partnerName ?? room.name;
@@ -152,13 +174,7 @@ export default function ChatConversation({
             // 각 메시지의 실제 답글 수를 서버에서 받아와 로컬 세션 추정치를 정확한 값으로 덮어쓴다.
             // 방을 열 때 한 번만 조회하고, 이후 새로 보낸 답글은 onReplySent로 로컬 증가만 반영한다
             if (onReplyCountsLoaded && mapped.length > 0) {
-               Promise.all(
-                  mapped.map((m) =>
-                     getMessageReplyCount(m.id)
-                        .then((res): [string, number] => [m.id, res.replyCount])
-                        .catch((): [string, number] => [m.id, 0]),
-                  ),
-               ).then((entries) => {
+               fetchReplyCounts(mapped.map((m) => m.id)).then((entries) => {
                   if (!isMounted) return;
                   onReplyCountsLoaded(Object.fromEntries(entries));
                });
@@ -201,7 +217,10 @@ export default function ChatConversation({
                const merged = prev.map((m) => {
                   const dto = dtoById.get(m.id);
                   if (!dto) return m;
-                  return { ...mapMessageDto(dto, mapCtx), replyToPreview: m.replyToPreview };
+                  // isDeleted는 서버 응답에 없는 클라이언트 전용 필드라(내가 방금 삭제한 메시지에만
+                  // 로컬로 세팅됨) mapMessageDto 결과로 그냥 덮어쓰면 다음 갱신 때 사라진다.
+                  // 한번 삭제된 메시지는 되돌아갈 수 없으니 기존 값을 그대로 유지한다
+                  return { ...mapMessageDto(dto, mapCtx), replyToPreview: m.replyToPreview, isDeleted: m.isDeleted };
                });
                const existingIds = new Set(prev.map((m) => m.id));
                const newOnes = content
@@ -266,6 +285,9 @@ export default function ChatConversation({
             let page = 0;
             // 검색 결과가 아무리 많아도 무한 루프에 빠지지 않도록 안전 상한을 둔다(최대 5,000건)
             while (page < 100) {
+               // 검색어를 연속으로 입력해 새 effect가 시작됐거나(cleanup 실행) 방을 나갔다면
+               // 남은 페이지를 계속 긁어올 필요가 없으므로 여기서 바로 멈춘다
+               if (!isMounted) return;
                let result;
                try {
                   result = await searchMessages({ channelId: room.channelId, keyword: query, page, size: 50 });
@@ -299,6 +321,9 @@ export default function ChatConversation({
          const pageSize = 100;
          let page = 0;
          while (page < 100) {
+            // 그 사이 방을 나갔거나 이 effect가 다시 실행돼 취소됐다면 남은 페이지를 계속
+            // 요청할 필요가 없다 - 화면에 반영되지도 않을 요청으로 서버 부하만 늘어난다
+            if (!isMounted) return;
             let result;
             try {
                result = await getChannelMessages(room.channelId, page, pageSize);

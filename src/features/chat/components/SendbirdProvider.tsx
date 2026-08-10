@@ -54,7 +54,14 @@ export default function SendbirdProvider({ children }: { children: React.ReactNo
             return instance.connect(sendbirdUserId, sessionToken).then(() => instance);
          })
          .then((instance) => {
-            if (!instance || epoch !== connectionEpochRef.current) return;
+            if (!instance) return;
+            if (epoch !== connectionEpochRef.current) {
+               // 연결이 완료되기 전에 로그아웃했거나 다른 계정으로 로그인했다면(세션이 바뀜),
+               // 이 연결은 이미 못 쓰는 이전 세션 몫이다. sdk 상태에 반영하지 않으면 로그아웃
+               // 정리 effect(sdk 기준)가 이 연결을 못 보고 지나치므로 여기서 바로 끊어준다
+               instance.disconnect().catch(() => {});
+               return;
+            }
             setSdk(instance);
          })
          .catch((err) => {

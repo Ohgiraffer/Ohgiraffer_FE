@@ -57,14 +57,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    // 정리(logout)한 뒤 원래 오류를 그대로 다시 던진다. logout() 자체가 실패해도(예: 이미
    // 만료된 토큰으로 /auth/logout 호출) 로컬 상태는 이미 정리됐으므로 그 오류는 무시하고
    // 호출부에는 항상 원래 원인(getMe 실패 또는 RoleMismatchError)이 전달되게 한다.
+   // expectedEpoch: 호출 시점에 이 조회가 속한 세션의 epoch - getMe()를 기다리는 동안
+   // 로그아웃했거나 다른 계정으로 로그인했다면(세션이 바뀜) 그 결과로 로그아웃/상태 변경을
+   // 하면 안 되므로, logout() 호출 직전과 setMe() 직전에 다시 검사한다
    const verifyAndSetMe = useCallback(
-      async (expectedRole: UserRole) => {
+      async (expectedRole: UserRole, expectedEpoch: number) => {
          let meData: Me;
          try {
             meData = await getMe();
          } catch (err) {
-            await logout().catch(() => {});
+            if (getSessionEpoch() === expectedEpoch) await logout().catch(() => {});
             throw err;
+         }
+         if (getSessionEpoch() !== expectedEpoch) {
+            throw new Error('세션이 변경되어 프로필 조회 결과를 적용하지 않았습니다.');
          }
          if (meData.role !== expectedRole) {
             await logout().catch(() => {});
@@ -98,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                setRole(data.role);
                setStatus(data.status);
                // 실패 시 verifyAndSetMe 내부에서 이미 logout까지 처리하므로 여기선 조용히 종료
-               await verifyAndSetMe(data.role).catch(() => {});
+               await verifyAndSetMe(data.role, epochAtSchedule).catch(() => {});
             }, Math.max(delay, 0));
          } catch {
             // 토큰 형식이 이상할 때, 타이머 없이 401 재시도
@@ -120,12 +126,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    }, [scheduleRefresh]);
 
    useEffect(() => {
+      // 이 복구 시도가 응답을 받기 전에 로그인/로그아웃이 먼저 일어났다면 그 결과는 낡은 것이다
+      const epochAtStart = getSessionEpoch();
       authService
          .refresh()
          .then(async (data) => {
             setRole(data.role);
             setStatus(data.status);
-            await verifyAndSetMe(data.role);
+            await verifyAndSetMe(data.role, epochAtStart);
          })
          .catch(() => {
             // 리프레시 토큰이 없거나 만료됨(또는 role 불일치로 강제 로그아웃됨) → 비로그인 상태
@@ -144,8 +152,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
          setRole(data.role);
          setStatus(data.status);
          setAccessTokenForNewSession(data.accessToken);
+         const epochAtLogin = getSessionEpoch();
 
-         const meData = await verifyAndSetMe(data.role);
+         const meData = await verifyAndSetMe(data.role, epochAtLogin);
 
          return {
             role: data.role,

@@ -17,22 +17,6 @@ export function getMe() {
    return apiFetch<Me>('/user/me');
 }
 
-export interface UserListItem {
-   userId: number;
-   name: string;
-   email: string;
-   role: UserRole;
-   teamName: string | null;
-   status: string;
-   // 백엔드 지원 예정(합의됨) - 아직 없거나 로드 실패 시 ChatAvatar가 기본 아이콘으로 대체
-   profileImageUrl: string | null;
-}
-
-// 새 채팅 상대 선택 목록 등 전체 사용자 명단이 필요한 곳에서 사용 - 운영진(매니저/강사)만 호출 가능
-export function getUserList() {
-   return apiFetch<UserListItem[]>('/user/list');
-}
-
 export interface RegisterUserRow {
    name: string;
    email: string;
@@ -61,6 +45,8 @@ export interface UserListItem {
    // 훈련생만 소속 팀이 있고, 강사·매니저는 항상 null
    teamName: string | null;
    status: UserStatus;
+   // 백엔드 지원 예정(합의됨) - 아직 없거나 로드 실패 시 ChatAvatar가 기본 아이콘으로 대체
+   profileImageUrl: string | null;
 }
 
 // 관리자 설정 > 사용자 및 권한 관리 - 전체 사용자 목록 조회

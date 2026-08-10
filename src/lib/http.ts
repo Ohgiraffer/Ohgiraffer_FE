@@ -46,17 +46,21 @@ export interface RefreshApiData {
    status: string;
 }
 
-// 동시에 여러 요청이 401을 받아도 /auth/refresh는 한 번만 나가도록 진행 중인 요청을 공유
+// 동시에 여러 요청이 401을 받아도 /auth/refresh는 한 번만 나가도록 진행 중인 요청을 공유.
+// 어느 세션(epoch)을 위해 시작된 refresh인지도 같이 기억해둬야, 그 사이 로그아웃 후 다른
+// 계정으로 로그인한 요청이 이전 세션의 refresh 결과를 그대로 기다리는 걸 막을 수 있다
 let refreshPromise: Promise<RefreshApiData> | null = null;
+let refreshPromiseEpoch: number | null = null;
 
 // role/status까지 포함한 응답 전체를 돌려줌
 // (apiFetch의 401 재시도는 accessToken만 쓰지만,
 // AuthContext가 세션 복구 시 role/status를 다시 세팅하려면 전체 데이터가 필요)
 export async function refreshAccessToken(): Promise<RefreshApiData> {
-   if (!refreshPromise) {
+   const epochAtStart = getSessionEpoch();
+   if (!refreshPromise || refreshPromiseEpoch !== epochAtStart) {
       // 이 요청이 응답을 받기 전에 로그아웃했거나 다른 계정으로 로그인했다면(세션이 바뀜)
       // 응답이 오더라도 낡은 것이므로 토큰을 덮어쓰지 않는다
-      const epochAtStart = getSessionEpoch();
+      refreshPromiseEpoch = epochAtStart;
       refreshPromise = rawRequest('/auth/refresh', { method: 'POST' })
          .then(async (res) => {
             if (!res.ok) throw new ApiError(await res.json().catch(() => null), res.status);
@@ -68,6 +72,7 @@ export async function refreshAccessToken(): Promise<RefreshApiData> {
          })
          .finally(() => {
             refreshPromise = null;
+            refreshPromiseEpoch = null;
          });
    }
    return refreshPromise;
@@ -97,7 +102,11 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
       const epochBeforeRefresh = getSessionEpoch();
       try {
          await refreshAccessToken();
-         res = await rawRequest(path, { ...rest, headers: buildHeaders() });
+         // 갱신을 기다리는 동안 로그아웃했거나 다른 계정으로 로그인했다면(세션이 바뀜), 이
+         // 요청은 원래 이전 세션 몫이었으므로 새 세션의 토큰으로 재시도하면 안 된다 - 그대로 중단
+         if (getSessionEpoch() === epochBeforeRefresh) {
+            res = await rawRequest(path, { ...rest, headers: buildHeaders() });
+         }
       } catch {
          // 갱신이 실패한 시점에 이미 다른 계정으로 로그인돼 있다면(세션이 바뀜) 그 새 세션을
          // 로그아웃시키면 안 되므로, 이 재시도를 시작했던 세션이 아직 그대로일 때만 토큰을 지운다
@@ -143,11 +152,15 @@ export async function apiFetchBlob(
    let res = await rawRequest(path, { ...options, headers: buildHeaders() });
 
    if (res.status === 401) {
+      const epochBeforeRefresh = getSessionEpoch();
       try {
          await refreshAccessToken();
-         res = await rawRequest(path, { ...options, headers: buildHeaders() });
+         // apiFetch와 동일한 이유로, 세션이 바뀌었다면 새 세션의 토큰으로 재시도하지 않는다
+         if (getSessionEpoch() === epochBeforeRefresh) {
+            res = await rawRequest(path, { ...options, headers: buildHeaders() });
+         }
       } catch {
-         setAccessToken(null);
+         if (getSessionEpoch() === epochBeforeRefresh) setAccessToken(null);
       }
    }
 
