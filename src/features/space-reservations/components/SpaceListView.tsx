@@ -1,26 +1,20 @@
 'use client';
 
 import { Building } from 'lucide-react';
+import { ROLE_LABELS } from '@/services/auth.service';
 import PersonAvatar from './PersonAvatar';
-import type { SpacePerson, SpaceZone } from '../types';
+import type { Space } from '../types';
 
 type Props = {
-   zones: SpaceZone[];
-   people: SpacePerson[];
+   spaces: Space[];
    searchKeyword: string;
-   onCheckIn: (zoneId: string) => void;
+   onCheckIn: (spaceId: number) => void;
    onCheckOut: () => void;
 };
 
 const ROW_GRID = 'grid w-full grid-cols-[1fr_1fr_1fr] items-center';
 
-export default function SpaceListView({
-   zones,
-   people,
-   searchKeyword,
-   onCheckIn,
-   onCheckOut,
-}: Props) {
+export default function SpaceListView({ spaces, searchKeyword, onCheckIn, onCheckOut }: Props) {
    const trimmedKeyword = searchKeyword.trim();
    const isSearching = trimmedKeyword.length > 0;
 
@@ -31,63 +25,64 @@ export default function SpaceListView({
          >
             <span>이름</span>
             <span>장소</span>
-            <span>팀</span>
+            <span>역할</span>
          </div>
 
-         {zones.map((zone) => {
-            const occupants = people.filter((person) => person.zoneId === zone.id);
+         {spaces.map((space) => {
             const visibleOccupants = isSearching
-               ? occupants.filter((person) => person.name.includes(trimmedKeyword))
-               : occupants;
-            const isCurrentUserHere = occupants.some((person) => person.isCurrentUser);
+               ? space.occupants.filter((occupant) => occupant.userName.includes(trimmedKeyword))
+               : space.occupants;
+            const isCurrentUserHere = space.occupants.some((occupant) => occupant.mine);
 
             return (
-               <div key={zone.id} className="border-b border-[#E5E7EB] last:border-b-0">
+               <div key={space.spaceId} className="border-b border-[#E5E7EB] last:border-b-0">
                   <div className="flex items-center gap-2 border-t border-[#E5E7EB] bg-[#F9FAFB] px-6 py-2.5 text-sm font-semibold text-gray-900">
                      <Building size={16} className="text-brand-green" />
-                     {zone.name}
+                     {space.spaceName}
                      <span className="font-normal text-gray-400">
-                        {occupants.length}/{zone.capacity}명 재실
+                        {space.currentCount}/{space.capacity}명 재실
                      </span>
                      <span className="h-1.5 w-1.5 rounded-full bg-brand-sage" />
                   </div>
 
-                  {visibleOccupants.map((person) => {
+                  {visibleOccupants.map((occupant) => {
                      const rowContent = (
                         <>
                            <div className="flex items-center gap-2">
                               <PersonAvatar
-                                 name={person.name}
-                                 isCurrentUser={person.isCurrentUser}
+                                 name={occupant.userName}
+                                 isCurrentUser={occupant.mine}
                               />
                               <span className="text-sm font-medium text-gray-900">
-                                 {person.name}
-                                 {person.isCurrentUser && (
+                                 {occupant.userName}
+                                 {occupant.mine && (
                                     <span className="ml-1 text-xs font-normal text-gray-400">
                                        (나)
                                     </span>
                                  )}
                               </span>
                            </div>
-                           <span className="text-sm text-gray-500">{zone.name}</span>
-                           <span className="text-sm text-gray-500">{person.team}</span>
+                           <span className="text-sm text-gray-500">{space.spaceName}</span>
+                           <span className="text-sm text-gray-500">
+                              {ROLE_LABELS[occupant.role]}
+                           </span>
                         </>
                      );
 
                      // 본인 행은 클릭하면 퇴실(다른 구역으로 이동하지 않고 그냥 자리를 비움)
-                     return person.isCurrentUser ? (
+                     return occupant.mine ? (
                         <button
-                           key={person.id}
+                           key={occupant.userId}
                            type="button"
                            onClick={onCheckOut}
-                           aria-label={`${person.name} 퇴실`}
+                           aria-label={`${occupant.userName} 퇴실`}
                            className={`${ROW_GRID} cursor-pointer border-t-[0.5px] border-b-[0.5px] border-[#E5E7EB] bg-brand-sage/10 px-6 py-3 text-left hover:bg-brand-sage/20`}
                         >
                            {rowContent}
                         </button>
                      ) : (
                         <div
-                           key={person.id}
+                           key={occupant.userId}
                            className={`${ROW_GRID} border-t-[0.5px] border-b-[0.5px] border-[#E5E7EB] px-6 py-3`}
                         >
                            {rowContent}
@@ -98,7 +93,7 @@ export default function SpaceListView({
                   {!isSearching && !isCurrentUserHere && (
                      <button
                         type="button"
-                        onClick={() => onCheckIn(zone.id)}
+                        onClick={() => onCheckIn(space.spaceId)}
                         className="block w-full h-15 cursor-pointer border-t-[0.7px] border-b-[0.7px] border-[#E5E7EB] px-8 py-3 text-left text-sm text-gray-400 hover:bg-gray-50"
                      >
                         + 입실
