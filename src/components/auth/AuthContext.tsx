@@ -42,14 +42,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    const [isInitializing, setIsInitializing] = useState(true);
    const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-   const logout = useCallback(async () => {
+   // expectedEpoch: 호출 시점에 로그아웃 대상으로 삼은 세션의 epoch. authService.logout()이
+   // 서버 응답을 기다리는 동안(네트워크 왕복) 다른 계정으로 새로 로그인했다면 그 새 세션까지
+   // 이 finally가 지워버리면 안 되므로, 로컬 상태를 정리하기 직전에 다시 검사한다.
+   // 인자 없이 호출하면(사용자가 직접 로그아웃 버튼을 누른 경우 등) 호출 시점의 현재 세션을 대상으로 한다
+   const logout = useCallback(async (expectedEpoch?: number) => {
+      const epoch = expectedEpoch ?? getSessionEpoch();
       try {
          await authService.logout();
       } finally {
-         setAccessTokenForNewSession(null);
-         setRole(null);
-         setStatus(null);
-         setMe(null);
+         if (getSessionEpoch() === epoch) {
+            setAccessTokenForNewSession(null);
+            setRole(null);
+            setStatus(null);
+            setMe(null);
+         }
       }
    }, []);
 
@@ -66,14 +73,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
          try {
             meData = await getMe();
          } catch (err) {
-            if (getSessionEpoch() === expectedEpoch) await logout().catch(() => {});
+            if (getSessionEpoch() === expectedEpoch) await logout(expectedEpoch).catch(() => {});
             throw err;
          }
          if (getSessionEpoch() !== expectedEpoch) {
             throw new Error('세션이 변경되어 프로필 조회 결과를 적용하지 않았습니다.');
          }
          if (meData.role !== expectedRole) {
-            await logout().catch(() => {});
+            await logout(expectedEpoch).catch(() => {});
             throw new RoleMismatchError('로그인 정보와 계정 정보가 일치하지 않습니다.');
          }
          setMe(meData);
@@ -97,7 +104,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   data = await authService.refresh();
                } catch {
                   // 리프레시 토큰 만료 등 — 단, 그 사이 다른 계정으로 로그인했다면 그 세션은 그대로 둔다
-                  if (getSessionEpoch() === epochAtSchedule) await logout().catch(() => {});
+                  if (getSessionEpoch() === epochAtSchedule) await logout(epochAtSchedule).catch(() => {});
                   return;
                }
                if (getSessionEpoch() !== epochAtSchedule) return;
@@ -131,6 +138,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authService
          .refresh()
          .then(async (data) => {
+            // 응답을 기다리는 동안 다른 계정으로 로그인했다면 그 새 세션의 role/status를
+            // 이 낡은 응답으로 덮어쓰면 안 된다
+            if (getSessionEpoch() !== epochAtStart) return;
             setRole(data.role);
             setStatus(data.status);
             await verifyAndSetMe(data.role, epochAtStart);

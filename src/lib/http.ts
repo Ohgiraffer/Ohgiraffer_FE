@@ -61,7 +61,7 @@ export async function refreshAccessToken(): Promise<RefreshApiData> {
       // 이 요청이 응답을 받기 전에 로그아웃했거나 다른 계정으로 로그인했다면(세션이 바뀜)
       // 응답이 오더라도 낡은 것이므로 토큰을 덮어쓰지 않는다
       refreshPromiseEpoch = epochAtStart;
-      refreshPromise = rawRequest('/auth/refresh', { method: 'POST' })
+      const promise: Promise<RefreshApiData> = rawRequest('/auth/refresh', { method: 'POST' })
          .then(async (res) => {
             if (!res.ok) throw new ApiError(await res.json().catch(() => null), res.status);
             const data = (await res.json()) as RefreshApiData;
@@ -71,9 +71,15 @@ export async function refreshAccessToken(): Promise<RefreshApiData> {
             return data;
          })
          .finally(() => {
-            refreshPromise = null;
-            refreshPromiseEpoch = null;
+            // 이 promise가 끝나기 전에 다른(새) 세션의 refresh가 이미 시작돼 전역 상태를
+            // 넘겨받았다면, 그 새 요청의 공유 상태를 여기서 지우면 안 된다 - 내가 여전히
+            // "현재" 진행 중인 요청일 때만 정리한다
+            if (refreshPromise === promise) {
+               refreshPromise = null;
+               refreshPromiseEpoch = null;
+            }
          });
+      refreshPromise = promise;
    }
    return refreshPromise;
 }
@@ -96,21 +102,22 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
       ...headers,
    });
 
+   // 이 요청이 시작된 시점의 세션 - 첫 요청 응답을 기다리는 동안 로그아웃 후 다른 계정으로
+   // 로그인했다면(세션이 바뀜) 그 401은 이전 세션 몫이므로, 새 세션의 토큰으로 갱신·재시도하면
+   // 안 된다. 401 판정 이후 재시도 직전까지 전부 이 값 기준으로 검사한다
+   const requestEpoch = getSessionEpoch();
    let res = await rawRequest(path, { ...rest, headers: buildHeaders() });
 
-   if (res.status === 401 && !skipAuth && !skipRefreshRetry) {
-      const epochBeforeRefresh = getSessionEpoch();
+   if (res.status === 401 && !skipAuth && !skipRefreshRetry && getSessionEpoch() === requestEpoch) {
       try {
          await refreshAccessToken();
-         // 갱신을 기다리는 동안 로그아웃했거나 다른 계정으로 로그인했다면(세션이 바뀜), 이
-         // 요청은 원래 이전 세션 몫이었으므로 새 세션의 토큰으로 재시도하면 안 된다 - 그대로 중단
-         if (getSessionEpoch() === epochBeforeRefresh) {
+         if (getSessionEpoch() === requestEpoch) {
             res = await rawRequest(path, { ...rest, headers: buildHeaders() });
          }
       } catch {
          // 갱신이 실패한 시점에 이미 다른 계정으로 로그인돼 있다면(세션이 바뀜) 그 새 세션을
          // 로그아웃시키면 안 되므로, 이 재시도를 시작했던 세션이 아직 그대로일 때만 토큰을 지운다
-         if (getSessionEpoch() === epochBeforeRefresh) setAccessToken(null);
+         if (getSessionEpoch() === requestEpoch) setAccessToken(null);
       }
    }
 
@@ -149,18 +156,18 @@ export async function apiFetchBlob(
       ...options.headers,
    });
 
+   // apiFetch와 동일한 이유로, 첫 요청이 시작된 시점의 세션을 끝까지 기준으로 삼는다
+   const requestEpoch = getSessionEpoch();
    let res = await rawRequest(path, { ...options, headers: buildHeaders() });
 
-   if (res.status === 401) {
-      const epochBeforeRefresh = getSessionEpoch();
+   if (res.status === 401 && getSessionEpoch() === requestEpoch) {
       try {
          await refreshAccessToken();
-         // apiFetch와 동일한 이유로, 세션이 바뀌었다면 새 세션의 토큰으로 재시도하지 않는다
-         if (getSessionEpoch() === epochBeforeRefresh) {
+         if (getSessionEpoch() === requestEpoch) {
             res = await rawRequest(path, { ...options, headers: buildHeaders() });
          }
       } catch {
-         if (getSessionEpoch() === epochBeforeRefresh) setAccessToken(null);
+         if (getSessionEpoch() === requestEpoch) setAccessToken(null);
       }
    }
 
