@@ -18,8 +18,8 @@ const NOTICES: NoticeItem[] = [
 
 export default function NoticeCard() {
    return (
-      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-6">
-         <div className="mb-4 flex items-center justify-between lg:mb-5">
+      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-4">
+         <div className="mb-4 flex items-center justify-between lg:mb-2">
             <h2 className="flex items-center gap-1.5 text-sm font-bold text-gray-900">
                <Megaphone size={16} className="text-gray-400" />
                공지사항

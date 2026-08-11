@@ -16,11 +16,13 @@ const TODOS: TodoItem[] = [
 
 export default function TodoCard() {
    return (
-      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-6">
-         <h2 className="mb-4 flex items-center gap-1.5 text-sm font-bold text-gray-900 lg:mb-5">
-            <ListChecks size={16} className="text-gray-400" />
-            할일 관리
-         </h2>
+      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-4">
+         <div className="mb-4 flex items-center justify-between lg:mb-2">
+            <h2 className="flex items-center gap-1.5 text-sm font-bold text-gray-900">
+               <ListChecks size={16} className="text-gray-400" />
+               할일 관리
+            </h2>
+         </div>
 
          <ul>
             {TODOS.map((todo) => (
