@@ -63,12 +63,12 @@ export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps
       setReloadKey((key) => key + 1);
    };
 
-   const handleCreated = (editUrl: string) => {
+   const handleCreated = (editUrl?: string) => {
       onCreatingChange(false);
       refetch();
-      // 생성 직후 팝업 차단으로 새 탭이 안 열리면 수동으로 열 수 있는 배너를 남긴다
-      const opened = window.open(editUrl, '_blank', 'noopener,noreferrer');
-      if (!opened) setPendingEditUrl(editUrl);
+      // 저장 완료 콜백은 비동기 이후에 실행돼 사용자 제스처가 끊겨 있으므로 window.open을 다시 시도하지 않는다
+      // (모달이 클릭 시점에 이미 탭을 열었고, 실패했을 때만 editUrl을 넘겨준다)
+      if (editUrl) setPendingEditUrl(editUrl);
    };
 
    const handleEditClick = async (form: SurveyFormListItem) => {
