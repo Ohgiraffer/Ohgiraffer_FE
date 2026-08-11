@@ -196,12 +196,15 @@ export default function StudentBoxDetailClient({ boxId }: StudentBoxDetailClient
                                  {detail.targetScope === 'TEAM' ? '팀' : '이름'}
                               </th>
                               {detail.items.map((item) => (
-                                 <th key={item.submissionBoxItemId} className="px-6 py-3 font-medium">
+                                 <th
+                                    key={item.submissionBoxItemId}
+                                    className="px-6 py-3 font-medium text-center"
+                                 >
                                     {item.itemName}
                                  </th>
                               ))}
-                              <th className="w-[10%] px-6 py-3 font-medium">전체</th>
-                              <th className="w-[16%] px-6 py-3 font-medium">제출 일시</th>
+                              <th className="w-[10%] px-6 py-3 font-medium text-center">전체</th>
+                              <th className="w-[16%] px-6 py-3 font-medium text-center">제출 일시</th>
                            </tr>
                         </thead>
                         <tbody>
@@ -226,16 +229,18 @@ export default function StudentBoxDetailClient({ boxId }: StudentBoxDetailClient
                                     );
                                     return (
                                        <td key={item.submissionBoxItemId} className="px-6 py-4">
-                                          <SubmissionValueCell
-                                             value={value}
-                                             onPreview={setPreviewTarget}
-                                             onDownload={handleDownload}
-                                          />
+                                          <div className="flex justify-center">
+                                             <SubmissionValueCell
+                                                value={value}
+                                                onPreview={setPreviewTarget}
+                                                onDownload={handleDownload}
+                                             />
+                                          </div>
                                        </td>
                                     );
                                  })}
                                  <td className="px-6 py-4">
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center justify-center gap-1">
                                        <StatusBadge tone={entry.submitted ? 'success' : 'danger'}>
                                           {entry.submitted ? '완료' : '미제출'}
                                        </StatusBadge>

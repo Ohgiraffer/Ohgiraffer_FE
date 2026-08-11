@@ -25,36 +25,40 @@ export default function StudentSubmissionsPageClient() {
 
    useEffect(() => {
       let isMounted = true;
-      Promise.all([getSubmissionBoxes(), getSurveyForms()])
-         .then(([boxes, forms]) => {
-            if (!isMounted) return;
-            const merged: MergedItem[] = [
-               ...boxes.map((box) => ({
-                  key: `box-${box.submissionBoxId}`,
-                  type: 'box' as const,
-                  id: box.submissionBoxId,
-                  title: box.projectName,
-                  dueAt: box.dueAt,
-                  isDone: !!box.submitted,
-               })),
-               ...forms.map((form) => ({
-                  key: `form-${form.surveyFormId}`,
-                  type: 'form' as const,
-                  id: form.surveyFormId,
-                  title: form.title,
-                  dueAt: form.dueAt,
-                  isDone: !!form.responded,
-               })),
-            ];
-            merged.sort((a, b) => {
-               if (a.isDone !== b.isDone) return a.isDone ? 1 : -1;
-               return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
-            });
-            setItems(merged);
-         })
-         .catch(() => {
-            if (isMounted) setHasError(true);
+      // 제출함/설문 중 한쪽 조회가 실패해도, 성공한 쪽은 그대로 보여준다 (둘 다 실패했을 때만 전체 오류 처리)
+      Promise.allSettled([getSubmissionBoxes(), getSurveyForms()]).then((results) => {
+         if (!isMounted) return;
+         const [boxesResult, formsResult] = results;
+         if (boxesResult.status === 'rejected' && formsResult.status === 'rejected') {
+            setHasError(true);
+            return;
+         }
+         const boxes = boxesResult.status === 'fulfilled' ? boxesResult.value : [];
+         const forms = formsResult.status === 'fulfilled' ? formsResult.value : [];
+         const merged: MergedItem[] = [
+            ...boxes.map((box) => ({
+               key: `box-${box.submissionBoxId}`,
+               type: 'box' as const,
+               id: box.submissionBoxId,
+               title: box.projectName,
+               dueAt: box.dueAt,
+               isDone: !!box.submitted,
+            })),
+            ...forms.map((form) => ({
+               key: `form-${form.surveyFormId}`,
+               type: 'form' as const,
+               id: form.surveyFormId,
+               title: form.title,
+               dueAt: form.dueAt,
+               isDone: !!form.responded,
+            })),
+         ];
+         merged.sort((a, b) => {
+            if (a.isDone !== b.isDone) return a.isDone ? 1 : -1;
+            return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
          });
+         setItems(merged);
+      });
       return () => {
          isMounted = false;
       };

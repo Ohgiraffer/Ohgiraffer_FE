@@ -12,9 +12,11 @@ interface BoxListTableProps {
    boxes: SubmissionBoxListItem[];
    onEdit: (box: SubmissionBoxListItem) => void;
    onDelete: (box: SubmissionBoxListItem) => void;
+   // 제출함 생성 폼이 열려 있는 동안에는 목록의 수정/삭제 조작을 숨긴다
+   hideManage?: boolean;
 }
 
-export default function BoxListTable({ boxes, onEdit, onDelete }: BoxListTableProps) {
+export default function BoxListTable({ boxes, onEdit, onDelete, hideManage }: BoxListTableProps) {
    const router = useRouter();
 
    return (
@@ -45,7 +47,9 @@ export default function BoxListTable({ boxes, onEdit, onDelete }: BoxListTablePr
                      </StatusBadge>
                   </div>
 
-                  <p className="mt-2 text-xs text-gray-400">마감 {formatDateTime(box.dueAt)}</p>
+                  <p className="mt-2 text-xs text-gray-400">
+                     시작 {formatDateTime(box.startAt)} · 마감 {formatDateTime(box.dueAt)}
+                  </p>
 
                   <div className="mt-2 flex items-center gap-2">
                      <ProgressBar value={box.submittedCount ?? 0} max={box.targetCount ?? 0} />
@@ -55,30 +59,32 @@ export default function BoxListTable({ boxes, onEdit, onDelete }: BoxListTablePr
                      </span>
                   </div>
 
-                  <div className="mt-3 flex items-center gap-2">
-                     <button
-                        type="button"
-                        onClick={(e) => {
-                           e.stopPropagation();
-                           onEdit(box);
-                        }}
-                        className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xs border border-gray-200 px-2 py-1.5 text-xs text-[#6B7280] hover:bg-[#E5E7EB]"
-                     >
-                        <Pencil size={14} />
-                        수정
-                     </button>
-                     <button
-                        type="button"
-                        onClick={(e) => {
-                           e.stopPropagation();
-                           onDelete(box);
-                        }}
-                        className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xs border border-gray-200 px-2 py-1.5 text-xs text-brand-maroon hover:bg-[#E5E7EB]"
-                     >
-                        <Trash2 size={14} />
-                        삭제
-                     </button>
-                  </div>
+                  {!hideManage && (
+                     <div className="mt-3 flex items-center gap-2">
+                        <button
+                           type="button"
+                           onClick={(e) => {
+                              e.stopPropagation();
+                              onEdit(box);
+                           }}
+                           className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xs border border-gray-200 px-2 py-1.5 text-xs text-[#6B7280] hover:bg-[#E5E7EB]"
+                        >
+                           <Pencil size={14} />
+                           수정
+                        </button>
+                        <button
+                           type="button"
+                           onClick={(e) => {
+                              e.stopPropagation();
+                              onDelete(box);
+                           }}
+                           className="flex flex-1 cursor-pointer items-center justify-center gap-1 rounded-xs border border-gray-200 px-2 py-1.5 text-xs text-brand-maroon hover:bg-[#E5E7EB]"
+                        >
+                           <Trash2 size={14} />
+                           삭제
+                        </button>
+                     </div>
+                  )}
                </div>
             ))}
          </div>
@@ -88,15 +94,19 @@ export default function BoxListTable({ boxes, onEdit, onDelete }: BoxListTablePr
             <thead>
                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
                   <th className="w-[4%] px-6 py-3 font-medium">#</th>
-                  <th className="w-[26%] px-6 py-3 font-medium text-center">프로젝트명</th>
-                  <th className="w-[16%] px-6 py-3 font-medium text-center">마감일</th>
-                  <th className="w-[24%] px-6 py-3 font-medium text-center">제출 현황</th>
-                  <th className="w-[12%] px-6 py-3 font-medium text-center">지각 제출</th>
-                  <th className="w-[18%] px-6 py-3 font-medium text-center">관리</th>
+                  <th className="w-[22%] px-6 py-3 font-medium text-center">프로젝트명</th>
+                  <th className="w-[13%] px-6 py-3 font-medium text-center">시작일</th>
+                  <th className="w-[13%] px-6 py-3 font-medium text-center">마감일</th>
+                  <th className="w-[22%] px-6 py-3 font-medium text-center">제출 현황</th>
+                  <th className="w-[11%] px-6 py-3 font-medium text-center">지각 제출</th>
+                  {!hideManage && (
+                     <th className="w-[15%] px-6 py-3 font-medium text-center">관리</th>
+                  )}
                </tr>
             </thead>
             <tbody>
                {boxes.map((box, index) => {
+                  const [startDate, startTime] = formatDateTime(box.startAt).split(' ');
                   const [dueDate, dueTime] = formatDateTime(box.dueAt).split(' ');
                   return (
                      <tr
@@ -113,6 +123,12 @@ export default function BoxListTable({ boxes, onEdit, onDelete }: BoxListTablePr
                            >
                               {box.projectName}
                            </Link>
+                        </td>
+                        <td className="px-6 py-4 text-center text-gray-500">
+                           <div className="flex flex-col items-center leading-tight lg:flex-row lg:justify-center lg:gap-1 lg:leading-normal">
+                              <span className="whitespace-nowrap">{startDate}</span>
+                              <span className="whitespace-nowrap">{startTime}</span>
+                           </div>
                         </td>
                         <td className="px-6 py-4 text-center text-gray-500">
                            <div className="flex flex-col items-center leading-tight lg:flex-row lg:justify-center lg:gap-1 lg:leading-normal">
@@ -140,32 +156,34 @@ export default function BoxListTable({ boxes, onEdit, onDelete }: BoxListTablePr
                               </StatusBadge>
                            </div>
                         </td>
-                        <td className="px-6 py-4">
-                           <div className="flex flex-col items-center gap-1.5 text-sm lg:flex-row lg:justify-center lg:gap-2">
-                              <button
-                                 type="button"
-                                 onClick={(e) => {
-                                    e.stopPropagation();
-                                    onEdit(box);
-                                 }}
-                                 className="flex w-full cursor-pointer items-center justify-center gap-1 rounded-xs border border-gray-200 px-2 py-1 text-[#6B7280] hover:bg-[#E5E7EB] lg:w-auto"
-                              >
-                                 <Pencil size={14} />
-                                 수정
-                              </button>
-                              <button
-                                 type="button"
-                                 onClick={(e) => {
-                                    e.stopPropagation();
-                                    onDelete(box);
-                                 }}
-                                 className="flex w-full cursor-pointer items-center justify-center gap-1 rounded-xs border border-gray-200 px-2 py-1 text-brand-maroon hover:bg-[#E5E7EB] lg:w-auto"
-                              >
-                                 <Trash2 size={14} />
-                                 삭제
-                              </button>
-                           </div>
-                        </td>
+                        {!hideManage && (
+                           <td className="px-6 py-4">
+                              <div className="flex flex-col items-center gap-1.5 text-sm lg:flex-row lg:justify-center lg:gap-2">
+                                 <button
+                                    type="button"
+                                    onClick={(e) => {
+                                       e.stopPropagation();
+                                       onEdit(box);
+                                    }}
+                                    className="flex w-full cursor-pointer items-center justify-center gap-1 rounded-xs border border-gray-200 px-2 py-1 text-[#6B7280] hover:bg-[#E5E7EB] lg:w-auto"
+                                 >
+                                    <Pencil size={14} />
+                                    수정
+                                 </button>
+                                 <button
+                                    type="button"
+                                    onClick={(e) => {
+                                       e.stopPropagation();
+                                       onDelete(box);
+                                    }}
+                                    className="flex w-full cursor-pointer items-center justify-center gap-1 rounded-xs border border-gray-200 px-2 py-1 text-brand-maroon hover:bg-[#E5E7EB] lg:w-auto"
+                                 >
+                                    <Trash2 size={14} />
+                                    삭제
+                                 </button>
+                              </div>
+                           </td>
+                        )}
                      </tr>
                   );
                })}

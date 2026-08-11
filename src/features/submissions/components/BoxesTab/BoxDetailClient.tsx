@@ -175,7 +175,11 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                         </div>
                      </div>
                      <div className="text-right">
-                        <p className="text-xs text-gray-400">마감일</p>
+                        <p className="text-xs text-gray-400">시작일</p>
+                        <p className="mt-1 text-sm font-medium text-gray-900">
+                           {formatDateTime(detail.startAt)}
+                        </p>
+                        <p className="mt-2 text-xs text-gray-400">마감일</p>
                         <p className="mt-1 text-sm font-medium text-gray-900">
                            {formatDateTime(detail.dueAt)}
                         </p>
@@ -262,13 +266,13 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                                  {detail.items.map((item) => (
                                     <th
                                        key={item.submissionBoxItemId}
-                                       className="px-6 py-3 font-medium"
+                                       className="px-6 py-3 font-medium text-center"
                                     >
                                        {item.itemName}
                                     </th>
                                  ))}
-                                 <th className="w-[10%] px-6 py-3 font-medium">전체</th>
-                                 <th className="w-[16%] px-6 py-3 font-medium">제출 일시</th>
+                                 <th className="w-[10%] px-6 py-3 font-medium text-center">전체</th>
+                                 <th className="w-[16%] px-6 py-3 font-medium text-center">제출 일시</th>
                               </tr>
                            </thead>
                            <tbody>
@@ -286,23 +290,25 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                                        );
                                        return (
                                           <td key={item.submissionBoxItemId} className="px-6 py-4">
-                                             <SubmissionValueCell
-                                                value={value}
-                                                onPreview={setPreviewTarget}
-                                                onDownload={handleDownload}
-                                             />
+                                             <div className="flex justify-center">
+                                                <SubmissionValueCell
+                                                   value={value}
+                                                   onPreview={setPreviewTarget}
+                                                   onDownload={handleDownload}
+                                                />
+                                             </div>
                                           </td>
                                        );
                                     })}
                                     <td className="px-6 py-4">
-                                       <div className="flex items-center gap-1">
+                                       <div className="flex items-center justify-center gap-1">
                                           <StatusBadge tone={entry.submitted ? 'success' : 'danger'}>
                                              {entry.submitted ? '완료' : '미제출'}
                                           </StatusBadge>
                                           {entry.late && <StatusBadge tone="gold">지각</StatusBadge>}
                                        </div>
                                     </td>
-                                    <td className="px-6 py-4 text-gray-500">
+                                    <td className="px-6 py-4 text-center text-gray-500">
                                        {formatDateTime(entry.submittedAt)}
                                     </td>
                                  </tr>

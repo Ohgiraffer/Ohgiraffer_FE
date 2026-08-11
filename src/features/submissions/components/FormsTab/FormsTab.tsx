@@ -24,6 +24,7 @@ export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps
    const [forms, setForms] = useState<SurveyFormListItem[]>([]);
    const [isLoading, setIsLoading] = useState(true);
    const [hasError, setHasError] = useState(false);
+   const [errorMessage, setErrorMessage] = useState('');
    const [reloadKey, setReloadKey] = useState(0);
    const [editTarget, setEditTarget] = useState<SurveyFormDetail | null>(null);
    const [deleteTarget, setDeleteTarget] = useState<SurveyFormListItem | null>(null);
@@ -36,8 +37,16 @@ export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps
          .then((result) => {
             if (isMounted) setForms(result);
          })
-         .catch(() => {
-            if (isMounted) setHasError(true);
+         .catch((err) => {
+            if (!isMounted) return;
+            setErrorMessage(
+               err instanceof ApiError && err.code === 'FORM_003'
+                  ? 'Google Forms API 호출 한도를 초과했습니다. 잠시 후 다시 시도해주세요.'
+                  : err instanceof ApiError
+                    ? err.message
+                    : '설문/평가 폼 목록을 불러오지 못했습니다.',
+            );
+            setHasError(true);
          })
          .finally(() => {
             if (isMounted) setIsLoading(false);
@@ -50,6 +59,7 @@ export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps
    const refetch = () => {
       setIsLoading(true);
       setHasError(false);
+      setErrorMessage('');
       setReloadKey((key) => key + 1);
    };
 
@@ -77,10 +87,9 @@ export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps
    const handleSaved = (editUrl?: string) => {
       setEditTarget(null);
       refetch();
-      if (editUrl) {
-         const opened = window.open(editUrl, '_blank', 'noopener,noreferrer');
-         if (!opened) setPendingEditUrl(editUrl);
-      }
+      // 저장 완료 콜백은 비동기 이후에 실행돼 사용자 제스처가 끊겨 있으므로 window.open을 다시 시도하지 않는다
+      // (모달이 클릭 시점에 이미 탭을 열었고, 실패했을 때만 editUrl을 넘겨준다)
+      if (editUrl) setPendingEditUrl(editUrl);
    };
 
    const handleDelete = async () => {
@@ -134,7 +143,9 @@ export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps
             <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
          ) : hasError ? (
             <div className="flex flex-col items-center gap-3 py-16">
-               <p className="text-sm text-gray-400">설문/평가 폼 목록을 불러오지 못했습니다.</p>
+               <p className="text-sm text-gray-400">
+                  {errorMessage || '설문/평가 폼 목록을 불러오지 못했습니다.'}
+               </p>
                <button
                   type="button"
                   onClick={refetch}
@@ -164,7 +175,7 @@ export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps
          <ConfirmModal
             open={!!deleteTarget}
             title="설문/평가 폼을 삭제할까요?"
-            description="삭제하면 수집된 응답도 함께 사라지며 복구할 수 없습니다."
+            description="응답이 없는 폼만 삭제할 수 있으며, 삭제하면 복구할 수 없습니다."
             variant="danger"
             confirmLabel="삭제"
             onConfirm={handleDelete}

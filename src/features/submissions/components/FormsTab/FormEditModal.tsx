@@ -43,6 +43,9 @@ export default function FormEditModal({ form, onClose, onSaved }: FormEditModalP
       setIsSubmitting(true);
       setTitleError('');
       const prevStatus = form.status;
+      // 저장 API 호출(await) 이후에 window.open을 부르면 사용자 제스처가 끊겨 팝업이 차단되므로,
+      // 클릭 이벤트 안에서 빈 탭을 먼저 열어두고 저장이 끝나면 주소만 채운다
+      const editTab = form.editUrl ? window.open('', '_blank', 'noopener,noreferrer') : null;
       try {
          await updateSurveyForm(form.surveyFormId, {
             title: title.trim(),
@@ -50,8 +53,14 @@ export default function FormEditModal({ form, onClose, onSaved }: FormEditModalP
             status,
          });
          toast.success('설문/평가 폼을 수정했습니다.');
-         onSaved(form.editUrl);
+         if (editTab && form.editUrl) {
+            editTab.location.href = form.editUrl;
+            onSaved();
+         } else {
+            onSaved(form.editUrl);
+         }
       } catch (err) {
+         editTab?.close();
          if (err instanceof ApiError && err.code === 'SURVEY_002') {
             setStatus(prevStatus);
             toast.error(err.message || '허용되지 않는 상태 변경입니다.');
