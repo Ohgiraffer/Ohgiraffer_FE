@@ -7,6 +7,7 @@ import Modal from '@/components/ui/Modal';
 import { EVENT_TYPE_COLORS, type EventType } from '../types';
 
 interface ScheduleItem {
+   id: string;
    time: string;
    title: string;
    type: EventType;
@@ -35,7 +36,7 @@ export default function TodayScheduleModal({ items, onClose }: TodayScheduleModa
             <ul className="flex flex-col gap-2">
                {items.map((item) => (
                   <li
-                     key={`${item.time}-${item.title}`}
+                     key={item.id}
                      className="flex items-center gap-3 rounded-sm border border-gray-200 px-3 py-2.5"
                   >
                      <span

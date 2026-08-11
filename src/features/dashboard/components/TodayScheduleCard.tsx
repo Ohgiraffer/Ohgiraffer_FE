@@ -8,6 +8,7 @@ import { getCalendarEvents } from '@/services/calendarEvent.service';
 import TodayScheduleModal from './TodayScheduleModal';
 
 interface ScheduleItem {
+   id: string;
    time: string;
    title: string;
    type: EventType;
@@ -32,6 +33,7 @@ export default function TodayScheduleCard() {
                .filter((event) => isEventInDay(event.start, event.end, today))
                .sort((a, b) => a.start.getTime() - b.start.getTime())
                .map((event) => ({
+                  id: event.id,
                   time: event.allDay ? '종일' : (event.startTime ?? ''),
                   title: event.title,
                   type: event.type,
@@ -88,7 +90,7 @@ export default function TodayScheduleCard() {
             <ul>
                {items.map((item) => (
                   <li
-                     key={`${item.time}-${item.title}`}
+                     key={item.id}
                      className="flex items-center gap-3 border-b border-gray-100 py-3 last:border-none last:pb-0 lg:py-2"
                   >
                      <span

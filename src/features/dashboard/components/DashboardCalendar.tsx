@@ -10,7 +10,7 @@ import {
 } from 'react-big-calendar';
 import { format, getDay, parse, startOfWeek } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Maximize, Plus, Minimize } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -34,68 +34,50 @@ const localizer = dateFnsLocalizer({
    locales,
 });
 
-// 우측 상단 코너 아이콘만 확대/축소 상태에 따라 바뀌도록 팩토리로 뺐다(달력 이동 버튼은
-// 항상 년월 좌우에 고정)
-function buildCalendarToolbar(isExpanded: boolean, onToggleExpand: () => void) {
-   return function CalendarToolbar({ label, onNavigate }: ToolbarProps<CalendarEvent, object>) {
-      return (
-         <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-               <div className="flex items-center gap-1">
-                  <button
-                     type="button"
-                     onClick={() => onNavigate('PREV')}
-                     aria-label="이전 달"
-                     className="rounded-xs p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                  >
-                     <ChevronLeft size={18} />
-                  </button>
-                  <h2 className="text-lg font-bold text-gray-900">{label}</h2>
-                  <button
-                     type="button"
-                     onClick={() => onNavigate('NEXT')}
-                     aria-label="다음 달"
-                     className="rounded-xs p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                  >
-                     <ChevronRight size={18} />
-                  </button>
-               </div>
-               <div className="flex items-center gap-3 text-xs text-gray-500">
-                  {(Object.keys(EVENT_TYPE_COLORS) as EventType[]).map((type) => (
-                     <span key={type} className="flex items-center gap-1">
-                        <span
-                           className="h-1.5 w-1.5 rounded-full"
-                           style={{ backgroundColor: EVENT_TYPE_COLORS[type].dot }}
-                        />
-                        {type}
-                     </span>
-                  ))}
-               </div>
+function CalendarToolbar({ label, onNavigate }: ToolbarProps<CalendarEvent, object>) {
+   return (
+      <div className="mb-4 flex items-center justify-between">
+         <div className="flex items-center gap-4">
+            <h2 className="text-lg font-bold text-gray-900">{label}</h2>
+            <div className="flex items-center gap-3 text-xs text-gray-500">
+               {(Object.keys(EVENT_TYPE_COLORS) as EventType[]).map((type) => (
+                  <span key={type} className="flex items-center gap-1">
+                     <span
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ backgroundColor: EVENT_TYPE_COLORS[type].dot }}
+                     />
+                     {type}
+                  </span>
+               ))}
             </div>
+         </div>
+         <div className="flex items-center gap-1">
             <button
                type="button"
-               onClick={onToggleExpand}
-               aria-label={isExpanded ? '캘린더 축소' : '캘린더 확대'}
+               onClick={() => onNavigate('PREV')}
+               aria-label="이전 달"
                className="rounded-xs p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
             >
-               {isExpanded ? <Minimize size={18} /> : <Maximize size={18} />}
+               <ChevronLeft size={18} />
+            </button>
+            <button
+               type="button"
+               onClick={() => onNavigate('NEXT')}
+               aria-label="다음 달"
+               className="rounded-xs p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            >
+               <ChevronRight size={18} />
             </button>
          </div>
-      );
-   };
+      </div>
+   );
 }
 
 interface DashboardCalendarProps {
    holidays?: Holiday[];
-   isExpanded: boolean;
-   onToggleExpand: () => void;
 }
 
-export default function DashboardCalendar({
-   holidays: initialHolidays = [],
-   isExpanded,
-   onToggleExpand,
-}: DashboardCalendarProps) {
+export default function DashboardCalendar({ holidays: initialHolidays = [] }: DashboardCalendarProps) {
    const [events, setEvents] = useState<CalendarEvent[]>([]);
    const [createDate, setCreateDate] = useState<Date | null>(null);
    const [viewDate, setViewDate] = useState<Date | null>(null);
@@ -172,11 +154,6 @@ export default function DashboardCalendar({
       return Header;
    }, [holidaysByDate]);
 
-   const Toolbar = useMemo(
-      () => buildCalendarToolbar(isExpanded, onToggleExpand),
-      [isExpanded, onToggleExpand],
-   );
-
    const eventPropGetter = useMemo(
       () => (event: CalendarEvent) => {
          const colors = EVENT_TYPE_COLORS[event.type];
@@ -252,13 +229,13 @@ export default function DashboardCalendar({
             startAccessor="start"
             endAccessor="end"
             views={['month']}
-            style={{ height: isExpanded ? 800 : 600 }}
+            style={{ height: 600 }}
             formats={{ monthHeaderFormat: 'yyyy년 M월' }}
             eventPropGetter={eventPropGetter}
             popup
             onSelectEvent={(event) => setViewDate(event.start)}
             components={{
-               toolbar: Toolbar,
+               toolbar: CalendarToolbar,
                dateCellWrapper: DateCellWrapper,
                month: { dateHeader: DateHeader },
             }}

@@ -406,28 +406,3 @@
          'calendar notice todo';
    }
 }
-
-/* 캘린더 확대 시: 캘린더가 위쪽 전체 폭을 차지하고 요약 카드 4개는 그 아래로 내려간다 */
-.dashboard-grid.dashboard-grid-expanded {
-   grid-template-areas:
-      'calendar'
-      'today'
-      'attendance'
-      'notice'
-      'todo';
-}
-@media (min-width: 640px) {
-   .dashboard-grid.dashboard-grid-expanded {
-      grid-template-areas:
-         'calendar calendar'
-         'today attendance'
-         'notice todo';
-   }
-}
-@media (min-width: 1024px) {
-   .dashboard-grid.dashboard-grid-expanded {
-      grid-template-areas:
-         'calendar calendar calendar calendar'
-         'today attendance notice todo';
-   }
-}
