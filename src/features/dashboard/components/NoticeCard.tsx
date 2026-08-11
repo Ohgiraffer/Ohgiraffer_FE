@@ -1,26 +1,39 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { format } from 'date-fns';
 import { Megaphone, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface NoticeItem {
-   title: string;
-   date: string;
-   pinned: boolean;
-}
-
-// 하드코딩된 더미 데이터 — 추후 API 연동 예정
-const NOTICES: NoticeItem[] = [
-   { title: '7월 중간 평가 일정 안내', date: '07.30', pinned: true },
-   { title: '8월 휴강일 공지', date: '07.28', pinned: true },
-   { title: '발표자료 제출 마감 연장', date: '07.29', pinned: false },
-   { title: '팀 프로젝트 발표 순서', date: '07.26', pinned: false },
-];
+import { getNoticeSummary, type NoticeSummaryItem } from '@/services/notice.service';
 
 export default function NoticeCard() {
+   const [notices, setNotices] = useState<NoticeSummaryItem[]>([]);
+   const [isLoading, setIsLoading] = useState(true);
+   const [hasError, setHasError] = useState(false);
+   const [retryKey, setRetryKey] = useState(0);
+
+   useEffect(() => {
+      let isMounted = true;
+      getNoticeSummary()
+         .then((result) => {
+            if (isMounted) setNotices(result);
+         })
+         .catch(() => {
+            if (isMounted) setHasError(true);
+         })
+         .finally(() => {
+            if (isMounted) setIsLoading(false);
+         });
+      return () => {
+         isMounted = false;
+      };
+   }, [retryKey]);
+
    return (
-      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-4">
-         <div className="mb-4 flex items-center justify-between lg:mb-2">
-            <h2 className="flex items-center gap-1.5 text-sm font-bold text-gray-900">
+      <div className="h-full rounded-xs border border-gray-200 bg-white p-6 lg:p-6">
+         <div className="mb-4 flex items-center justify-between lg:mb-4">
+            <h2 className="flex items-center gap-1.5 -ml-1 text-sm font-bold text-gray-900">
                <Megaphone size={16} className="text-gray-400" />
                공지사항
             </h2>
@@ -29,23 +42,49 @@ export default function NoticeCard() {
             </Link>
          </div>
 
-         <ul className="flex flex-col gap-1">
-            {NOTICES.map((notice) => (
-               <li
-                  key={notice.title}
-                  className={cn(
-                     'flex items-center justify-between gap-3 py-2 text-sm text-gray-600 lg:py-3',
-                     notice.pinned && '-ml-2 border-l-2 border-brand-red pl-2 font-medium text-gray-900',
-                  )}
+         {isLoading ? (
+            <p className="py-6 text-center text-sm text-gray-400">불러오는 중...</p>
+         ) : hasError ? (
+            <div className="flex flex-col items-center gap-2 py-6">
+               <p className="text-sm text-gray-400">공지사항을 불러오지 못했습니다.</p>
+               <button
+                  type="button"
+                  onClick={() => {
+                     setIsLoading(true);
+                     setHasError(false);
+                     setRetryKey((key) => key + 1);
+                  }}
+                  className="cursor-pointer rounded-xs border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
                >
-                  <span className="flex min-w-0 items-center gap-1.5">
-                     {notice.pinned && <Pin size={12} className="shrink-0 text-brand-red" />}
-                     <span className="truncate">{notice.title}</span>
-                  </span>
-                  <span className="shrink-0 text-xs text-gray-400">{notice.date}</span>
-               </li>
-            ))}
-         </ul>
+                  다시 시도
+               </button>
+            </div>
+         ) : notices.length === 0 ? (
+            <p className="py-6 text-center text-sm text-gray-400">표시할 공지사항이 없습니다</p>
+         ) : (
+            <ul className="flex flex-col gap-1">
+               {notices.map((notice) => (
+                  <li key={notice.noticeId}>
+                     <Link
+                        href={`/notices/${notice.noticeId}`}
+                        className={cn(
+                           'flex items-center justify-between gap-3 py-2 text-sm text-gray-600 lg:py-3',
+                           notice.pinned &&
+                              '-ml-2 border-l-2 border-brand-red pl-2 font-medium text-gray-900',
+                        )}
+                     >
+                        <span className="flex min-w-0 items-center gap-1.5">
+                           {notice.pinned && <Pin size={12} className="shrink-0 text-brand-red" />}
+                           <span className="truncate">{notice.title}</span>
+                        </span>
+                        <span className="shrink-0 text-xs text-gray-400">
+                           {format(new Date(notice.createdAt), 'MM.dd')}
+                        </span>
+                     </Link>
+                  </li>
+               ))}
+            </ul>
+         )}
       </div>
    );
 }

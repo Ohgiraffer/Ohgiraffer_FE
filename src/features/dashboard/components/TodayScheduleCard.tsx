@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CalendarClock } from 'lucide-react';
 import { EVENT_TYPE_COLORS, type EventType } from '../types';
+import { isEventInDay, mapCalendarEvent } from '../calendarEventUtils';
+import { getCalendarEvents } from '@/services/calendarEvent.service';
 import TodayScheduleModal from './TodayScheduleModal';
 
 interface ScheduleItem {
@@ -11,20 +13,46 @@ interface ScheduleItem {
    type: EventType;
 }
 
-// 하드코딩된 더미 데이터 — 추후 API 연동 예정
-const TODAY_SCHEDULE: ScheduleItem[] = [
-   { time: '09:00', title: '팀 스탠드업 미팅', type: '수업/발표' },
-   { time: '14:00', title: '알고리즘 특강', type: '수업/발표' },
-   { time: '17:00', title: '1:1 코드 리뷰', type: '개인' },
-];
-
 export default function TodayScheduleCard() {
    const [showModal, setShowModal] = useState(false);
+   const [items, setItems] = useState<ScheduleItem[]>([]);
+   const [isLoading, setIsLoading] = useState(true);
+   const [hasError, setHasError] = useState(false);
+   const [retryKey, setRetryKey] = useState(0);
+
+   useEffect(() => {
+      let isMounted = true;
+      const today = new Date();
+      getCalendarEvents(today.getFullYear(), today.getMonth() + 1)
+         .then((apiItems) => {
+            if (!isMounted) return;
+            const todaySchedule = apiItems
+               .map(mapCalendarEvent)
+               .filter((event) => event !== null)
+               .filter((event) => isEventInDay(event.start, event.end, today))
+               .sort((a, b) => a.start.getTime() - b.start.getTime())
+               .map((event) => ({
+                  time: event.allDay ? '종일' : (event.startTime ?? ''),
+                  title: event.title,
+                  type: event.type,
+               }));
+            setItems(todaySchedule);
+         })
+         .catch(() => {
+            if (isMounted) setHasError(true);
+         })
+         .finally(() => {
+            if (isMounted) setIsLoading(false);
+         });
+      return () => {
+         isMounted = false;
+      };
+   }, [retryKey]);
 
    return (
-      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-4">
-         <div className="mb-4 flex items-center justify-between lg:mb-2">
-            <h2 className="flex items-center gap-1.5 text-sm font-bold text-gray-900">
+      <div className="h-full rounded-xs border border-gray-200 bg-white p-6 lg:p-6">
+         <div className="mb-4 flex items-center justify-between lg:mb-4">
+            <h2 className="flex items-center gap-1.5 -ml-1 text-sm font-bold text-gray-900">
                <CalendarClock size={16} className="text-gray-400" />
                오늘 일정
             </h2>
@@ -37,11 +65,28 @@ export default function TodayScheduleCard() {
             </button>
          </div>
 
-         {TODAY_SCHEDULE.length === 0 ? (
+         {isLoading ? (
+            <p className="py-6 text-center text-sm text-gray-400">불러오는 중...</p>
+         ) : hasError ? (
+            <div className="flex flex-col items-center gap-2 py-6">
+               <p className="text-sm text-gray-400">일정을 불러오지 못했습니다.</p>
+               <button
+                  type="button"
+                  onClick={() => {
+                     setIsLoading(true);
+                     setHasError(false);
+                     setRetryKey((key) => key + 1);
+                  }}
+                  className="cursor-pointer rounded-xs border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+               >
+                  다시 시도
+               </button>
+            </div>
+         ) : items.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-400">오늘 등록된 일정이 없습니다</p>
          ) : (
             <ul>
-               {TODAY_SCHEDULE.map((item) => (
+               {items.map((item) => (
                   <li
                      key={`${item.time}-${item.title}`}
                      className="flex items-center gap-3 border-b border-gray-100 py-3 last:border-none last:pb-0 lg:py-2"
@@ -51,13 +96,13 @@ export default function TodayScheduleCard() {
                         style={{ backgroundColor: EVENT_TYPE_COLORS[item.type].dot }}
                      />
                      <span className="w-12 shrink-0 text-sm text-gray-500">{item.time}</span>
-                     <span className="truncate text-sm text-gray-900">{item.title}</span>
+                     <span className="min-w-0 flex-1 truncate text-sm text-gray-900">{item.title}</span>
                   </li>
                ))}
             </ul>
          )}
 
-         {showModal && <TodayScheduleModal items={TODAY_SCHEDULE} onClose={() => setShowModal(false)} />}
+         {showModal && <TodayScheduleModal items={items} onClose={() => setShowModal(false)} />}
       </div>
    );
 }
