@@ -7,6 +7,8 @@ type ConfirmModalProps = {
    open: boolean;
    title: string;
    description?: string;
+   // description 아래, 버튼 행 위에 끼워 넣을 추가 내용(예: 체크박스) - 없으면 기존과 동일
+   children?: React.ReactNode;
    confirmLabel?: string;
    cancelLabel?: string;
    onConfirm: () => void;
@@ -20,6 +22,7 @@ export default function ConfirmModal({
    open,
    title,
    description,
+   children,
    confirmLabel = '확인',
    cancelLabel = '취소',
    onConfirm,
@@ -64,6 +67,8 @@ export default function ConfirmModal({
                   {description}
                </p>
             )}
+
+            {children}
 
             <div className="mt-6 flex gap-2">
                <button

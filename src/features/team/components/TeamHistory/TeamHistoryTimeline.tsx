@@ -17,6 +17,23 @@ function TeamPill({ name }: { name: string }) {
    );
 }
 
+type ChangeType = 'added' | 'moved' | 'removed';
+
+// API가 변경 유형을 따로 안 내려줘서, 미배정↔팀 여부로 직접 구분한다
+function getChangeType(entry: TeamChangeHistoryEntry): ChangeType {
+   const fromUnassigned = entry.fromTeamName === '미배정';
+   const toUnassigned = entry.toTeamName === '미배정';
+   if (fromUnassigned && !toUnassigned) return 'added';
+   if (!fromUnassigned && toUnassigned) return 'removed';
+   return 'moved';
+}
+
+const CHANGE_TYPE_META: Record<ChangeType, { label: string; dot: string; badge: string }> = {
+   added: { label: '추가', dot: 'bg-brand-green', badge: 'bg-[#EAF3EC] text-brand-green' },
+   moved: { label: '이동', dot: 'bg-brand-gold', badge: 'bg-brand-cream/50 text-[#92700E]' },
+   removed: { label: '제외', dot: 'bg-brand-maroon', badge: 'bg-[#FDF4F3] text-brand-maroon' },
+};
+
 interface TeamHistoryTimelineProps {
    entries: TeamChangeHistoryEntry[];
 }
@@ -30,27 +47,41 @@ export default function TeamHistoryTimeline({ entries }: TeamHistoryTimelineProp
       <div className="relative mt-3">
          <div className="absolute top-2 bottom-2 left-[3px] w-px bg-gray-200" />
          <div className="flex flex-col gap-3">
-            {entries.map((entry, index) => (
-               <div
-                  key={`${entry.userId}-${entry.changedAt}-${index}`}
-                  className="relative flex items-start pl-6"
-               >
-                  <span className="absolute top-2 left-0 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-green" />
-                  <div className="flex-1 rounded-sm border border-[#E5E7EB] bg-white px-4 py-3">
-                     <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-gray-900">{entry.userName}</span>
-                        <span className="text-xs text-gray-400">
-                           {formatTeamDateDot(entry.changedAt)}
-                        </span>
-                     </div>
-                     <div className="mt-1.5 flex items-center gap-1.5">
-                        <TeamPill name={entry.fromTeamName} />
-                        <ArrowRight size={12} className="shrink-0 text-gray-300" />
-                        <TeamPill name={entry.toTeamName} />
+            {entries.map((entry, index) => {
+               const changeType = getChangeType(entry);
+               const meta = CHANGE_TYPE_META[changeType];
+               return (
+                  <div
+                     key={`${entry.userId}-${entry.changedAt}-${index}`}
+                     className="relative flex items-start pl-6"
+                  >
+                     <span className={cn('absolute top-2 left-0 h-1.5 w-1.5 shrink-0 rounded-full', meta.dot)} />
+                     <div className="flex-1 rounded-xs border border-[#E5E7EB] bg-white px-4 py-3">
+                        <div className="flex items-center justify-between">
+                           <span className="flex items-center gap-1.5">
+                              <span
+                                 className={cn(
+                                    'rounded-xs px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap',
+                                    meta.badge,
+                                 )}
+                              >
+                                 {meta.label}
+                              </span>
+                              <span className="text-sm font-bold text-gray-900">{entry.userName}</span>
+                           </span>
+                           <span className="text-xs text-gray-400">
+                              {formatTeamDateDot(entry.changedAt)}
+                           </span>
+                        </div>
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                           <TeamPill name={entry.fromTeamName} />
+                           <ArrowRight size={12} className="shrink-0 text-gray-300" />
+                           <TeamPill name={entry.toTeamName} />
+                        </div>
                      </div>
                   </div>
-               </div>
-            ))}
+               );
+            })}
          </div>
       </div>
    );

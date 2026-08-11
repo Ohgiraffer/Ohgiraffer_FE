@@ -1,25 +1,28 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Pencil, X } from 'lucide-react';
+import { Check, Pencil, Trash2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from '@/lib/toast';
+import ChatAvatar from '@/features/chat/components/ChatAvatar';
 import { formatTeamPeriod } from '../formatTeamDate';
 import MemberActionMenu from './MemberActionMenu';
-import { TEAM_MEMBER_DRAG_TYPE, type Team } from '../types';
+import { TEAM_MEMBER_DRAG_TYPE, type DraftTeam } from '../types';
 
 export interface TeamCardMember {
    userId: number;
-   name: string;
+   name: string | null;
    email: string;
 }
 
 interface TeamCardProps {
-   team: Team;
+   team: DraftTeam;
    members: TeamCardMember[];
-   allTeams: Team[];
+   allTeams: DraftTeam[];
    isDragOver: boolean;
    onDragOverChange: (isOver: boolean) => void;
    onRename: (teamId: number, name: string) => void;
+   onDeleteTeam: (teamId: number) => void;
    onDropUser: (userId: number) => void;
    onDragStartUser: (userId: number) => void;
    onMoveUserToTeam: (userId: number, teamId: number) => void;
@@ -33,6 +36,7 @@ export default function TeamCard({
    isDragOver,
    onDragOverChange,
    onRename,
+   onDeleteTeam,
    onDropUser,
    onDragStartUser,
    onMoveUserToTeam,
@@ -40,6 +44,7 @@ export default function TeamCard({
 }: TeamCardProps) {
    const [isEditingName, setIsEditingName] = useState(false);
    const [nameDraft, setNameDraft] = useState(team.name);
+   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
    const startEditing = () => {
       setNameDraft(team.name);
@@ -47,10 +52,27 @@ export default function TeamCard({
    };
 
    const commitName = () => {
-      setIsEditingName(false);
       const trimmed = nameDraft.trim();
-      if (!trimmed || trimmed === team.name) return;
+      if (!trimmed || trimmed === team.name) {
+         setIsEditingName(false);
+         return;
+      }
+      // 같은 기간(=이 화면에 지금 떠 있는 팀들) 안에서만 중복을 막는다 - 다른 기간의 팀명과는 겹쳐도 된다
+      if (allTeams.some((t) => t.teamId !== team.teamId && t.name === trimmed)) {
+         toast.error('이미 같은 이름의 팀이 있습니다.');
+         return;
+      }
+      setIsEditingName(false);
       onRename(team.teamId, trimmed);
+   };
+
+   // 팀원이 없으면 바로 삭제, 있으면 가벼운 인라인 확인을 한 번 거친다
+   const handleDeleteClick = () => {
+      if (members.length === 0) {
+         onDeleteTeam(team.teamId);
+      } else {
+         setIsConfirmingDelete(true);
+      }
    };
 
    return (
@@ -69,7 +91,7 @@ export default function TeamCard({
             if (Number.isSafeInteger(userId) && userId > 0) onDropUser(userId);
          }}
          className={cn(
-            'rounded-sm border bg-white p-4 transition-colors',
+            'rounded-xs border bg-white p-4 transition-colors',
             isDragOver ? 'border-brand-green bg-[#F0F4F2]' : 'border-[#E5E7EB]',
          )}
       >
@@ -105,9 +127,44 @@ export default function TeamCard({
                   <Pencil size={12} className="text-gray-300 group-hover:text-gray-500" />
                </button>
             )}
-            <span className="rounded-xs bg-[#EAF3EC] px-2 py-0.5 text-xs font-medium text-brand-green">
-               {members.length}명
-            </span>
+
+            {isConfirmingDelete ? (
+               <div className="flex shrink-0 items-center gap-1">
+                  <span className="text-xs font-medium whitespace-nowrap text-brand-maroon">
+                     {members.length}명 삭제?
+                  </span>
+                  <button
+                     type="button"
+                     onClick={() => onDeleteTeam(team.teamId)}
+                     aria-label="팀 삭제 확정"
+                     className="cursor-pointer rounded-xs p-1 text-brand-maroon hover:bg-red-50"
+                  >
+                     <Check size={14} />
+                  </button>
+                  <button
+                     type="button"
+                     onClick={() => setIsConfirmingDelete(false)}
+                     aria-label="팀 삭제 취소"
+                     className="cursor-pointer rounded-xs p-1 text-gray-400 hover:bg-gray-50"
+                  >
+                     <X size={14} />
+                  </button>
+               </div>
+            ) : (
+               <div className="flex shrink-0 items-center gap-1.5">
+                  <span className="rounded-xs bg-[#EAF3EC] px-2 py-0.5 text-xs font-medium text-brand-green">
+                     {members.length}명
+                  </span>
+                  <button
+                     type="button"
+                     onClick={handleDeleteClick}
+                     aria-label="팀 삭제"
+                     className="cursor-pointer rounded-xs p-1 text-gray-300 hover:bg-gray-50 hover:text-brand-maroon"
+                  >
+                     <Trash2 size={14} />
+                  </button>
+               </div>
+            )}
          </div>
          <p className="mt-1 text-xs text-gray-400">{formatTeamPeriod(team.startDate, team.endDate)}</p>
 
@@ -123,10 +180,8 @@ export default function TeamCard({
                   className="flex cursor-grab items-center justify-between rounded-xs border border-gray-100 bg-[#F9FAFB] px-2.5 py-2 active:cursor-grabbing"
                >
                   <div className="flex min-w-0 items-center gap-2">
-                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600">
-                        {member.name.slice(0, 1)}
-                     </span>
-                     <span className="truncate text-sm text-gray-700">{member.name}</span>
+                     <ChatAvatar name={member.name} size="sm" />
+                     <span className="truncate text-sm text-gray-700">{member.name || '이름 없음'}</span>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                      <button

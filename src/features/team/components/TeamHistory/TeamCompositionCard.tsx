@@ -1,4 +1,5 @@
 import ChatAvatar from '@/features/chat/components/ChatAvatar';
+import TeamWorkspaceLink from '../TeamWorkspaceLink';
 import type { TeamHistorySnapshotTeam } from '../../types';
 
 interface TeamCompositionCardProps {
@@ -7,9 +8,9 @@ interface TeamCompositionCardProps {
 
 export default function TeamCompositionCard({ team }: TeamCompositionCardProps) {
    return (
-      <div className="rounded-sm border border-[#E5E7EB] bg-white p-4">
+      <div className="rounded-xs border border-[#E5E7EB] bg-white p-4">
          <div className="flex items-center justify-between">
-            <span className="text-sm font-bold text-gray-900">{team.teamName}</span>
+            <span className="text-sm font-bold text-gray-900">{team.name}</span>
             <span className="rounded-xs bg-[#EAF3EC] px-2 py-0.5 text-xs font-medium text-brand-green">
                {team.memberCount}명
             </span>
@@ -20,12 +21,14 @@ export default function TeamCompositionCard({ team }: TeamCompositionCardProps) 
             ) : (
                team.members.map((member) => (
                   <div key={member.userId} className="flex items-center gap-2">
-                     <ChatAvatar name={member.userName} size="sm" />
-                     <span className="truncate text-sm text-gray-700">{member.userName}</span>
+                     <ChatAvatar name={member.name} size="sm" />
+                     <span className="truncate text-sm text-gray-700">{member.name || '이름 없음'}</span>
                   </div>
                ))
             )}
          </div>
+
+         <TeamWorkspaceLink teamId={team.teamId} />
       </div>
    );
 }
