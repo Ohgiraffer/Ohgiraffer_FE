@@ -22,6 +22,7 @@ export default function BoxesTab({ isCreating, onCreatingChange }: BoxesTabProps
    const [boxes, setBoxes] = useState<SubmissionBoxListItem[]>([]);
    const [isLoading, setIsLoading] = useState(true);
    const [hasError, setHasError] = useState(false);
+   const [errorMessage, setErrorMessage] = useState('');
    const [reloadKey, setReloadKey] = useState(0);
    const [editTarget, setEditTarget] = useState<EditableBox | null>(null);
    const [deleteTarget, setDeleteTarget] = useState<SubmissionBoxListItem | null>(null);
@@ -31,10 +32,20 @@ export default function BoxesTab({ isCreating, onCreatingChange }: BoxesTabProps
       let isMounted = true;
       getSubmissionBoxes()
          .then((result) => {
-            if (isMounted) setBoxes(result);
+            if (isMounted) {
+               setBoxes(
+                  [...result].sort(
+                     (a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime(),
+                  ),
+               );
+            }
          })
-         .catch(() => {
-            if (isMounted) setHasError(true);
+         .catch((err) => {
+            if (!isMounted) return;
+            setErrorMessage(
+               err instanceof ApiError ? err.message : '제출함 목록을 불러오지 못했습니다.',
+            );
+            setHasError(true);
          })
          .finally(() => {
             if (isMounted) setIsLoading(false);
@@ -47,6 +58,7 @@ export default function BoxesTab({ isCreating, onCreatingChange }: BoxesTabProps
    const refetch = () => {
       setIsLoading(true);
       setHasError(false);
+      setErrorMessage('');
       setReloadKey((key) => key + 1);
    };
 
@@ -129,7 +141,9 @@ export default function BoxesTab({ isCreating, onCreatingChange }: BoxesTabProps
             <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
          ) : hasError ? (
             <div className="flex flex-col items-center gap-3 py-16">
-               <p className="text-sm text-gray-400">제출함 목록을 불러오지 못했습니다.</p>
+               <p className="text-sm text-gray-400">
+                  {errorMessage || '제출함 목록을 불러오지 못했습니다.'}
+               </p>
                <button
                   type="button"
                   onClick={refetch}
@@ -141,7 +155,12 @@ export default function BoxesTab({ isCreating, onCreatingChange }: BoxesTabProps
          ) : boxes.length === 0 ? (
             <p className="py-16 text-center text-sm text-gray-400">생성된 제출함이 없습니다</p>
          ) : (
-            <BoxListTable boxes={boxes} onEdit={handleEditClick} onDelete={setDeleteTarget} />
+            <BoxListTable
+               boxes={boxes}
+               onEdit={handleEditClick}
+               onDelete={setDeleteTarget}
+               hideManage={isCreating}
+            />
          )}
 
          <ConfirmModal

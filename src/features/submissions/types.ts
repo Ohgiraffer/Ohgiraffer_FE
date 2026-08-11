@@ -126,8 +126,6 @@ export interface SurveyFormSheetLink {
    spreadsheetTitle: string;
    sheetGid: number;
    sheetName: string;
-   respondentColumn: string;
-   submittedAtColumn: string;
    linkedAt: string;
 }
 

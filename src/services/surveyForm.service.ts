@@ -87,8 +87,6 @@ export function validateSurveySheetLink(surveyFormId: number, body: ValidateShee
 export interface SaveSheetLinkRequest {
    spreadsheetUrl: string;
    sheetName: string;
-   respondentColumn: string;
-   submittedAtColumn: string;
 }
 
 export interface SaveSheetLinkResponse {
@@ -98,8 +96,6 @@ export interface SaveSheetLinkResponse {
    spreadsheetTitle: string;
    sheetName: string;
    sheetGid: number;
-   respondentColumn: string;
-   submittedAtColumn: string;
    connected: boolean;
    linkedAt: string;
 }
