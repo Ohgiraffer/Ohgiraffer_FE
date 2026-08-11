@@ -330,8 +330,14 @@ export default function ManagerTeamBoard() {
          guardedAction(() => switchPeriod(period.teamPeriodId));
       } else if (period.teamPeriodId === activePeriodId) {
          // 팀 카드에 표시되는 시작/종료일은 기간 편성 시점에 서버에서 물려받은 값이라, 기간의
-         // 날짜만 바뀌었을 땐 draftTeams를 다시 불러와야 최신 날짜로 보인다
-         guardedAction(reloadTeams);
+         // 날짜만 바뀌었을 땐 그 값만 로컬에서 갱신한다 - reloadTeams()로 재조회하면 진행 중인
+         // 팀 구성 초안(이름 변경/삭제/팀원 이동)까지 서버 값으로 통째로 리셋돼버린다
+         setDraftTeams((prev) =>
+            prev.map((t) => ({ ...t, startDate: period.startDate, endDate: period.endDate })),
+         );
+         setServerTeams((prev) =>
+            prev.map((t) => ({ ...t, startDate: period.startDate, endDate: period.endDate })),
+         );
       }
    };
 
@@ -363,6 +369,14 @@ export default function ManagerTeamBoard() {
                switchPeriod(remaining[remaining.length - 1].teamPeriodId);
             } else {
                setActivePeriodId(null);
+               // 마지막 기간을 삭제했으니 이 기간에 속했던 팀 구성 초안/서버 데이터도 함께
+               // 비운다 - 안 그러면 이후 새 기간을 추가할 때 isDirty가 낡은 값 때문에 true가
+               // 되거나, 기간 전환을 취소했을 때 새 기간 화면에 삭제된 기간의 팀 구성이 표시된다
+               setServerTeams([]);
+               setDraftTeams([]);
+               setDeletedTeamIds([]);
+               setDraftAssignment({});
+               setUnassigned([]);
             }
          }
       } catch (err) {
