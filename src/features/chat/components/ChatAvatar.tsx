@@ -25,7 +25,7 @@ const SIZE_CLASSES: Record<'sm' | 'md', string> = {
 };
 
 const ICON_SIZES: Record<'sm' | 'md', number> = {
-   sm: 16,
+   sm: 10,
    md: 24,
 };
 
@@ -38,7 +38,7 @@ export default function ChatAvatar({ name, imageUrl, isOnline, size = 'md' }: Ch
    return (
       <span className="relative inline-flex shrink-0">
          <span
-            className={`flex items-center justify-center overflow-hidden rounded-full bg-white text-gray-600 ${SIZE_CLASSES[size]}`}
+            className={`flex items-center justify-center overflow-hidden rounded-full bg-brand-sage/10 text-gray-500 ${SIZE_CLASSES[size]}`}
          >
             {showImage ? (
                // eslint-disable-next-line @next/next/no-img-element -- 외부(S3) 원본 URL, next/image 도메인 화이트리스트 불필요
