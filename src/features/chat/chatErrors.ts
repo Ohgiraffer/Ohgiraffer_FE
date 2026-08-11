@@ -2,6 +2,7 @@ import { ApiError } from '@/lib/http';
 
 const CHAT_ERROR_MESSAGES: Record<string, string> = {
    AUTH_001: '인증이 필요합니다. 다시 로그인해주세요.',
+   AUTH_002: '접근 권한이 없습니다.',
    CHAT_001: '채팅 채널을 찾을 수 없습니다.',
    CHAT_002: '메시지를 찾을 수 없습니다.',
    CHAT_003: '답글을 찾을 수 없습니다.',
@@ -11,6 +12,7 @@ const CHAT_ERROR_MESSAGES: Record<string, string> = {
    COMMON_001: '입력값이 올바르지 않습니다.',
    COMMON_002: '요청 본문이 올바르지 않습니다.',
    COMMON_003: '필수 요청 파라미터가 누락되었습니다.',
+   COMMON_004: '요청 파라미터 타입이 올바르지 않습니다.',
 };
 
 // err.code가 위 표에 있으면 고정 문구, 없으면 백엔드가 내려준 message, 그것도 없으면 fallback을 쓴다

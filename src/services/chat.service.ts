@@ -8,23 +8,22 @@ export interface ChatChannel {
    lastMessageContent: string | null;
    lastMessageSentAt: string | null;
    unreadCount: number;
+   // DM만 값이 있고 GROUP은 null (온라인 여부도 마찬가지)
+   profileImageUrl: string | null;
+   isOnline: boolean | null;
 }
 
-export function getChannels(type?: 'dm' | 'group') {
-   return apiFetch<ChatChannel[]>(`/chat/channels${type ? `?type=${type}` : ''}`);
+export interface GetChannelsParams {
+   type?: 'dm' | 'group';
+   search?: string;
 }
 
-export interface ChatUserSearchResult {
-   userId: number;
-   // 실제 데이터에 이름이 비어있는 사용자가 있어(백엔드 확인됨) null도 허용한다
-   name: string | null;
-   profileUrl: string | null;
-   isOnline: boolean;
-   role: UserRole;
-}
-
-export function searchChatUsers(search: string) {
-   return apiFetch<ChatUserSearchResult[]>(`/chat/users?search=${encodeURIComponent(search)}`);
+export function getChannels(params?: GetChannelsParams) {
+   const query = new URLSearchParams();
+   if (params?.type) query.set('type', params.type);
+   if (params?.search) query.set('search', params.search);
+   const qs = query.toString();
+   return apiFetch<ChatChannel[]>(`/chat/channels${qs ? `?${qs}` : ''}`);
 }
 
 export interface ChatUserStatus {
@@ -52,13 +51,17 @@ export function createChannel(userIds: number[], name?: string) {
 export interface ChatChannelMember {
    userId: number;
    memberName: string;
+   email: string;
+   role: UserRole;
+   profileImageUrl: string | null;
    joinedAt: string;
    isRead: boolean;
 }
 
 export interface ChatChannelDetail {
    channelId: string;
-   name: string;
+   // DM 채널은 실제 응답에서 null로 옴 - 표시용 이름은 멤버 목록에서 상대방을 찾아 계산해야 함
+   name: string | null;
    channelType: 'DM' | 'GROUP';
    members: ChatChannelMember[];
    readCount: number;
@@ -77,6 +80,9 @@ export interface ChatMessageDto {
    attachmentUrl: string | null;
    messageType: 'MESG' | 'FILE' | null;
    sentAt: string;
+   // 아직 이 메시지를 읽지 않은 참여자 수 - 스펙 문서 기준 필드, 재배포 전 응답에는 없을 수 있어
+   // 사용하는 쪽(mapMessageDto)에서 기본값 처리한다
+   unreadCount: number;
 }
 
 export interface SendMessagePayload {
@@ -125,6 +131,8 @@ export interface ChatMessagePage {
    content: ChatMessageDto[];
    totalElements: number;
    totalPages: number;
+   // 마지막 페이지인지 - 검색/채널 이력 전체 페이지를 순회해 끝까지 불러올 때 종료 조건으로 쓴다
+   last: boolean;
 }
 
 export interface ChatSearchParams {
@@ -145,10 +153,11 @@ export function searchMessages(params: ChatSearchParams) {
    return apiFetch<ChatMessagePage>(`/chat/search?${query.toString()}`);
 }
 
-// 스펙 문서의 응답 예시가 채널 상세 조회(getChannelDetail)와 동일하게 적혀있어 복붙 오류로 보인다.
-// 실제 메시지 이력이라면 검색 API와 같은 페이지 형태일 것으로 가정해 구현했다.
+// 검색 API(searchMessages)와 달리 Page로 감싸지 않고 배열을 그대로 내려준다(실 응답 확인됨).
+// 응답에 총 개수/마지막 페이지 여부가 없어, 호출 쪽에서 반환된 길이가 요청한 size보다
+// 작으면 마지막 페이지로 간주하는 방식으로 페이지네이션 종료를 판단해야 한다
 export function getChannelMessages(channelId: string, page = 0, size = 20) {
-   return apiFetch<ChatMessagePage>(
+   return apiFetch<ChatMessageDto[]>(
       `/chat/channels/${encodeURIComponent(channelId)}/messages?page=${page}&size=${size}`,
    );
 }
@@ -170,10 +179,39 @@ export function createReply(messageId: string, payload: CreateReplyPayload) {
    });
 }
 
+export interface MessageReplyCountResponse {
+   messageId: string;
+   replyCount: number;
+}
+
+// 스펙 문서의 요청 예시는 경로가 /chat/messages/{messageId}이지만, 세 가지 에러 응답의
+// path가 전부 /chat/messages/{messageId}/reply-count로 일관되게 적혀있어 후자를 실제 경로로 판단했다.
+// messageId는 항상 원본(루트) 메시지 기준이어야 한다 - 답글 자체의 id로 조회하면 스펙상 0이 나온다
+export function getMessageReplyCount(messageId: string) {
+   return apiFetch<MessageReplyCountResponse>(
+      `/chat/messages/${encodeURIComponent(messageId)}/reply-count`,
+   );
+}
+
 export interface UnreadCountResponse {
    totalUnreadCount: number;
 }
 
 export function getUnreadCount() {
    return apiFetch<UnreadCountResponse>('/chat/unread-count');
+}
+
+export interface SendbirdSessionTokenResponse {
+   sendbirdUserId: string;
+   sessionToken: string;
+   appId: string;
+   expiresAt: string | null;
+}
+
+// 채팅 진입 시 1회 호출 - 신규/기존 유저 분기는 백엔드가 처리하고, 프론트는 결과로 받은
+// sendbirdUserId + sessionToken을 그대로 SendbirdChat.connect()에 넘기기만 하면 된다
+export function getSendbirdSessionToken() {
+   return apiFetch<SendbirdSessionTokenResponse>('/chat/sendbird/session-token', {
+      method: 'POST',
+   });
 }

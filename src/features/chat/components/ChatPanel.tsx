@@ -40,7 +40,8 @@ export default function ChatPanel({
    const [activeRoom, setActiveRoom] = useState<ChatChannel | null>(null);
    const [isNewChatOpen, setIsNewChatOpen] = useState(false);
    const [threadRoot, setThreadRoot] = useState<ChatMessage | null>(null);
-   // 답글 수 필드가 백엔드 응답에 없어, 이번 세션에서 파악된(직접 답장했거나 스레드를 열어본) 만큼만 기록
+   // 방을 열 때 서버에서 실제 답글 수를 받아와 채우고(handleReplyCountsLoaded), 그 이후 이번
+   // 세션에서 직접 보낸 답글만 로컬로 증가시킨다(handleReplySent) - 매번 다시 조회하진 않는다
    const [replyCounts, setReplyCounts] = useState<Record<string, number>>({});
    // 스레드에서 루트 메시지를 수정/삭제하면 여기에 최신 메시지를 담아 ChatConversation에도 반영시킨다.
    // 방을 바꾸면(handleSelectRoom/handleBack) 다른 방의 낡은 patch가 새 방에 잘못 적용되지 않도록 비운다
@@ -68,6 +69,11 @@ export default function ChatPanel({
       setReplyCounts((prev) => ({ ...prev, [rootId]: (prev[rootId] ?? 0) + 1 }));
    };
 
+   // 서버에서 막 받아온 값으로 채우되, 그 사이 로컬에서 이미 늘려둔 값(막 보낸 답글)이 있으면 유지한다
+   const handleReplyCountsLoaded = useCallback((counts: Record<string, number>) => {
+      setReplyCounts((prev) => ({ ...counts, ...prev }));
+   }, []);
+
    // 서버는 메시지 조회 시점에 읽음 처리를 하므로, 채널에 들어가 메시지를 불러온 직후
    // 안읽음 배지가 다음 폴링(최대 20초)까지 낡은 값을 보여주지 않도록 바로 다시 조회한다.
    // reloadChannels/reloadUnreadCount는 각 훅에서 이미 안정된 참조라, 이 함수도 useCallback으로
@@ -87,6 +93,8 @@ export default function ChatPanel({
             lastMessageContent: null,
             lastMessageSentAt: null,
             unreadCount: 0,
+            profileImageUrl: null,
+            isOnline: null,
          });
          setIsNewChatOpen(false);
          reloadChannels();
@@ -100,6 +108,8 @@ export default function ChatPanel({
                lastMessageContent: null,
                lastMessageSentAt: null,
                unreadCount: 0,
+               profileImageUrl: null,
+               isOnline: null,
             });
             setIsNewChatOpen(false);
             return;
@@ -134,6 +144,7 @@ export default function ChatPanel({
                   onBack={handleBack}
                   incomingMessagePatch={rootPatch}
                   onMessagesRead={handleMessagesRead}
+                  onReplyCountsLoaded={handleReplyCountsLoaded}
                />
             ) : (
                <>
