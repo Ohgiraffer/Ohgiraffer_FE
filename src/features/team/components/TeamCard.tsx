@@ -12,7 +12,8 @@ import { TEAM_MEMBER_DRAG_TYPE, type DraftTeam } from '../types';
 export interface TeamCardMember {
    userId: number;
    name: string | null;
-   email: string;
+   email: string | null;
+   profileImgUrl: string | null;
 }
 
 interface TeamCardProps {
@@ -169,7 +170,9 @@ export default function TeamCard({
          <p className="mt-1 text-xs text-gray-400">{formatTeamPeriod(team.startDate, team.endDate)}</p>
 
          <div className="mt-3 flex flex-col gap-1.5">
-            {members.map((member) => (
+            {members.map((member) => {
+               const displayName = member.name || '이름 없음';
+               return (
                <div
                   key={member.userId}
                   draggable
@@ -180,14 +183,14 @@ export default function TeamCard({
                   className="flex cursor-grab items-center justify-between rounded-xs border border-gray-100 bg-[#F9FAFB] px-2.5 py-2 active:cursor-grabbing"
                >
                   <div className="flex min-w-0 items-center gap-2">
-                     <ChatAvatar name={member.name} size="sm" />
-                     <span className="truncate text-sm text-gray-700">{member.name || '이름 없음'}</span>
+                     <ChatAvatar name={member.name} imageUrl={member.profileImgUrl} size="sm" />
+                     <span className="truncate text-sm text-gray-700">{displayName}</span>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                      <button
                         type="button"
                         onClick={() => onUnassignUser(member.userId)}
-                        aria-label={`${member.name} 팀에서 제외`}
+                        aria-label={`${displayName} 팀에서 제외`}
                         className="cursor-pointer rounded-xs p-1 text-gray-400 hover:bg-gray-100 hover:text-brand-maroon"
                      >
                         <X size={14} />
@@ -200,7 +203,8 @@ export default function TeamCard({
                      />
                   </div>
                </div>
-            ))}
+               );
+            })}
          </div>
 
          <div

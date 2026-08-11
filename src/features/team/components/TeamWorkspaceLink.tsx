@@ -19,6 +19,15 @@ function buildNotionUrl(pageId: string) {
 export default function TeamWorkspaceLink({ teamId }: TeamWorkspaceLinkProps) {
    const [notionPageId, setNotionPageId] = useState<string | null>(null);
    const [isLoading, setIsLoading] = useState(teamId >= 0);
+   // teamId가 바뀌면(현재 호출부는 항상 key={teamId}로 리마운트하지만, 재사용되는 인스턴스에서도
+   // 안전하도록) 렌더 중에 이전 팀의 notionPageId를 먼저 비운다 - 이펙트 안에서 동기 setState를
+   // 하면 안 되므로, React가 권장하는 "prop 변경에 맞춰 렌더 중 상태 조정" 패턴을 쓴다
+   const [trackedTeamId, setTrackedTeamId] = useState(teamId);
+   if (teamId !== trackedTeamId) {
+      setTrackedTeamId(teamId);
+      setNotionPageId(null);
+      setIsLoading(teamId >= 0);
+   }
 
    useEffect(() => {
       if (teamId < 0) return;

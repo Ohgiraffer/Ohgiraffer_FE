@@ -10,7 +10,8 @@ import { TEAM_MEMBER_DRAG_TYPE, type DraftTeam } from '../types';
 export interface UnassignedStudentItem {
    userId: number;
    name: string | null;
-   email: string;
+   email: string | null;
+   profileImgUrl: string | null;
 }
 
 interface UnassignedPanelProps {
@@ -90,7 +91,7 @@ export default function UnassignedPanel({
                      className="flex cursor-grab items-center justify-between gap-2 rounded-xs border border-gray-100 bg-[#F9FAFB] px-2.5 py-2 active:cursor-grabbing"
                   >
                      <div className="flex min-w-0 items-center gap-2">
-                        <ChatAvatar name={student.name} size="sm" />
+                        <ChatAvatar name={student.name} imageUrl={student.profileImgUrl} size="sm" />
                         <span className="truncate text-sm text-gray-700">{student.name || '이름 없음'}</span>
                      </div>
                      <MemberActionMenu

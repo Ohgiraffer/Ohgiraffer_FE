@@ -79,7 +79,7 @@ export default function StudentTeamView() {
 
    return (
       <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
-         <h1 className="text-lg font-bold text-gray-900">팀 현황</h1>
+         <h1 className="text-2xl font-bold text-gray-900">팀 현황</h1>
 
          {periods.length === 0 ? (
             <p className="py-16 text-center text-sm text-gray-400">생성된 기간이 없습니다</p>
@@ -137,8 +137,10 @@ export default function StudentTeamView() {
                                        key={member.teamMemberId}
                                        className="flex items-center gap-2 rounded-xs border border-gray-100 bg-[#F9FAFB] px-2.5 py-2"
                                     >
-                                       <ChatAvatar name={member.name} size="sm" />
-                                       <span className="truncate text-sm text-gray-700">{member.name || '이름 없음'}</span>
+                                       <ChatAvatar name={member.userName} imageUrl={member.profileImgUrl} size="sm" />
+                                       <span className="truncate text-sm text-gray-700">
+                                          {member.userName || '이름 없음'}
+                                       </span>
                                     </div>
                                  ))
                               )}

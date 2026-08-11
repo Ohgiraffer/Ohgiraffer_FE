@@ -8,6 +8,7 @@ import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
 import { setUnsavedChangesChecker } from '@/lib/navigationGuard';
 import {
+   deleteTeamPeriod,
    getTeams,
    getTeamPeriods,
    getUnassignedStudents,
@@ -30,7 +31,8 @@ import type {
 interface MemberInfo {
    userId: number;
    name: string | null;
-   email: string;
+   email: string | null;
+   profileImgUrl: string | null;
    originalTeamId: number | null;
 }
 
@@ -40,6 +42,9 @@ export default function ManagerTeamBoard() {
    const [periodsError, setPeriodsError] = useState(false);
    const [activePeriodId, setActivePeriodId] = useState<number | null>(null);
    const [isPeriodAddOpen, setIsPeriodAddOpen] = useState(false);
+   const [editingPeriod, setEditingPeriod] = useState<TeamPeriod | null>(null);
+   const [deletingPeriod, setDeletingPeriod] = useState<TeamPeriod | null>(null);
+   const isDeletingPeriodRef = useRef(false);
 
    const [serverTeams, setServerTeams] = useState<Team[]>([]);
    const [unassigned, setUnassigned] = useState<UnassignedStudent[]>([]);
@@ -58,7 +63,9 @@ export default function ManagerTeamBoard() {
    const [createChatChannel, setCreateChatChannel] = useState(true);
    const [createNotionPage, setCreateNotionPage] = useState(true);
    const [dragOverTarget, setDragOverTarget] = useState<number | 'unassigned' | null>(null);
+   const [isSaving, setIsSaving] = useState(false);
    const isSavingRef = useRef(false);
+   const [isDeletingPeriod, setIsDeletingPeriod] = useState(false);
 
    // 1) 편성 기간 목록 - 최초 1회만 조회, 없으면 마지막(최신) 기간을 기본 선택
    useEffect(() => {
@@ -111,6 +118,8 @@ export default function ManagerTeamBoard() {
                });
             });
             unassignedResult.forEach((student) => {
+               // 서버가 내려준 팀 배정 정보가 이미 있으면 그걸 우선한다(두 응답이 불일치할 경우의 방어)
+               if (student.userId in next) return;
                next[student.userId] = null;
             });
             setDraftAssignment(next);
@@ -132,17 +141,22 @@ export default function ManagerTeamBoard() {
          team.members.forEach((member) => {
             map.set(member.userId, {
                userId: member.userId,
-               name: member.name,
+               name: member.userName,
                email: member.email,
+               profileImgUrl: member.profileImgUrl,
                originalTeamId: team.teamId,
             });
          });
       });
       unassigned.forEach((student) => {
+         // 서버가 내려준 팀 배정 정보가 이미 있으면 그걸 우선한다(두 응답이 불일치할 경우의 방어) -
+         // 안 그러면 isDirty 계산이 틀어지고 저장 payload에서 이 학생이 팀에서 빠질 수 있다
+         if (map.has(student.userId)) return;
          map.set(student.userId, {
             userId: student.userId,
             name: student.name,
             email: student.email,
+            profileImgUrl: student.profileImgUrl,
             originalTeamId: null,
          });
       });
@@ -302,10 +316,65 @@ export default function ManagerTeamBoard() {
       });
    };
 
-   const handlePeriodCreated = (period: TeamPeriod) => {
+   const handlePeriodSaved = (period: TeamPeriod) => {
       setIsPeriodAddOpen(false);
-      setPeriods((prev) => [...prev, period]);
-      guardedAction(() => switchPeriod(period.teamPeriodId));
+      const wasEditing = !!editingPeriod;
+      setEditingPeriod(null);
+      setPeriods((prev) => {
+         const exists = prev.some((p) => p.teamPeriodId === period.teamPeriodId);
+         return exists
+            ? prev.map((p) => (p.teamPeriodId === period.teamPeriodId ? period : p))
+            : [...prev, period];
+      });
+      if (!wasEditing) {
+         guardedAction(() => switchPeriod(period.teamPeriodId));
+      } else if (period.teamPeriodId === activePeriodId) {
+         // 팀 카드에 표시되는 시작/종료일은 기간 편성 시점에 서버에서 물려받은 값이라, 기간의
+         // 날짜만 바뀌었을 땐 draftTeams를 다시 불러와야 최신 날짜로 보인다
+         guardedAction(reloadTeams);
+      }
+   };
+
+   const handleEditPeriodClick = (period: TeamPeriod) => {
+      setEditingPeriod(period);
+   };
+
+   const handleDeletePeriodClick = (period: TeamPeriod) => {
+      if (period.teamPeriodId === activePeriodId && isDirty) {
+         guardedAction(() => setDeletingPeriod(period));
+      } else {
+         setDeletingPeriod(period);
+      }
+   };
+
+   const handleDeletePeriodConfirm = async () => {
+      if (!deletingPeriod || isDeletingPeriodRef.current) return;
+      isDeletingPeriodRef.current = true;
+      setIsDeletingPeriod(true);
+      try {
+         await deleteTeamPeriod(deletingPeriod.teamPeriodId);
+         toast.success('기간을 삭제했습니다.');
+         const deletedId = deletingPeriod.teamPeriodId;
+         const remaining = periods.filter((p) => p.teamPeriodId !== deletedId);
+         setDeletingPeriod(null);
+         setPeriods(remaining);
+         if (deletedId === activePeriodId) {
+            if (remaining.length > 0) {
+               switchPeriod(remaining[remaining.length - 1].teamPeriodId);
+            } else {
+               setActivePeriodId(null);
+            }
+         }
+      } catch (err) {
+         toast.error(
+            err instanceof ApiError
+               ? err.message
+               : '기간 삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+         );
+      } finally {
+         isDeletingPeriodRef.current = false;
+         setIsDeletingPeriod(false);
+      }
    };
 
    const handleSaveClick = () => {
@@ -319,6 +388,7 @@ export default function ManagerTeamBoard() {
    const handleConfirmSave = async () => {
       if (isSavingRef.current || activePeriodId == null) return;
       isSavingRef.current = true;
+      setIsSaving(true);
 
       // payload 구성까지 try 안에 넣어야 한다 - 밖에 있으면 여기서 예외가 났을 때 finally를
       // 못 타서 isSavingRef가 true로 눌러붙어, 이후로는 저장 버튼을 눌러도 조용히 아무 반응이 없어진다
@@ -351,6 +421,7 @@ export default function ManagerTeamBoard() {
          );
       } finally {
          isSavingRef.current = false;
+         setIsSaving(false);
       }
    };
 
@@ -373,7 +444,7 @@ export default function ManagerTeamBoard() {
    return (
       <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
          <div className="flex items-center justify-between">
-            <h1 className="text-lg font-bold text-gray-900">팀 관리</h1>
+            <h1 className="text-2xl font-bold text-gray-900">팀 관리</h1>
             <div className="flex items-center gap-2">
                <Link
                   href="/team/history"
@@ -407,21 +478,27 @@ export default function ManagerTeamBoard() {
             </div>
          ) : (
             <>
-               <TeamPeriodTabs
-                  periods={periods}
-                  activePeriodId={activePeriodId}
-                  onSelect={(periodId) => guardedAction(() => switchPeriod(periodId))}
-                  trailing={
-                     <button
-                        type="button"
-                        onClick={() => setIsPeriodAddOpen(true)}
-                        className="flex cursor-pointer items-center gap-1 pb-3 text-sm font-medium text-gray-400 hover:text-gray-600"
-                     >
-                        <Plus size={14} />
-                        기간 추가
-                     </button>
-                  }
-               />
+               {/* 이 페이지만 제목과 같은 줄에 "이력 보기"/"저장" 버튼이 있어 탭이 다른 페이지보다
+                   낮아 보인다 - 6px 끌어올려 시각적으로 맞춘다 */}
+               <div className="-mt-1.5">
+                  <TeamPeriodTabs
+                     periods={periods}
+                     activePeriodId={activePeriodId}
+                     onSelect={(periodId) => guardedAction(() => switchPeriod(periodId))}
+                     onEditPeriod={handleEditPeriodClick}
+                     onDeletePeriod={handleDeletePeriodClick}
+                     trailing={
+                        <button
+                           type="button"
+                           onClick={() => setIsPeriodAddOpen(true)}
+                           className="flex cursor-pointer items-center gap-1 pb-3 text-sm font-medium text-brand-green hover:text-[#4D655A]"
+                        >
+                           <Plus size={14} />
+                           기간 추가
+                        </button>
+                     }
+                  />
+               </div>
 
                {isLoading ? (
                   <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
@@ -443,6 +520,7 @@ export default function ManagerTeamBoard() {
                            userId: info.userId,
                            name: info.name,
                            email: info.email,
+                           profileImgUrl: info.profileImgUrl,
                         }))}
                         teams={draftTeams}
                         isDragOver={dragOverTarget === 'unassigned'}
@@ -461,6 +539,7 @@ export default function ManagerTeamBoard() {
                                  userId: info.userId,
                                  name: info.name,
                                  email: info.email,
+                                 profileImgUrl: info.profileImgUrl,
                               }))}
                               allTeams={draftTeams}
                               isDragOver={dragOverTarget === team.teamId}
@@ -484,19 +563,35 @@ export default function ManagerTeamBoard() {
             </>
          )}
 
-         {isPeriodAddOpen && (
+         {(isPeriodAddOpen || editingPeriod) && (
             <TeamPeriodAddModal
                existingPeriods={periods}
-               onClose={() => setIsPeriodAddOpen(false)}
-               onCreated={handlePeriodCreated}
+               editTarget={editingPeriod ?? undefined}
+               onClose={() => {
+                  setIsPeriodAddOpen(false);
+                  setEditingPeriod(null);
+               }}
+               onSaved={handlePeriodSaved}
             />
          )}
+
+         <ConfirmModal
+            open={!!deletingPeriod}
+            title="기간을 삭제할까요?"
+            description="해당 기간에 배정된 훈련생이 없어야 삭제할 수 있으며, 삭제하면 복구할 수 없습니다."
+            variant="danger"
+            confirmLabel={isDeletingPeriod ? '삭제 중...' : '삭제'}
+            busy={isDeletingPeriod}
+            onConfirm={handleDeletePeriodConfirm}
+            onClose={() => setDeletingPeriod(null)}
+         />
 
          <ConfirmModal
             open={isSaveConfirmOpen}
             title="팀 구성 내용을 저장하시겠습니까?"
             description="현재 팀 배정 결과를 바탕으로 아래의 선택에 따라 단체 채팅방과 Notion 페이지가 생성됩니다."
-            confirmLabel="저장"
+            confirmLabel={isSaving ? '저장 중...' : '저장'}
+            busy={isSaving}
             onConfirm={handleConfirmSave}
             onClose={() => setIsSaveConfirmOpen(false)}
          >

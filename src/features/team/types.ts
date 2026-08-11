@@ -12,8 +12,11 @@ export interface TeamMember {
    teamMemberId: number;
    userId: number;
    // 스펙상 STRING(필수)이지만 실제 응답에 이름이 null인 사용자가 확인됨 - 화면에서 방어 처리 필요
-   name: string | null;
-   email: string;
+   userName: string | null;
+   // 훈련생 요청 시 null로 내려옴
+   email: string | null;
+   profileImgUrl: string | null;
+   joinedAt: string;
 }
 
 export interface Team {
@@ -23,14 +26,17 @@ export interface Team {
    startDate: string;
    endDate: string;
    memberCount: number;
+   sendbirdChannelUrl: string | null;
+   notionPageId: string | null;
    members: TeamMember[];
 }
 
 export interface UnassignedStudent {
    userId: number;
-   // TeamMember.name과 동일한 이유로 null 가능
+   // TeamMember.userName과 동일한 이유로 null 가능
    name: string | null;
    email: string;
+   profileImgUrl: string | null;
 }
 
 // 보드 화면에서 실제 팀과 아직 저장 안 한 새 팀을 같은 모양으로 다루기 위한 얇은 타입.
@@ -63,22 +69,26 @@ export interface TeamConfigurationRequest {
 
 export interface TeamHistorySnapshotMember {
    userId: number;
-   // TeamMember.name과 동일한 이유로 null 가능
-   name: string | null;
+   // TeamMember.userName과 동일한 이유로 null 가능
+   userName: string | null;
+   profileImgUrl: string | null;
 }
 
 export interface TeamHistorySnapshotTeam {
    teamId: number;
-   name: string;
+   teamName: string;
    memberCount: number;
    members: TeamHistorySnapshotMember[];
 }
 
 export interface TeamChangeHistoryEntry {
    userId: number;
-   // teams[].members[].name과 달리 이 응답만 필드명이 userName - 백엔드 API 명명이 갈려있어 헷갈리기 쉬움
    userName: string;
+   profileImgUrl: string | null;
+   // 미배정이면 null
+   fromTeamId: number | null;
    fromTeamName: string;
+   toTeamId: number | null;
    toTeamName: string;
    changedAt: string;
 }

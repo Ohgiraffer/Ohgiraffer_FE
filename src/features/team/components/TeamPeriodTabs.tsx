@@ -2,6 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { formatTeamDateDot } from '../formatTeamDate';
+import PeriodActionMenu from './PeriodActionMenu';
 import type { TeamPeriod } from '../types';
 
 interface TeamPeriodTabsProps {
@@ -10,6 +11,9 @@ interface TeamPeriodTabsProps {
    onSelect: (periodId: number) => void;
    // 매니저 보드의 "+ 기간 추가" 버튼처럼, 탭 행 끝에 추가로 넣을 내용(훈련생 화면엔 없음)
    trailing?: React.ReactNode;
+   // 매니저 보드에서만 전달 - 있을 때만 탭에 수정/삭제 아이콘이 표시된다(훈련생/이력 화면엔 없음)
+   onEditPeriod?: (period: TeamPeriod) => void;
+   onDeletePeriod?: (period: TeamPeriod) => void;
 }
 
 // 팀 관리/팀 변경 이력 페이지가 함께 쓰는 기간 탭 - 다른 관리 페이지 탭(승인 관리, 관리자 설정)과
@@ -19,25 +23,42 @@ export default function TeamPeriodTabs({
    activePeriodId,
    onSelect,
    trailing,
+   onEditPeriod,
+   onDeletePeriod,
 }: TeamPeriodTabsProps) {
+   const showActions = !!onEditPeriod || !!onDeletePeriod;
+
    return (
       <div className="mt-5 flex gap-6 border-b border-[#E5E7EB]">
          {periods.map((period) => {
             const isActive = period.teamPeriodId === activePeriodId;
             return (
-               <button
+               <div
                   key={period.teamPeriodId}
-                  type="button"
-                  onClick={() => onSelect(period.teamPeriodId)}
                   className={cn(
-                     'cursor-pointer border-b-2 pb-3 text-sm transition-colors',
-                     isActive
-                        ? 'border-brand-green font-bold text-[#111827]'
-                        : 'border-transparent font-medium text-[#9CA3AF] hover:text-gray-700',
+                     'flex items-center gap-1 border-b-2 pb-3 pl-1 transition-colors',
+                     isActive ? 'border-brand-green' : 'border-transparent',
                   )}
                >
-                  {formatTeamDateDot(period.startDate)}~{formatTeamDateDot(period.endDate)}
-               </button>
+                  <button
+                     type="button"
+                     onClick={() => onSelect(period.teamPeriodId)}
+                     className={cn(
+                        'cursor-pointer text-sm transition-colors',
+                        isActive
+                           ? 'font-bold text-[#111827]'
+                           : 'font-medium text-[#9CA3AF] hover:text-gray-700',
+                     )}
+                  >
+                     {formatTeamDateDot(period.startDate)}~{formatTeamDateDot(period.endDate)}
+                  </button>
+                  {showActions && (
+                     <PeriodActionMenu
+                        onEdit={onEditPeriod ? () => onEditPeriod(period) : undefined}
+                        onDelete={onDeletePeriod ? () => onDeletePeriod(period) : undefined}
+                     />
+                  )}
+               </div>
             );
          })}
          {trailing}

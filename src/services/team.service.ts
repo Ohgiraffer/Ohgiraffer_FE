@@ -19,6 +19,23 @@ export function createTeamPeriod(body: { startDate: string; endDate: string }) {
    });
 }
 
+export function updateTeamPeriod(
+   periodId: number,
+   body: { startDate: string; endDate: string },
+) {
+   return apiFetch<TeamPeriod>(`/teams/periods/${periodId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+   });
+}
+
+// 활성 팀원이 없는 기간만 삭제 가능 - 204 No Content
+export function deleteTeamPeriod(periodId: number) {
+   return apiFetch<void>(`/teams/periods/${periodId}`, {
+      method: 'DELETE',
+   });
+}
+
 export function getTeams(periodId: number) {
    return apiFetch<{ teams: Team[] }>(`/teams?periodId=${periodId}`).then((res) => res.teams);
 }

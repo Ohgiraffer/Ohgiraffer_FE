@@ -21,6 +21,9 @@ export default function TeamHistoryPageClient() {
    // 기간이 정해지자마자 바로 조회를 시작하므로 처음부터 로딩 상태로 시작한다
    const [isLoadingResult, setIsLoadingResult] = useState(true);
    const [resultError, setResultError] = useState('');
+   // 같은 기간을 다시 조회하는 재시도용 - handleSelectPeriod는 activePeriodId가 그대로면
+   // 아무 것도 안 하므로, 실패 후 재시도는 이 키를 올려서 effect를 다시 돌게 한다
+   const [resultRetryKey, setResultRetryKey] = useState(0);
 
    useEffect(() => {
       let isMounted = true;
@@ -70,12 +73,18 @@ export default function TeamHistoryPageClient() {
       return () => {
          isMounted = false;
       };
-   }, [activePeriod]);
+   }, [activePeriod, resultRetryKey]);
 
    const handleSelectPeriod = (periodId: number) => {
       if (periodId === activePeriodId) return;
       setIsLoadingResult(true);
       setActivePeriodId(periodId);
+   };
+
+   const retryResult = () => {
+      setIsLoadingResult(true);
+      setResultError('');
+      setResultRetryKey((key) => key + 1);
    };
 
    return (
@@ -107,7 +116,16 @@ export default function TeamHistoryPageClient() {
                   {isLoadingResult ? (
                      <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
                   ) : resultError ? (
-                     <p className="py-16 text-center text-sm text-gray-400">{resultError}</p>
+                     <div className="flex flex-col items-center gap-3 py-16">
+                        <p className="text-sm text-gray-400">{resultError}</p>
+                        <button
+                           type="button"
+                           onClick={retryResult}
+                           className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        >
+                           다시 시도
+                        </button>
+                     </div>
                   ) : result ? (
                      <>
                         <div className="flex items-center gap-2">

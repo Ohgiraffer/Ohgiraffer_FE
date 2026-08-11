@@ -15,6 +15,8 @@ type ConfirmModalProps = {
    onClose: () => void;
    // 'danger'는 삭제처럼 되돌릴 수 없는 작업용 - 확인 버튼이 brand-maroon으로 표시됨
    variant?: 'default' | 'danger';
+   // 요청 처리 중일 때 true로 넘기면 확인/취소 버튼과 배경 클릭·Esc 닫기를 잠근다
+   busy?: boolean;
 };
 
 // 페이지 전반에서 사용자 재확인이 필요한 모든 곳(등록/삭제 등)에서 재사용하는 전역 confirm 모달
@@ -28,12 +30,13 @@ export default function ConfirmModal({
    onConfirm,
    onClose,
    variant = 'default',
+   busy = false,
 }: ConfirmModalProps) {
    useEffect(() => {
       if (!open) return;
 
       const handleKeyDown = (event: KeyboardEvent) => {
-         if (event.key === 'Escape') onClose();
+         if (event.key === 'Escape' && !busy) onClose();
       };
 
       document.addEventListener('keydown', handleKeyDown);
@@ -43,14 +46,14 @@ export default function ConfirmModal({
          document.removeEventListener('keydown', handleKeyDown);
          document.body.style.overflow = '';
       };
-   }, [open, onClose]);
+   }, [open, onClose, busy]);
 
    if (!open) return null;
 
    return createPortal(
       <div
          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-         onClick={onClose}
+         onClick={busy ? undefined : onClose}
       >
          <div
             role="alertdialog"
@@ -74,14 +77,16 @@ export default function ConfirmModal({
                <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 cursor-pointer rounded-xs border border-[#E5E7EB] py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  disabled={busy}
+                  className="flex-1 cursor-pointer rounded-xs border border-[#E5E7EB] py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                >
                   {cancelLabel}
                </button>
                <button
                   type="button"
                   onClick={onConfirm}
-                  className={`flex-1 cursor-pointer rounded-xs py-2.5 text-sm font-semibold text-white ${
+                  disabled={busy}
+                  className={`flex-1 cursor-pointer rounded-xs py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 ${
                      variant === 'danger'
                         ? 'bg-brand-maroon hover:bg-[#832E2E]'
                         : 'bg-brand-green hover:bg-[#4D655A]'

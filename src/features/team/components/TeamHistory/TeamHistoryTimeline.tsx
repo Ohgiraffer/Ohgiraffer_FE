@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import ChatAvatar from '@/features/chat/components/ChatAvatar';
 import { formatTeamDateDot } from '../../formatTeamDate';
 import type { TeamChangeHistoryEntry } from '../../types';
 
@@ -19,10 +20,10 @@ function TeamPill({ name }: { name: string }) {
 
 type ChangeType = 'added' | 'moved' | 'removed';
 
-// API가 변경 유형을 따로 안 내려줘서, 미배정↔팀 여부로 직접 구분한다
+// API가 변경 유형을 따로 안 내려줘서, fromTeamId/toTeamId가 null인지(=미배정)로 직접 구분한다
 function getChangeType(entry: TeamChangeHistoryEntry): ChangeType {
-   const fromUnassigned = entry.fromTeamName === '미배정';
-   const toUnassigned = entry.toTeamName === '미배정';
+   const fromUnassigned = entry.fromTeamId === null;
+   const toUnassigned = entry.toTeamId === null;
    if (fromUnassigned && !toUnassigned) return 'added';
    if (!fromUnassigned && toUnassigned) return 'removed';
    return 'moved';
@@ -45,7 +46,7 @@ export default function TeamHistoryTimeline({ entries }: TeamHistoryTimelineProp
 
    return (
       <div className="relative mt-3">
-         <div className="absolute top-2 bottom-2 left-[3px] w-px bg-gray-200" />
+         <div className="absolute top-2 bottom-2 left-0.75 w-px bg-gray-200" />
          <div className="flex flex-col gap-3">
             {entries.map((entry, index) => {
                const changeType = getChangeType(entry);
@@ -56,17 +57,10 @@ export default function TeamHistoryTimeline({ entries }: TeamHistoryTimelineProp
                      className="relative flex items-start pl-6"
                   >
                      <span className={cn('absolute top-2 left-0 h-1.5 w-1.5 shrink-0 rounded-full', meta.dot)} />
-                     <div className="flex-1 rounded-xs border border-[#E5E7EB] bg-white px-4 py-3">
-                        <div className="flex items-center justify-between">
+                     <div className="flex-1 rounded-xs border border-[#E5E7EB] bg-white px-4 py-4">
+                        <div className="flex items-center justify-between mb-3">
                            <span className="flex items-center gap-1.5">
-                              <span
-                                 className={cn(
-                                    'rounded-xs px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap',
-                                    meta.badge,
-                                 )}
-                              >
-                                 {meta.label}
-                              </span>
+                              <ChatAvatar name={entry.userName} imageUrl={entry.profileImgUrl} size="sm" />
                               <span className="text-sm font-bold text-gray-900">{entry.userName}</span>
                            </span>
                            <span className="text-xs text-gray-400">
