@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Download, ExternalLink } from 'lucide-react';
+import { ChevronLeft, Download, ExternalLink, Pencil, TriangleAlert, Trash2 } from 'lucide-react';
 import SearchInput from '@/components/ui/SearchInput';
 import Pagination from '@/components/ui/Pagination';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import {
    Select,
    SelectContent,
@@ -13,11 +14,11 @@ import {
    SelectTrigger,
    SelectValue,
 } from '@/components/ui/shadcn/select';
-import ChatAvatar from '@/features/chat/components/ChatAvatar';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
 import { useAuth } from '@/components/auth/AuthContext';
 import {
+   deleteSurveyForm,
    downloadSurveySummaryPdf,
    getSurveyFormDetail,
    getSurveyFormResponses,
@@ -28,6 +29,7 @@ import ProgressBar from '../ProgressBar';
 import { formatDateTime } from '../../formatSubmissionDate';
 import SurveyFormSheetLink from './SurveyFormSheetLink';
 import StudentSurveyResponseClient from './StudentSurveyResponseClient';
+import FormEditModal from './FormEditModal';
 import type { SurveyFormDetail, SurveyFormResponsesDetail, SurveyFormStatus } from '../../types';
 
 const STATUS_OPTIONS: Array<{ value: SurveyResponseStatusFilter; label: string }> = [
@@ -67,6 +69,11 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
    const [statusFilter, setStatusFilter] = useState<SurveyResponseStatusFilter>('ALL');
    const [currentPage, setCurrentPage] = useState(1);
    const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
+   const [isEditOpen, setIsEditOpen] = useState(false);
+   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+   const [isDeleting, setIsDeleting] = useState(false);
+   const [pendingEditUrl, setPendingEditUrl] = useState<string | null>(null);
 
    useEffect(() => {
       if (!Number.isInteger(surveyFormId) || role === 'STUDENT') return;
@@ -142,6 +149,42 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
 
    const handleLinked = () => {
       setDetailRetryKey((key) => key + 1);
+   };
+
+   const handleSaved = (editUrl?: string) => {
+      setIsEditOpen(false);
+      setDetailRetryKey((key) => key + 1);
+      if (editUrl) {
+         const opened = window.open(editUrl, '_blank', 'noopener,noreferrer');
+         if (!opened) setPendingEditUrl(editUrl);
+      }
+   };
+
+   const handleDeleteConfirm = async () => {
+      if (!detail || isDeleting) return;
+      setIsDeleting(true);
+      try {
+         await deleteSurveyForm(detail.surveyFormId);
+         toast.success('설문/평가 폼을 삭제했습니다.');
+         router.replace('/submissions?tab=forms');
+      } catch (err) {
+         if (err instanceof ApiError && err.code === 'SURVEY_003') {
+            toast.error('설문 응답이 존재하여 삭제할 수 없습니다.');
+            setIsDeleteConfirmOpen(false);
+         } else if (err instanceof ApiError && err.code === 'SURVEY_001') {
+            toast.error(err.message);
+            router.replace('/submissions?tab=forms');
+         } else {
+            toast.error(
+               err instanceof ApiError
+                  ? err.message
+                  : '삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+            );
+            setIsDeleteConfirmOpen(false);
+         }
+      } finally {
+         setIsDeleting(false);
+      }
    };
 
    const handleDownloadPdf = async () => {
@@ -227,30 +270,64 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                            </StatusBadge>
                         </div>
                      </div>
-                     <div className="flex items-start gap-4">
-                        <div className="text-right">
-                           <p className="text-xs text-gray-400">마감일</p>
-                           <p className="mt-1 text-sm font-medium text-gray-900">
+                     <div className="flex flex-col items-end gap-2">
+                        <p className="text-sm text-gray-500">
+                           마감일:{' '}
+                           <span className="font-medium text-gray-900">
                               {formatDateTime(detail.dueAt)}
-                           </p>
+                           </span>
+                        </p>
+                        <div className="flex items-center gap-2">
+                           <button
+                              type="button"
+                              onClick={() => setIsEditOpen(true)}
+                              className="flex cursor-pointer items-center gap-1 rounded-xs border border-gray-200 px-3 py-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                           >
+                              <Pencil size={12} />
+                              수정
+                           </button>
+                           <button
+                              type="button"
+                              onClick={() => setIsDeleteConfirmOpen(true)}
+                              className="flex cursor-pointer items-center gap-1 rounded-xs border border-gray-200 px-3 py-2.5 text-xs font-medium text-brand-maroon hover:bg-gray-50"
+                           >
+                              <Trash2 size={12} />
+                              삭제
+                           </button>
                         </div>
-                        <a
-                           href={detail.editUrl}
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           className="flex items-center gap-1 rounded-xs border border-gray-200 px-3 py-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                        >
-                           <ExternalLink size={12} />
-                           Google Form 편집
-                        </a>
                      </div>
                   </div>
                </div>
 
+               {pendingEditUrl && (
+                  <div className="mt-4 flex items-center justify-between rounded-xs border border-[#F3DFA0] bg-[#FFF9EC] px-4 py-3 text-sm text-gray-700">
+                     <span>팝업이 차단되어 Google Form 편집 창이 자동으로 열리지 않았습니다.</span>
+                     <button
+                        type="button"
+                        onClick={() => {
+                           window.open(pendingEditUrl, '_blank', 'noopener,noreferrer');
+                           setPendingEditUrl(null);
+                        }}
+                        className="flex shrink-0 cursor-pointer items-center gap-1 rounded-xs bg-brand-green px-3 py-1.5 text-xs font-medium text-white hover:bg-[#4D655A]"
+                     >
+                        <ExternalLink size={12} />
+                        Google Form 열기
+                     </button>
+                  </div>
+               )}
+
+               <div className="mt-4 flex items-start gap-2 rounded-xs bg-[#F5DFDC] px-4 py-3 text-xs text-brand-maroon">
+                  <TriangleAlert size={14} className="mt-0.5 shrink-0" />
+                  <div>
+                     <p>Google Forms에서 이메일 주소 수집(확인됨)과 응답 횟수 1회로 제한을 반드시 활성화해 주세요.</p>
+                     <p>응답자 식별을 위해 해당 설정을 변경하거나 해제하지 마세요.</p>
+                  </div>
+               </div>
+
                <div className="mt-6 rounded-xs border border-[#E5E7EB] bg-white">
-                  <div className="flex items-center justify-between p-5">
+                  <div className="flex flex-col gap-3 p-5">
                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-bold text-gray-900">
+                        <span className="shrink-0 text-sm font-bold whitespace-nowrap text-gray-900">
                            {responses?.respondedCount ?? 0}/{responses?.targetCount ?? 0} 응답완료
                         </span>
                         <ProgressBar
@@ -259,8 +336,12 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                            className="w-40"
                         />
                      </div>
-                     <div className="flex items-center gap-2">
-                        <SearchInput onSearch={handleSearch} placeholder="이름 검색" className="w-64" />
+                     <div className="flex flex-wrap items-center gap-2">
+                        <SearchInput
+                           onSearch={handleSearch}
+                           placeholder="이름 검색"
+                           className="w-full sm:w-64"
+                        />
                         <Select
                            value={statusFilter}
                            onValueChange={(value) =>
@@ -303,6 +384,12 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                            다시 시도
                         </button>
                      </div>
+                  ) : responses.students.length === 0 ? (
+                     <p className="py-16 text-center text-sm text-gray-400">
+                        {keyword || statusFilter !== 'ALL'
+                           ? '검색 결과가 없습니다.'
+                           : '표시할 응답 내역이 없습니다.'}
+                     </p>
                   ) : (
                      <>
                         <table className="w-full table-fixed text-left text-sm">
@@ -320,16 +407,13 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                                     className="border-b border-[#F3F4F6] last:border-b-0"
                                  >
                                     <td className="px-6 py-4">
-                                       <div className="flex items-center gap-2">
-                                          <ChatAvatar name={student.name} size="sm" />
-                                          <div className="min-w-0">
-                                             <p className="truncate font-medium text-gray-900">
-                                                {student.name}
-                                             </p>
-                                             <p className="truncate text-xs text-gray-400">
-                                                {student.email}
-                                             </p>
-                                          </div>
+                                       <div className="min-w-0">
+                                          <p className="truncate font-medium text-gray-900">
+                                             {student.name}
+                                          </p>
+                                          <p className="truncate text-xs text-gray-400">
+                                             {student.email}
+                                          </p>
                                        </div>
                                     </td>
                                     <td className="px-6 py-4">
@@ -374,6 +458,20 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                      onLinked={handleLinked}
                   />
                </div>
+
+               {isEditOpen && (
+                  <FormEditModal form={detail} onClose={() => setIsEditOpen(false)} onSaved={handleSaved} />
+               )}
+
+               <ConfirmModal
+                  open={isDeleteConfirmOpen}
+                  title="설문/평가 폼을 삭제할까요?"
+                  description="삭제하면 수집된 응답도 함께 사라지며 복구할 수 없습니다."
+                  variant="danger"
+                  confirmLabel="삭제"
+                  onConfirm={handleDeleteConfirm}
+                  onClose={() => setIsDeleteConfirmOpen(false)}
+               />
             </>
          )}
       </div>

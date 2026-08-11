@@ -74,9 +74,13 @@ export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps
       }
    };
 
-   const handleSaved = () => {
+   const handleSaved = (editUrl?: string) => {
       setEditTarget(null);
       refetch();
+      if (editUrl) {
+         const opened = window.open(editUrl, '_blank', 'noopener,noreferrer');
+         if (!opened) setPendingEditUrl(editUrl);
+      }
    };
 
    const handleDelete = async () => {

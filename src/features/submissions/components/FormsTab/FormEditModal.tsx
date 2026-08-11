@@ -26,7 +26,7 @@ const STATUS_OPTIONS: Array<{ value: SurveyFormStatus; label: string }> = [
 interface FormEditModalProps {
    form: SurveyFormDetail;
    onClose: () => void;
-   onSaved: () => void;
+   onSaved: (editUrl?: string) => void;
 }
 
 export default function FormEditModal({ form, onClose, onSaved }: FormEditModalProps) {
@@ -50,7 +50,7 @@ export default function FormEditModal({ form, onClose, onSaved }: FormEditModalP
             status,
          });
          toast.success('설문/평가 폼을 수정했습니다.');
-         onSaved();
+         onSaved(form.editUrl);
       } catch (err) {
          if (err instanceof ApiError && err.code === 'SURVEY_002') {
             setStatus(prevStatus);

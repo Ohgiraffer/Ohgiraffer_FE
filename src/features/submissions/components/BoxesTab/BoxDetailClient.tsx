@@ -245,64 +245,80 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                      </div>
                   </div>
 
-                  <table className="w-full table-fixed text-left text-sm">
-                     <thead>
-                        <tr className="border-y border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
-                           <th className="w-[16%] px-6 py-3 font-medium">
-                              {detail.targetScope === 'TEAM' ? '팀' : '이름'}
-                           </th>
-                           {detail.items.map((item) => (
-                              <th key={item.submissionBoxItemId} className="px-6 py-3 font-medium">
-                                 {item.itemName}
-                              </th>
-                           ))}
-                           <th className="w-[10%] px-6 py-3 font-medium">전체</th>
-                           <th className="w-[16%] px-6 py-3 font-medium">제출 일시</th>
-                        </tr>
-                     </thead>
-                     <tbody>
-                        {detail.submissions.map((entry) => (
-                           <tr key={entry.targetId} className="border-b border-[#F3F4F6] last:border-b-0">
-                              <td className="px-6 py-4 font-medium text-gray-900">
-                                 {entry.targetName}
-                              </td>
-                              {detail.items.map((item) => {
-                                 const value = entry.values.find(
-                                    (v) => v.submissionBoxItemId === item.submissionBoxItemId,
-                                 );
-                                 return (
-                                    <td key={item.submissionBoxItemId} className="px-6 py-4">
-                                       <SubmissionValueCell
-                                          value={value}
-                                          onPreview={setPreviewTarget}
-                                          onDownload={handleDownload}
-                                       />
+                  {detail.submissions.length === 0 ? (
+                     <p className="py-16 text-center text-sm text-gray-400">
+                        {keyword || statusFilter !== 'ALL'
+                           ? '검색 결과가 없습니다.'
+                           : '표시할 제출 내역이 없습니다.'}
+                     </p>
+                  ) : (
+                     <>
+                        <table className="w-full table-fixed text-left text-sm">
+                           <thead>
+                              <tr className="border-y border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
+                                 <th className="w-[16%] px-6 py-3 font-medium">
+                                    {detail.targetScope === 'TEAM' ? '팀' : '이름'}
+                                 </th>
+                                 {detail.items.map((item) => (
+                                    <th
+                                       key={item.submissionBoxItemId}
+                                       className="px-6 py-3 font-medium"
+                                    >
+                                       {item.itemName}
+                                    </th>
+                                 ))}
+                                 <th className="w-[10%] px-6 py-3 font-medium">전체</th>
+                                 <th className="w-[16%] px-6 py-3 font-medium">제출 일시</th>
+                              </tr>
+                           </thead>
+                           <tbody>
+                              {detail.submissions.map((entry) => (
+                                 <tr
+                                    key={entry.targetId}
+                                    className="border-b border-[#F3F4F6] last:border-b-0"
+                                 >
+                                    <td className="px-6 py-4 font-medium text-gray-900">
+                                       {entry.targetName}
                                     </td>
-                                 );
-                              })}
-                              <td className="px-6 py-4">
-                                 <div className="flex items-center gap-1">
-                                    <StatusBadge tone={entry.submitted ? 'success' : 'danger'}>
-                                       {entry.submitted ? '완료' : '미제출'}
-                                    </StatusBadge>
-                                    {entry.late && <StatusBadge tone="gold">지각</StatusBadge>}
-                                 </div>
-                              </td>
-                              <td className="px-6 py-4 text-gray-500">
-                                 {formatDateTime(entry.submittedAt)}
-                              </td>
-                           </tr>
-                        ))}
-                     </tbody>
-                  </table>
+                                    {detail.items.map((item) => {
+                                       const value = entry.values.find(
+                                          (v) => v.submissionBoxItemId === item.submissionBoxItemId,
+                                       );
+                                       return (
+                                          <td key={item.submissionBoxItemId} className="px-6 py-4">
+                                             <SubmissionValueCell
+                                                value={value}
+                                                onPreview={setPreviewTarget}
+                                                onDownload={handleDownload}
+                                             />
+                                          </td>
+                                       );
+                                    })}
+                                    <td className="px-6 py-4">
+                                       <div className="flex items-center gap-1">
+                                          <StatusBadge tone={entry.submitted ? 'success' : 'danger'}>
+                                             {entry.submitted ? '완료' : '미제출'}
+                                          </StatusBadge>
+                                          {entry.late && <StatusBadge tone="gold">지각</StatusBadge>}
+                                       </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-500">
+                                       {formatDateTime(entry.submittedAt)}
+                                    </td>
+                                 </tr>
+                              ))}
+                           </tbody>
+                        </table>
 
-                  <div className="p-5">
-                     <Pagination
-                        currentPage={currentPage}
-                        totalPages={detail.totalPages}
-                        onPageChange={setCurrentPage}
-                     />
-                  </div>
+                        <div className="p-5">
+                           <Pagination
+                              currentPage={currentPage}
+                              totalPages={detail.totalPages}
+                              onPageChange={setCurrentPage}
+                           />
+                        </div>
+                     </>
+                  )}
                </div>
             </>
          )}

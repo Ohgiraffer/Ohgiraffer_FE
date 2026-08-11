@@ -130,9 +130,9 @@ export default function StudentBoxDetailClient({ boxId }: StudentBoxDetailClient
                         </div>
                      </div>
                      <div className="text-right">
-                        <p className="text-xs text-gray-400">마감일</p>
+                        <p className="text-xs text-gray-400">제출 기간</p>
                         <p className="mt-1 text-sm font-medium text-gray-900">
-                           {formatDateTime(detail.dueAt)}
+                           {formatDateTime(detail.startAt)} ~ {formatDateTime(detail.dueAt)}
                         </p>
                      </div>
                   </div>
@@ -154,7 +154,9 @@ export default function StudentBoxDetailClient({ boxId }: StudentBoxDetailClient
                   {!detail.acceptingSubmissions && (
                      <div className="mt-4 flex items-start gap-2 rounded-xs bg-[#F5DFDC] px-3 py-2.5 text-xs text-brand-maroon">
                         <TriangleAlert size={14} className="mt-0.5 shrink-0" />
-                        마감되어 더 이상 제출/수정할 수 없습니다
+                        {new Date() < new Date(detail.startAt)
+                           ? `아직 제출 시작 전입니다. ${formatDateTime(detail.startAt)}부터 제출할 수 있습니다`
+                           : '마감되어 더 이상 제출/수정할 수 없습니다'}
                      </div>
                   )}
                   {detail.acceptingSubmissions && detail.lateSubmission && (
@@ -182,64 +184,72 @@ export default function StudentBoxDetailClient({ boxId }: StudentBoxDetailClient
                      {detail.targetScope === 'TEAM' ? '팀' : '명'} 제출완료
                   </div>
 
-                  <table className="w-full table-fixed text-left text-sm">
-                     <thead>
-                        <tr className="border-y border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
-                           <th className="w-[14%] px-6 py-3 font-medium">
-                              {detail.targetScope === 'TEAM' ? '팀' : '이름'}
-                           </th>
-                           {detail.items.map((item) => (
-                              <th key={item.submissionBoxItemId} className="px-6 py-3 font-medium">
-                                 {item.itemName}
+                  {detail.submissions.length === 0 ? (
+                     <p className="py-16 text-center text-sm text-gray-400">
+                        표시할 제출 내역이 없습니다.
+                     </p>
+                  ) : (
+                     <table className="w-full table-fixed text-left text-sm">
+                        <thead>
+                           <tr className="border-y border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
+                              <th className="w-[14%] px-6 py-3 font-medium">
+                                 {detail.targetScope === 'TEAM' ? '팀' : '이름'}
                               </th>
-                           ))}
-                           <th className="w-[10%] px-6 py-3 font-medium">전체</th>
-                           <th className="w-[16%] px-6 py-3 font-medium">제출 일시</th>
-                        </tr>
-                     </thead>
-                     <tbody>
-                        {detail.submissions.map((entry) => (
-                           <tr
-                              key={entry.targetId}
-                              className={`border-b border-[#F3F4F6] last:border-b-0 ${
-                                 entry.mine ? 'bg-[#F0F4F2]' : ''
-                              }`}
-                           >
-                              <td className="px-6 py-4 font-medium text-gray-900">
-                                 {entry.targetName}
-                                 {entry.mine && (
-                                    <span className="ml-1.5 text-xs font-normal text-brand-green">(나)</span>
-                                 )}
-                              </td>
-                              {detail.items.map((item) => {
-                                 const value = entry.values.find(
-                                    (v) => v.submissionBoxItemId === item.submissionBoxItemId,
-                                 );
-                                 return (
-                                    <td key={item.submissionBoxItemId} className="px-6 py-4">
-                                       <SubmissionValueCell
-                                          value={value}
-                                          onPreview={setPreviewTarget}
-                                          onDownload={handleDownload}
-                                       />
-                                    </td>
-                                 );
-                              })}
-                              <td className="px-6 py-4">
-                                 <div className="flex items-center gap-1">
-                                    <StatusBadge tone={entry.submitted ? 'success' : 'danger'}>
-                                       {entry.submitted ? '완료' : '미제출'}
-                                    </StatusBadge>
-                                    {entry.late && <StatusBadge tone="gold">지각</StatusBadge>}
-                                 </div>
-                              </td>
-                              <td className="px-6 py-4 text-gray-500">
-                                 {formatDateTime(entry.submittedAt)}
-                              </td>
+                              {detail.items.map((item) => (
+                                 <th key={item.submissionBoxItemId} className="px-6 py-3 font-medium">
+                                    {item.itemName}
+                                 </th>
+                              ))}
+                              <th className="w-[10%] px-6 py-3 font-medium">전체</th>
+                              <th className="w-[16%] px-6 py-3 font-medium">제출 일시</th>
                            </tr>
-                        ))}
-                     </tbody>
-                  </table>
+                        </thead>
+                        <tbody>
+                           {detail.submissions.map((entry) => (
+                              <tr
+                                 key={entry.targetId}
+                                 className={`border-b border-[#F3F4F6] last:border-b-0 ${
+                                    entry.mine ? 'bg-[#F0F4F2]' : ''
+                                 }`}
+                              >
+                                 <td className="px-6 py-4 font-medium text-gray-900">
+                                    {entry.targetName}
+                                    {entry.mine && (
+                                       <span className="ml-1.5 text-xs font-normal text-brand-green">
+                                          (나)
+                                       </span>
+                                    )}
+                                 </td>
+                                 {detail.items.map((item) => {
+                                    const value = entry.values.find(
+                                       (v) => v.submissionBoxItemId === item.submissionBoxItemId,
+                                    );
+                                    return (
+                                       <td key={item.submissionBoxItemId} className="px-6 py-4">
+                                          <SubmissionValueCell
+                                             value={value}
+                                             onPreview={setPreviewTarget}
+                                             onDownload={handleDownload}
+                                          />
+                                       </td>
+                                    );
+                                 })}
+                                 <td className="px-6 py-4">
+                                    <div className="flex items-center gap-1">
+                                       <StatusBadge tone={entry.submitted ? 'success' : 'danger'}>
+                                          {entry.submitted ? '완료' : '미제출'}
+                                       </StatusBadge>
+                                       {entry.late && <StatusBadge tone="gold">지각</StatusBadge>}
+                                    </div>
+                                 </td>
+                                 <td className="px-6 py-4 text-gray-500">
+                                    {formatDateTime(entry.submittedAt)}
+                                 </td>
+                              </tr>
+                           ))}
+                        </tbody>
+                     </table>
+                  )}
                </div>
             </>
          )}

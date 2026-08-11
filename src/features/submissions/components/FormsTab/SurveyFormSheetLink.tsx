@@ -36,16 +36,12 @@ export default function SurveyFormSheetLink({
    const [isVerifying, setIsVerifying] = useState(false);
    const [verifyError, setVerifyError] = useState('');
    const [validated, setValidated] = useState<ValidateSheetLinkResponse | null>(null);
-   const [respondentColumn, setRespondentColumn] = useState('');
-   const [submittedAtColumn, setSubmittedAtColumn] = useState('');
    const [isSaving, setIsSaving] = useState(false);
 
    const startEditing = () => {
       setSpreadsheetUrl(sheetLink?.spreadsheetUrl ?? '');
       setValidated(null);
       setVerifyError('');
-      setRespondentColumn('');
-      setSubmittedAtColumn('');
       setIsEditing(true);
    };
 
@@ -53,8 +49,6 @@ export default function SurveyFormSheetLink({
       setSpreadsheetUrl(value);
       setVerifyError('');
       setValidated(null);
-      setRespondentColumn('');
-      setSubmittedAtColumn('');
    };
 
    const handleVerify = async () => {
@@ -87,8 +81,6 @@ export default function SurveyFormSheetLink({
             sheetName,
          });
          setValidated(result);
-         setRespondentColumn('');
-         setSubmittedAtColumn('');
       } catch (err) {
          setVerifyError(
             err instanceof ApiError
@@ -100,12 +92,7 @@ export default function SurveyFormSheetLink({
       }
    };
 
-   const canSave =
-      !!validated?.selectedSheetName &&
-      !!respondentColumn &&
-      !!submittedAtColumn &&
-      respondentColumn !== submittedAtColumn &&
-      !isSaving;
+   const canSave = !!validated?.selectedSheetName && !isSaving;
 
    const handleSave = async () => {
       if (!validated?.selectedSheetName || !canSave) return;
@@ -114,8 +101,6 @@ export default function SurveyFormSheetLink({
          await saveSurveySheetLink(surveyFormId, {
             spreadsheetUrl: spreadsheetUrl.trim(),
             sheetName: validated.selectedSheetName,
-            respondentColumn,
-            submittedAtColumn,
          });
          toast.success('Sheet 연결 설정을 저장했습니다.');
          setIsEditing(false);
@@ -198,50 +183,6 @@ export default function SurveyFormSheetLink({
                      ))}
                   </SelectContent>
                </Select>
-            </div>
-         )}
-
-         {validated?.selectedSheetName && (
-            <div className="mt-5 grid grid-cols-2 gap-4">
-               <div>
-                  <label className="flex items-center gap-1 text-sm text-gray-700">
-                     응답자 식별 컬럼 <span className="text-brand-gold">*</span>
-                  </label>
-                  <Select value={respondentColumn} onValueChange={(v) => v && setRespondentColumn(v)}>
-                     <SelectTrigger className="mt-2 h-10 w-full rounded-xs">
-                        <SelectValue placeholder="컬럼 선택" />
-                     </SelectTrigger>
-                     <SelectContent alignItemWithTrigger={false}>
-                        {validated.columns.map((column) => (
-                           <SelectItem key={column} value={column} className="cursor-pointer">
-                              {column}
-                           </SelectItem>
-                        ))}
-                     </SelectContent>
-                  </Select>
-               </div>
-               <div>
-                  <label className="flex items-center gap-1 text-sm text-gray-700">
-                     응답 일시 컬럼 <span className="text-brand-gold">*</span>
-                  </label>
-                  <Select value={submittedAtColumn} onValueChange={(v) => v && setSubmittedAtColumn(v)}>
-                     <SelectTrigger className="mt-2 h-10 w-full rounded-xs">
-                        <SelectValue placeholder="컬럼 선택" />
-                     </SelectTrigger>
-                     <SelectContent alignItemWithTrigger={false}>
-                        {validated.columns.map((column) => (
-                           <SelectItem key={column} value={column} className="cursor-pointer">
-                              {column}
-                           </SelectItem>
-                        ))}
-                     </SelectContent>
-                  </Select>
-               </div>
-               {respondentColumn && submittedAtColumn && respondentColumn === submittedAtColumn && (
-                  <p className="col-span-2 text-xs text-red-500">
-                     응답자 식별 컬럼과 응답 일시 컬럼은 서로 달라야 합니다.
-                  </p>
-               )}
             </div>
          )}
 
