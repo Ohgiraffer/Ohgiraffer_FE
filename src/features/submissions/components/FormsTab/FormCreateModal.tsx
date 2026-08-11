@@ -36,7 +36,7 @@ export default function FormCreateModal({ onClose, onCreated }: FormCreateModalP
             dueAt: `${dueAt}T23:59:00`,
          });
          toast.success('설문/평가 폼을 생성했습니다.');
-         if (editTab) {
+         if (editTab && !editTab.closed) {
             editTab.location.href = result.editUrl;
             onCreated();
          } else {

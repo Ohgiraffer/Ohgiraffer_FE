@@ -83,7 +83,10 @@ export default function StudentSubmissionsPageClient() {
          <h1 className="text-2xl font-bold text-gray-900">제출물 관리</h1>
 
          {partialError && !hasError && (
-            <div className="mt-5 flex items-center justify-between rounded-xs border border-[#F5DFDC] bg-[#FDF4F3] px-4 py-3 text-sm text-brand-maroon">
+            <div
+               role="alert"
+               className="mt-5 flex items-center justify-between rounded-xs border border-[#F5DFDC] bg-[#FDF4F3] px-4 py-3 text-sm text-brand-maroon"
+            >
                <span className="flex items-center gap-2">
                   <TriangleAlert size={14} className="shrink-0" />
                   일부 항목을 불러오지 못해 목록이 정확하지 않을 수 있습니다.
@@ -116,7 +119,7 @@ export default function StudentSubmissionsPageClient() {
                      다시 시도
                   </button>
                </div>
-            ) : items && items.length === 0 ? (
+            ) : items && items.length === 0 && !partialError ? (
                <p className="py-16 text-center text-sm text-gray-400">
                   진행 중인 제출함 또는 설문이 없습니다
                </p>

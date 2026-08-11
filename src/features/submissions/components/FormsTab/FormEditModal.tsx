@@ -55,7 +55,7 @@ export default function FormEditModal({ form, onClose, onSaved }: FormEditModalP
             status,
          });
          toast.success('설문/평가 폼을 수정했습니다.');
-         if (editTab && form.editUrl) {
+         if (editTab && !editTab.closed && form.editUrl) {
             editTab.location.href = form.editUrl;
             onSaved();
          } else {
