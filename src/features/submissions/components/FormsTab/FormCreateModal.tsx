@@ -10,7 +10,7 @@ import { createSurveyForm } from '@/services/surveyForm.service';
 
 interface FormCreateModalProps {
    onClose: () => void;
-   onCreated: (editUrl: string) => void;
+   onCreated: (editUrl?: string) => void;
 }
 
 export default function FormCreateModal({ onClose, onCreated }: FormCreateModalProps) {
@@ -25,14 +25,25 @@ export default function FormCreateModal({ onClose, onCreated }: FormCreateModalP
       if (!canSubmit) return;
       setIsSubmitting(true);
       setTitleError('');
+      // 생성 API 호출(await) 이후에 window.open을 부르면 사용자 제스처가 끊겨 팝업이 차단되므로,
+      // 클릭 이벤트 안에서 빈 탭을 먼저 열어두고 생성이 끝나면 주소만 채운다.
+      // 'noopener'를 넘기면 탭 핸들을 아예 못 받으므로(항상 null), 대신 연 뒤 opener를 직접 끊는다
+      const editTab = window.open();
+      if (editTab) editTab.opener = null;
       try {
          const result = await createSurveyForm({
             title: title.trim(),
             dueAt: `${dueAt}T23:59:00`,
          });
          toast.success('설문/평가 폼을 생성했습니다.');
-         onCreated(result.editUrl);
+         if (editTab && !editTab.closed) {
+            editTab.location.href = result.editUrl;
+            onCreated();
+         } else {
+            onCreated(result.editUrl);
+         }
       } catch (err) {
+         editTab?.close();
          if (err instanceof ApiError && err.status === 400) {
             setTitleError(err.errors.title ?? '');
             if (!err.errors.title) toast.error(err.message);

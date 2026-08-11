@@ -185,7 +185,14 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
             toast.error('이미 제출된 항목입니다.');
             refetch();
          } else if (err instanceof ApiError && err.code === 'SUBMISSION_007') {
-            toast.error(isEditing ? '수정 가능 기간이 종료되었습니다.' : '마감 후 제출이 차단되었습니다.');
+            const notStartedYet = new Date() < new Date(detail.startAt);
+            toast.error(
+               notStartedYet
+                  ? '아직 제출 시작 전입니다.'
+                  : isEditing
+                    ? '수정 가능 기간이 종료되었습니다.'
+                    : '마감 후 제출이 차단되었습니다.',
+            );
             refetch();
          } else if (err instanceof ApiError && err.code === 'SUBMISSION_009') {
             toast.error(getErrorMessage(err, '허용되지 않는 파일 확장자입니다.'));
@@ -238,6 +245,7 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
       );
    }
 
+   const isNotStarted = new Date() < new Date(detail.startAt);
    const isPastDue = new Date() > new Date(detail.dueAt);
    const isBlocked = !detail.acceptingSubmissions;
 
@@ -257,6 +265,13 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
                <p className="mt-1 text-xs text-gray-400">
                   {detail.targetScope === 'TEAM' ? '팀 대표 제출' : '개인 제출'} · 항목 {items.length}개
                </p>
+
+               <div className="mt-4">
+                  <p className="text-xs text-gray-400">제출 기간</p>
+                  <p className="mt-1 text-sm font-medium text-gray-900">
+                     {formatDateTime(detail.startAt)} ~ {formatDateTime(detail.dueAt)}
+                  </p>
+               </div>
 
                <div className="mt-4">
                   <p className="text-xs text-gray-400">마감까지</p>
@@ -286,7 +301,9 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
                   {isBlocked && (
                      <div className="flex items-start gap-2 rounded-xs bg-[#F5DFDC] px-3 py-2.5 text-xs text-brand-maroon">
                         <TriangleAlert size={14} className="mt-0.5 shrink-0" />
-                        마감되어 더 이상 제출할 수 없습니다
+                        {isNotStarted
+                           ? `아직 제출 시작 전입니다. ${formatDateTime(detail.startAt)}부터 제출할 수 있습니다`
+                           : '마감되어 더 이상 제출할 수 없습니다'}
                      </div>
                   )}
                </div>
