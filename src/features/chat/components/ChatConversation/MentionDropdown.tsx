@@ -24,7 +24,7 @@ export default function MentionDropdown({ users, activeIndex, onSelect }: Mentio
                      index === activeIndex ? 'bg-gray-100' : 'hover:bg-gray-50',
                   )}
                >
-                  <ChatAvatar name={user.name} />
+                  <ChatAvatar name={user.name} imageUrl={user.profileImageUrl} />
                   <span className="text-sm font-medium text-gray-900">{user.name}</span>
                   {user.roleLabel && <span className="text-xs text-gray-400">{user.roleLabel}</span>}
                </button>

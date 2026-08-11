@@ -1,4 +1,4 @@
-import { getAccessToken, setAccessToken } from '@/lib/auth/token-store';
+import { getAccessToken, getSessionEpoch, setAccessToken } from '@/lib/auth/token-store';
 
 const BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
 // 백엔드가 상대 경로로만 내려주는 리소스(공지 본문 이미지 등)를 <img src="...">에 쓸 수 있는
@@ -46,24 +46,40 @@ export interface RefreshApiData {
    status: string;
 }
 
-// 동시에 여러 요청이 401을 받아도 /auth/refresh는 한 번만 나가도록 진행 중인 요청을 공유
+// 동시에 여러 요청이 401을 받아도 /auth/refresh는 한 번만 나가도록 진행 중인 요청을 공유.
+// 어느 세션(epoch)을 위해 시작된 refresh인지도 같이 기억해둬야, 그 사이 로그아웃 후 다른
+// 계정으로 로그인한 요청이 이전 세션의 refresh 결과를 그대로 기다리는 걸 막을 수 있다
 let refreshPromise: Promise<RefreshApiData> | null = null;
+let refreshPromiseEpoch: number | null = null;
 
 // role/status까지 포함한 응답 전체를 돌려줌
 // (apiFetch의 401 재시도는 accessToken만 쓰지만,
 // AuthContext가 세션 복구 시 role/status를 다시 세팅하려면 전체 데이터가 필요)
 export async function refreshAccessToken(): Promise<RefreshApiData> {
-   if (!refreshPromise) {
-      refreshPromise = rawRequest('/auth/refresh', { method: 'POST' })
+   const epochAtStart = getSessionEpoch();
+   if (!refreshPromise || refreshPromiseEpoch !== epochAtStart) {
+      // 이 요청이 응답을 받기 전에 로그아웃했거나 다른 계정으로 로그인했다면(세션이 바뀜)
+      // 응답이 오더라도 낡은 것이므로 토큰을 덮어쓰지 않는다
+      refreshPromiseEpoch = epochAtStart;
+      const promise: Promise<RefreshApiData> = rawRequest('/auth/refresh', { method: 'POST' })
          .then(async (res) => {
             if (!res.ok) throw new ApiError(await res.json().catch(() => null), res.status);
             const data = (await res.json()) as RefreshApiData;
-            setAccessToken(data.accessToken);
+            if (getSessionEpoch() === epochAtStart) {
+               setAccessToken(data.accessToken);
+            }
             return data;
          })
          .finally(() => {
-            refreshPromise = null;
+            // 이 promise가 끝나기 전에 다른(새) 세션의 refresh가 이미 시작돼 전역 상태를
+            // 넘겨받았다면, 그 새 요청의 공유 상태를 여기서 지우면 안 된다 - 내가 여전히
+            // "현재" 진행 중인 요청일 때만 정리한다
+            if (refreshPromise === promise) {
+               refreshPromise = null;
+               refreshPromiseEpoch = null;
+            }
          });
+      refreshPromise = promise;
    }
    return refreshPromise;
 }
@@ -86,14 +102,22 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
       ...headers,
    });
 
+   // 이 요청이 시작된 시점의 세션 - 첫 요청 응답을 기다리는 동안 로그아웃 후 다른 계정으로
+   // 로그인했다면(세션이 바뀜) 그 401은 이전 세션 몫이므로, 새 세션의 토큰으로 갱신·재시도하면
+   // 안 된다. 401 판정 이후 재시도 직전까지 전부 이 값 기준으로 검사한다
+   const requestEpoch = getSessionEpoch();
    let res = await rawRequest(path, { ...rest, headers: buildHeaders() });
 
-   if (res.status === 401 && !skipAuth && !skipRefreshRetry) {
+   if (res.status === 401 && !skipAuth && !skipRefreshRetry && getSessionEpoch() === requestEpoch) {
       try {
          await refreshAccessToken();
-         res = await rawRequest(path, { ...rest, headers: buildHeaders() });
+         if (getSessionEpoch() === requestEpoch) {
+            res = await rawRequest(path, { ...rest, headers: buildHeaders() });
+         }
       } catch {
-         setAccessToken(null);
+         // 갱신이 실패한 시점에 이미 다른 계정으로 로그인돼 있다면(세션이 바뀜) 그 새 세션을
+         // 로그아웃시키면 안 되므로, 이 재시도를 시작했던 세션이 아직 그대로일 때만 토큰을 지운다
+         if (getSessionEpoch() === requestEpoch) setAccessToken(null);
       }
    }
 
@@ -132,14 +156,18 @@ export async function apiFetchBlob(
       ...options.headers,
    });
 
+   // apiFetch와 동일한 이유로, 첫 요청이 시작된 시점의 세션을 끝까지 기준으로 삼는다
+   const requestEpoch = getSessionEpoch();
    let res = await rawRequest(path, { ...options, headers: buildHeaders() });
 
-   if (res.status === 401) {
+   if (res.status === 401 && getSessionEpoch() === requestEpoch) {
       try {
          await refreshAccessToken();
-         res = await rawRequest(path, { ...options, headers: buildHeaders() });
+         if (getSessionEpoch() === requestEpoch) {
+            res = await rawRequest(path, { ...options, headers: buildHeaders() });
+         }
       } catch {
-         setAccessToken(null);
+         if (getSessionEpoch() === requestEpoch) setAccessToken(null);
       }
    }
 

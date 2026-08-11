@@ -28,7 +28,7 @@ export default function GroupMembersModal({ members, onClose }: GroupMembersModa
             {members.map((member) => (
                <li key={member.userId}>
                   <div className="flex items-center gap-3 rounded-sm px-2 py-2 hover:bg-gray-50">
-                     <ChatAvatar name={member.memberName} />
+                     <ChatAvatar name={member.memberName} imageUrl={member.profileImageUrl} />
                      <span className="truncate text-sm font-medium text-gray-900">
                         {member.memberName}
                      </span>
