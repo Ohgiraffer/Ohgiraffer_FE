@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { format, isToday } from 'date-fns';
 import { ChevronRight, ListChecks } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
 import { getTodoSummary, type TodoItem, type TodoSourceDomain } from '@/services/todo.service';
@@ -12,7 +12,26 @@ const DOMAIN_META: Record<TodoSourceDomain, { href: string; badgeClassName: stri
    NOTICE: { href: '/notices', badgeClassName: 'bg-brand-red' },
    CONSULTATION: { href: '/counseling', badgeClassName: 'bg-brand-green' },
    ATTENDANCE: { href: '/tracker', badgeClassName: 'bg-brand-red/60' },
+   SUBMISSION: { href: '/submissions', badgeClassName: 'bg-brand-sage' },
+   EVALUATION: { href: '/evaluations', badgeClassName: 'bg-gray-500' },
 };
+// 문서에 없는 sourceDomain이 내려올 때(훈련생/강사에서 확인됨) 링크가 깨지지 않도록 두는 기본값
+const DEFAULT_DOMAIN_META = { href: '/', badgeClassName: 'bg-gray-400' };
+
+// 훈련생에게는 의미 없는 항목(평가 관리는 운영진 전용 기능) - 훈련생 화면에서만 숨긴다
+const STUDENT_HIDDEN_DOMAINS = new Set<TodoSourceDomain>(['EVALUATION']);
+
+// 서버가 내려주는 문구 대신 훈련생 화면에서 더 명확하게 바꿔 보여주는 라벨
+const STUDENT_LABEL_OVERRIDES: Partial<Record<TodoSourceDomain, string>> = {
+   APPROVAL: '휴가 처리 중',
+   SUBMISSION: '미제출 제출물',
+};
+
+// 오늘이면 시각(HH:mm), 오늘이 아니면 날짜(M/d)로 표시한다
+function formatDueLabel(dueTimeIso: string) {
+   const due = new Date(dueTimeIso);
+   return isToday(due) ? format(due, 'HH:mm') : format(due, 'M/d');
+}
 
 export default function TodoCard() {
    const { role } = useAuth();
@@ -40,6 +59,13 @@ export default function TodoCard() {
       };
    }, [retryKey]);
 
+   // 0건인 항목은 굳이 보여줄 필요가 없어 목록에서 빼고, 훈련생 화면에서는 운영진 전용 항목도 뺀다
+   const visibleTodos = todos.filter((todo) => {
+      if (todo.count <= 0) return false;
+      if (isStudent && STUDENT_HIDDEN_DOMAINS.has(todo.sourceDomain as TodoSourceDomain)) return false;
+      return true;
+   });
+
    return (
       <div className="h-full rounded-xs border border-gray-200 bg-white p-6 lg:p-6">
          <div className="mb-4 flex items-center justify-between lg:mb-4">
@@ -66,14 +92,17 @@ export default function TodoCard() {
                   다시 시도
                </button>
             </div>
-         ) : todos.length === 0 ? (
+         ) : visibleTodos.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-400">표시할 항목이 없습니다</p>
          ) : (
             <ul>
-               {todos.map((todo) => {
-                  const meta = DOMAIN_META[todo.sourceDomain];
-                  // 훈련생의 "상담 예정"은 본인 일정이 최대 1건이라 건수보다 가장 가까운 시각이 더 유용하다
-                  const showTimeInsteadOfCount = isStudent && todo.sourceDomain === 'CONSULTATION';
+               {visibleTodos.map((todo) => {
+                  const domain = todo.sourceDomain as TodoSourceDomain;
+                  const meta = DOMAIN_META[domain] ?? DEFAULT_DOMAIN_META;
+                  const label = (isStudent && STUDENT_LABEL_OVERRIDES[domain]) || todo.type;
+                  // 상담 예정이 1건뿐이면(훈련생은 본인 일정이라 최대 1건, 운영진도 1건일 때) 건수보다
+                  // 그 상담이 언제인지가 더 유용하다 - 오늘이면 시각, 아니면 날짜로 보여준다
+                  const showDueDateOrTime = domain === 'CONSULTATION' && todo.count === 1;
 
                   return (
                      <li key={todo.sourceDomain} className="border-b border-gray-100 last:border-none">
@@ -81,14 +110,14 @@ export default function TodoCard() {
                            href={meta.href}
                            className="flex items-center justify-between gap-3 py-2 hover:bg-gray-50 lg:py-3"
                         >
-                           <span className="min-w-0 flex-1 truncate text-sm text-gray-700">{todo.type}</span>
+                           <span className="min-w-0 flex-1 truncate text-sm text-gray-700">{label}</span>
                            <span className="flex shrink-0 items-center gap-2">
-                              {showTimeInsteadOfCount ? (
+                              {showDueDateOrTime ? (
                                  todo.nearestDueTime ? (
                                     <span
                                        className={`rounded-xs px-2 py-0.5 text-xs font-medium text-white ${meta.badgeClassName}`}
                                     >
-                                       {format(new Date(todo.nearestDueTime), 'HH:mm')}
+                                       {formatDueLabel(todo.nearestDueTime)}
                                     </span>
                                  ) : (
                                     <span className="text-xs text-gray-400">예정 없음</span>
