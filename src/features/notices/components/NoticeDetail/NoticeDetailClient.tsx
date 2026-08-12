@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ChevronLeft, Pencil, Pin, Sparkles, Trash2, User, CalendarDays } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { useAuth } from '@/components/auth/AuthContext';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import {
@@ -16,6 +17,8 @@ import {
 } from '@/services/notice.service';
 import { formatNoticeDate } from '../../formatNoticeDate';
 import { parseNoticeId } from '../../parseNoticeId';
+import { useAiScheduleExtraction } from '../../hooks/useAiScheduleExtraction';
+import AiScheduleExtractionModal from './AiScheduleExtractionModal';
 import NoticeAttachmentList from './NoticeAttachmentList';
 
 type Props = {
@@ -25,7 +28,10 @@ type Props = {
 // 공지사항 상세 조회 페이지 - 뒤로가기 + 카드(배지/제목/본문/첨부파일) + AI 일정추출 배너 조립
 export default function NoticeDetailClient({ noticeId }: Props) {
    const router = useRouter();
+   const { role } = useAuth();
    const numericNoticeId = parseNoticeId(noticeId);
+   // AI 일정 추출 노란 박스는 운영진 전용 - 훈련생에게는 박스 자체가 보이면 안 됨
+   const canUseAiScheduleExtraction = role === 'INSTRUCTOR' || role === 'MANAGER';
 
    const [notice, setNotice] = useState<NoticeDetail | null>(null);
    const [isLoading, setIsLoading] = useState(true);
@@ -34,6 +40,12 @@ export default function NoticeDetailClient({ noticeId }: Props) {
    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
    const [isDeleting, setIsDeleting] = useState(false);
    const [isConfirming, setIsConfirming] = useState(false);
+
+   // numericNoticeId가 아직 없어도(로딩 전/잘못된 주소) 훅은 항상 호출해야 하므로 더미값을 넘긴다 -
+   // 실제로 이 훅의 동작(runExtraction)은 notice가 로드된 뒤 노란 박스 클릭으로만 시작되므로 안전함
+   const aiSchedule = useAiScheduleExtraction(numericNoticeId ?? -1, () => {
+      setNotice((prev) => (prev ? { ...prev, aiCalendarRegistered: true } : prev));
+   });
 
    // noticeId가 다른 값으로 바뀌면(같은 페이지 컴포넌트가 재사용되며 다른 공지로 이동하는 경우)
    // 이전 조회의 에러/로딩 상태가 남아있어 새 조회가 성공해도 이전 에러 화면이 계속 보일 수 있다 -
@@ -266,21 +278,23 @@ export default function NoticeDetailClient({ noticeId }: Props) {
                <NoticeAttachmentList attachments={notice.attachments} />
             </div>
 
-            <div className="mt-4 flex items-center justify-between rounded-sm bg-brand-cream px-6 py-3">
-               <div className="flex items-center gap-3 text-sm font-semibold text-gray-900">
-                  <Sparkles size={16} className="text-brand-green" />
-                  AI가 공지사항에 포함된 일정을 추출해줘요{' '}
-                  <span className="font-medium text-[#6B7280]">- 일정을 등록하시겠습니까? </span>
+            {canUseAiScheduleExtraction && !notice.aiCalendarRegistered && (
+               <div className="mt-4 flex items-center justify-between rounded-sm bg-brand-cream px-6 py-3">
+                  <div className="flex items-center gap-3 text-sm font-semibold text-gray-900">
+                     <Sparkles size={16} className="text-brand-green" />
+                     AI가 공지사항에 포함된 일정을 추출해줘요{' '}
+                     <span className="font-medium text-[#6B7280]">- 일정을 등록하시겠습니까? </span>
+                  </div>
+                  <button
+                     type="button"
+                     disabled={aiSchedule.isExtracting}
+                     onClick={aiSchedule.runExtraction}
+                     className="cursor-pointer rounded-sm bg-brand-green px-4 py-2 text-sm text-white hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-gray-300"
+                  >
+                     {aiSchedule.isExtracting ? '추출 중...' : '등록하기'}
+                  </button>
                </div>
-               <button
-                  type="button"
-                  disabled
-                  // TODO: AI 일정 추출 기능 백엔드 준비되면 연동
-                  className="cursor-pointer rounded-sm bg-brand-green px-4 py-2 text-sm text-white hover:bg-[#4D655A]"
-               >
-                  등록하기
-               </button>
-            </div>
+            )}
          </div>
 
          <ConfirmModal
@@ -294,6 +308,20 @@ export default function NoticeDetailClient({ noticeId }: Props) {
             onConfirm={handleDelete}
             onClose={() => !isDeleting && setIsDeleteConfirmOpen(false)}
          />
+
+         {aiSchedule.isModalOpen && (
+            <AiScheduleExtractionModal
+               candidates={aiSchedule.candidates}
+               currentIndex={aiSchedule.currentIndex}
+               onPrev={aiSchedule.goToPrev}
+               onNext={aiSchedule.goToNext}
+               onUpdate={aiSchedule.updateCandidate}
+               selectedCount={aiSchedule.selectedCount}
+               isSubmitting={aiSchedule.isSubmitting}
+               onSubmit={aiSchedule.confirmRegister}
+               onClose={aiSchedule.closeModal}
+            />
+         )}
       </div>
    );
 }
