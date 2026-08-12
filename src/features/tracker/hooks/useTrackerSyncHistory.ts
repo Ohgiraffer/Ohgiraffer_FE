@@ -1,46 +1,74 @@
 'use client';
 
-import { useState } from 'react';
-import { useAuth } from '@/components/auth/AuthContext';
+import { useCallback, useEffect, useState } from 'react';
+import { ApiError } from '@/lib/http';
+import { toast } from '@/lib/toast';
+import {
+   getAttendanceSheetSyncLogs,
+   syncAttendanceSheet,
+   type AttendanceSheetSyncLogEntry,
+} from '@/services/attendance.service';
 
-export interface TrackerSyncHistoryEntry {
-   id: string;
-   syncedAt: string; // ISO
-   executedByName: string;
-   processedCount: number;
-   result: 'SUCCESS' | 'FAILURE';
-}
+export type { AttendanceSheetSyncLogEntry as TrackerSyncHistoryEntry };
 
-const MOCK_HISTORY: TrackerSyncHistoryEntry[] = [
-   { id: 'sync-1', syncedAt: '2025-07-30T09:00:00', executedByName: '이매니저', processedCount: 24, result: 'SUCCESS' },
-   { id: 'sync-2', syncedAt: '2025-07-29T09:00:00', executedByName: '이매니저', processedCount: 22, result: 'SUCCESS' },
-   { id: 'sync-3', syncedAt: '2025-07-28T09:00:00', executedByName: '이매니저', processedCount: 23, result: 'SUCCESS' },
-   { id: 'sync-4', syncedAt: '2025-07-25T09:01:00', executedByName: '이매니저', processedCount: 0, result: 'FAILURE' },
-];
-
-// 동기화 실행 + 이력 상태 - 탭을 옮겨도 목록이 유지되도록 ManagerTrackerBoard에서 한 번만 호출한다
-// TODO: 실제 동기화 실행/이력 조회 API가 나오면 tracker.service.ts 호출로 교체
-export function useTrackerSyncHistory() {
-   const { me } = useAuth();
-   const [history, setHistory] = useState<TrackerSyncHistoryEntry[]>(MOCK_HISTORY);
+// 동기화 실행 + 이력 조회 - isConnected가 true일 때만 이력을 불러온다(연동 전에는 호출할 필요가 없음)
+export function useTrackerSyncHistory(isConnected: boolean) {
+   const [history, setHistory] = useState<AttendanceSheetSyncLogEntry[]>([]);
+   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+   const [historyError, setHistoryError] = useState(false);
    const [isSyncing, setIsSyncing] = useState(false);
 
-   const runSync = async () => {
+   useEffect(() => {
+      // 연동 전에는 이 훅을 쓰는 화면에서 이력 섹션 자체를 렌더링하지 않으므로, isLoadingHistory
+      // 초기값(true)을 그대로 둬도 문제없다 - 연동되는 순간 이 effect가 다시 돌며 fetch를 시작한다
+      if (!isConnected) return;
+      let isMounted = true;
+      getAttendanceSheetSyncLogs()
+         .then((logs) => {
+            if (isMounted) setHistory(logs);
+         })
+         .catch(() => {
+            if (isMounted) setHistoryError(true);
+         })
+         .finally(() => {
+            if (isMounted) setIsLoadingHistory(false);
+         });
+      return () => {
+         isMounted = false;
+      };
+   }, [isConnected]);
+
+   const runSync = useCallback(async () => {
       setIsSyncing(true);
+      // 동기화 자체와 이력 재조회는 서로 다른 실패 원인이라 따로 처리한다 - 동기화가 성공한 뒤
+      // 이력 재조회만 실패해도 "동기화에 실패했습니다"로 잘못 안내하면 안 된다
+      let result;
       try {
-         await new Promise((resolve) => setTimeout(resolve, 600));
-         const entry: TrackerSyncHistoryEntry = {
-            id: `sync-${Date.now()}`,
-            syncedAt: new Date().toISOString(),
-            executedByName: me?.name ?? '알 수 없음',
-            processedCount: 24,
-            result: 'SUCCESS',
-         };
-         setHistory((prev) => [entry, ...prev]);
+         result = await syncAttendanceSheet();
+      } catch (err) {
+         toast.error(
+            err instanceof ApiError ? err.message : '동기화에 실패했습니다. 잠시 후 다시 시도해주세요.',
+         );
+         setIsSyncing(false);
+         return;
+      }
+
+      if (result.failedCount > 0) {
+         toast.error(`동기화 완료 · 성공 ${result.successCount}건 / 실패 ${result.failedCount}건`);
+      } else {
+         toast.success(`동기화 완료 · 변동 ${result.successCount}건 반영`);
+      }
+
+      try {
+         const logs = await getAttendanceSheetSyncLogs();
+         setHistory(logs);
+         setHistoryError(false);
+      } catch {
+         setHistoryError(true);
       } finally {
          setIsSyncing(false);
       }
-   };
+   }, []);
 
-   return { history, isSyncing, runSync };
+   return { history, isLoadingHistory, historyError, isSyncing, runSync };
 }

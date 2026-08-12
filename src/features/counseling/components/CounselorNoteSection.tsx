@@ -59,11 +59,14 @@ export default function CounselorNoteSection({ detail, onSaved }: Props) {
    return (
       <div className="mt-5">
          <p className="text-sm font-semibold text-[#374151]">상담 기록</p>
+         <p className="text-[11px] text-brand-sage">
+            작성 완료 시, 이 상담은 완료된 상담으로 처리됩니다.
+         </p>
          {isEditing ? (
             <textarea
                value={draft}
                onChange={(event) => setDraft(event.target.value)}
-               placeholder="상담 내용을 기록해주세요"
+               placeholder="상담 후 24시간까지 상담 기록 작성이 가능합니다."
                rows={6}
                className="mt-2 w-full resize-none rounded-xs border border-[#E5E7EB] p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
             />

@@ -126,12 +126,13 @@ export function getMyAvailableDates(yearMonth: string) {
    return apiFetch<string[]>(`/consultation/available-dates/mine?${params}`);
 }
 
-// 강사·매니저 본인 - 특정 날짜(date: 'yyyy-MM-dd')에 등록해둔 상담 가능 시간.
-// isReserved가 true인 시간은 이미 학생이 신청한 시간이라 수정 시 끌 수 없다
+// 강사·매니저 본인 - 특정 날짜(date: 'yyyy-MM-dd')에 등록해둔 상담 가능 시간 문자열 목록.
+// /consultation/available-times(훈련생용)와 달리 이 엔드포인트는 { time, isReserved } 객체가 아니라
+// 시간 문자열만 내려준다 - 예약 여부는 이 API로 알 수 없고, 저장 시 409(CONSULTATION_004)로만 감지된다
 export function getMyAvailableTimes(date: string) {
    const params = new URLSearchParams({ date });
-   return apiFetch<AvailableTimeSlot[]>(`/consultation/available-times/mine?${params}`).then(
-      normalizeAvailableTimeSlots,
+   return apiFetch<string[]>(`/consultation/available-times/mine?${params}`).then((times) =>
+      times.map(normalizeTime),
    );
 }
 

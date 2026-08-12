@@ -8,7 +8,6 @@ import {
    getMyAvailableDates,
    getMyAvailableTimes,
    saveMyAvailableTimes,
-   type AvailableTimeSlot,
 } from '@/services/counseling.service';
 import { ALL_TIME_SLOTS } from '../constants';
 import type { CounselingTimeSlot } from '../types';
@@ -21,13 +20,16 @@ function getApiErrorMessage(err: unknown, fallback: string) {
 }
 
 // 서버는 "열려있는 시간"만 내려주므로(닫힌 시간은 응답에 아예 없음), 09:00~19:00 전체 고정
-// 슬롯과 합쳐서 화면에 뿌릴 21개짜리 목록을 만든다
-function buildSlots(times: AvailableTimeSlot[]): CounselingTimeSlot[] {
-   const byTime = new Map(times.map((slot) => [slot.time, slot]));
-   return ALL_TIME_SLOTS.map((time) => {
-      const saved = byTime.get(time);
-      return { time, isOpen: Boolean(saved), isBooked: saved?.isReserved ?? false };
-   });
+// 슬롯과 합쳐서 화면에 뿌릴 21개짜리 목록을 만든다.
+// /consultation/available-times/mine은 시간 문자열만 내려줄 뿐 예약 여부를 알려주지 않으므로
+// isBooked는 항상 false로 두고, 이미 예약된 시간을 끄려는 시도는 저장 시 409(CONSULTATION_004)로만 막힌다
+function buildSlots(times: string[]): CounselingTimeSlot[] {
+   const openTimes = new Set(times);
+   return ALL_TIME_SLOTS.map((time) => ({
+      time,
+      isOpen: openTimes.has(time),
+      isBooked: false,
+   }));
 }
 
 function areSetsEqual(a: Set<string>, b: Set<string>) {
@@ -80,7 +82,7 @@ export function useAvailabilityRegister() {
          .then((times) => {
             if (!isMounted) return;
             setSlots(buildSlots(times));
-            setOriginalOpenTimes(new Set(times.map((slot) => slot.time)));
+            setOriginalOpenTimes(new Set(times));
          })
          .catch((err) => {
             if (!isMounted) return;
@@ -121,7 +123,7 @@ export function useAvailabilityRegister() {
       try {
          const times = await getMyAvailableTimes(format(selectedDate, DATE_KEY_FORMAT));
          setSlots(buildSlots(times));
-         setOriginalOpenTimes(new Set(times.map((slot) => slot.time)));
+         setOriginalOpenTimes(new Set(times));
       } catch (err) {
          toast.error(getApiErrorMessage(err, '상담 가능 시간을 불러오지 못했습니다.'));
       } finally {
