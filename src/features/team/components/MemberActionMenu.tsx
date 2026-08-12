@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from 'react';
 import { MoreVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
-import type { Team } from '../types';
+import type { DraftTeam } from '../types';
 
 interface MemberActionMenuProps {
    currentTeamId: number | null;
-   teams: Team[];
+   teams: DraftTeam[];
    onMoveToTeam: (teamId: number) => void;
    onMoveToUnassigned: () => void;
 }
