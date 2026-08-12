@@ -65,7 +65,7 @@ export default function Menubar() {
    };
 
    return (
-      <aside className="flex h-full w-22.5 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-gray-200 bg-white p-2">
+      <aside className="flex h-full w-22.5 shrink-0 flex-col gap-[clamp(0px,0.4vh,2px)] overflow-hidden border-r border-gray-200 bg-white p-2">
          {menuItems.map(({ label, href, icon: Icon }) => {
             const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
 
@@ -74,12 +74,12 @@ export default function Menubar() {
                   key={href}
                   href={href}
                   onClick={(e) => handleNavigate(e, href, isActive)}
-                  className={`flex cursor-pointer flex-col items-center gap-1 rounded-sm px-1.5 py-3 text-[11px] font-semibold transition-colors ${
+                  className={`flex min-h-0 cursor-pointer flex-col items-center justify-center gap-[clamp(0px,0.3vh,4px)] rounded-sm px-1.5 py-[clamp(4px,1.5vh,12px)] text-[11px] font-semibold transition-colors ${
                      isActive ? 'bg-brand-green text-white' : 'text-[#3B4150] hover:bg-[#F7F8FA]'
                   }`}
                >
-                  <Icon size={22} />
-                  {label}
+                  <Icon className="h-[clamp(14px,2.6vh,22px)] w-[clamp(14px,2.6vh,22px)] shrink-0" />
+                  <span className="truncate">{label}</span>
                </Link>
             );
          })}
