@@ -45,6 +45,9 @@ interface GoogleSheetSyncProps {
    onSave: (result: GoogleSheetSaveResult) => Promise<void>;
    // 연결된 상태의 헤더 영역에 페이지별 추가 액션(예: "평가 요약 결과 다운로드")을 끼워 넣는다
    connectedExtra?: React.ReactNode;
+   // 서버에 이미 저장된 연동 설정이 있어서 페이지 진입 시부터 "연결됨" 카드로 보여줘야 할 때 넘긴다.
+   // 이 컴포넌트 자체는 조회 API를 모르므로(페이지마다 다름) 이미 조회된 결과를 그대로 받는다
+   initialConnection?: { spreadsheetUrl: string };
 }
 
 interface Connection {
@@ -55,19 +58,24 @@ interface Connection {
    columnOptions: string[];
 }
 
-export default function GoogleSheetSync({ columns, onSave, connectedExtra }: GoogleSheetSyncProps) {
+export default function GoogleSheetSync({
+   columns,
+   onSave,
+   connectedExtra,
+   initialConnection,
+}: GoogleSheetSyncProps) {
    const urlInputId = useId();
    // 컬럼 매핑 select가 반복 렌더링되므로 useId를 컬럼 개수만큼 미리 부를 수 없다 -
    // 한 번만 받은 prefix에 column.key(이미 고유함이 보장된 값)를 붙여 각 select의 id를 만든다
    const columnFieldPrefix = useId();
-   const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
+   const [spreadsheetUrl, setSpreadsheetUrl] = useState(initialConnection?.spreadsheetUrl ?? '');
    const [isVerifying, setIsVerifying] = useState(false);
    const [verifyError, setVerifyError] = useState('');
    const [connection, setConnection] = useState<Connection | null>(null);
    // 컬럼 이름이 같은 시트도 구분할 수 있도록 이름이 아니라 columnOptions 안에서의 인덱스로 보관한다
    const [columnMapping, setColumnMapping] = useState<Record<string, number>>({});
    const [isSaving, setIsSaving] = useState(false);
-   const [isSaved, setIsSaved] = useState(false);
+   const [isSaved, setIsSaved] = useState(initialConnection != null);
 
    const canVerify = spreadsheetUrl.trim().length > 0 && !isVerifying;
    const canSave =

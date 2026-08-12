@@ -1,24 +1,24 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ClipboardCheck, TriangleAlert } from 'lucide-react';
+import { useAuth } from '@/components/auth/AuthContext';
+import {
+   getAttendanceDashboardSummary,
+   getMyAttendanceSummary,
+   type AttendanceDashboardSummary,
+   type AttendanceSummaryResponse,
+} from '@/services/attendance.service';
+import { mapRiskLevel, TRAINEE_RISK_LABELS } from '@/features/tracker/types';
 
-interface AttendanceStat {
+interface StatDot {
    label: string;
    value: string;
    colorClassName: string;
 }
 
-// 하드코딩된 더미 데이터 — 추후 API 연동 예정
-const ATTENDANCE_RATE = 87;
-
-const ATTENDANCE_STATS: AttendanceStat[] = [
-   { label: '출석', value: '87일', colorClassName: 'bg-brand-sage' },
-   { label: '지각', value: '5회', colorClassName: 'bg-brand-red/40' },
-   { label: '조퇴', value: '3회', colorClassName: 'bg-brand-red' },
-   { label: '외출', value: '4회', colorClassName: 'bg-brand-red/20' },
-   { label: '결석', value: '8일', colorClassName: 'bg-brand-maroon' },
-];
-
-export default function AttendanceCard() {
+function CardShell({ children }: { children: React.ReactNode }) {
    return (
       <div className="h-full rounded-xs border border-gray-200 bg-white p-6 lg:p-6">
          <div className="mb-4 flex items-center justify-between lg:mb-4">
@@ -30,29 +30,183 @@ export default function AttendanceCard() {
                상세
             </Link>
          </div>
+         {children}
+      </div>
+   );
+}
 
+function LoadingOrError({ hasError, onRetry }: { hasError: boolean; onRetry: () => void }) {
+   if (hasError) {
+      return (
+         <div className="flex flex-col items-center gap-2 py-6">
+            <p className="text-sm text-gray-400">출결 현황을 불러오지 못했습니다.</p>
+            <button
+               type="button"
+               onClick={onRetry}
+               className="cursor-pointer rounded-xs border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+            >
+               다시 시도
+            </button>
+         </div>
+      );
+   }
+   return <p className="py-6 text-center text-sm text-gray-400">불러오는 중...</p>;
+}
+
+function StatDotList({ stats }: { stats: StatDot[] }) {
+   return (
+      <ul className="mb-4 flex flex-col gap-2 lg:mb-2 lg:gap-1">
+         {stats.map((stat) => (
+            <li key={stat.label} className="flex items-center gap-2 text-sm">
+               <span className={`h-2 w-2 shrink-0 rounded-full ${stat.colorClassName}`} />
+               <span className="min-w-0 flex-1 truncate text-gray-600">{stat.label}</span>
+               <span className="shrink-0 font-medium text-gray-900">{stat.value}</span>
+            </li>
+         ))}
+      </ul>
+   );
+}
+
+function StudentAttendanceCard() {
+   const [summary, setSummary] = useState<AttendanceSummaryResponse | null>(null);
+   const [isLoading, setIsLoading] = useState(true);
+   const [hasError, setHasError] = useState(false);
+   const [retryKey, setRetryKey] = useState(0);
+
+   useEffect(() => {
+      let isMounted = true;
+      getMyAttendanceSummary()
+         .then((result) => {
+            if (isMounted) setSummary(result);
+         })
+         .catch(() => {
+            if (isMounted) setHasError(true);
+         })
+         .finally(() => {
+            if (isMounted) setIsLoading(false);
+         });
+      return () => {
+         isMounted = false;
+      };
+   }, [retryKey]);
+
+   if (isLoading || hasError || !summary) {
+      return (
+         <CardShell>
+            <LoadingOrError
+               hasError={hasError}
+               onRetry={() => {
+                  setIsLoading(true);
+                  setHasError(false);
+                  setRetryKey((key) => key + 1);
+               }}
+            />
+         </CardShell>
+      );
+   }
+
+   const riskStatus = mapRiskLevel(summary.riskLevel);
+   const stats: StatDot[] = [
+      { label: '출석', value: `${summary.presentDays}일`, colorClassName: 'bg-brand-sage' },
+      { label: '지각', value: `${summary.lateCount}회`, colorClassName: 'bg-brand-red/40' },
+      { label: '조퇴', value: `${summary.earlyLeaveCount}회`, colorClassName: 'bg-brand-red' },
+      { label: '외출', value: `${summary.outingCount}회`, colorClassName: 'bg-brand-red/20' },
+      { label: '결석', value: `${summary.absentDays}일`, colorClassName: 'bg-brand-maroon' },
+   ];
+
+   return (
+      <CardShell>
          <div className="mb-1.5 flex items-baseline gap-1.5">
-            <span className="text-3xl font-bold text-gray-900 lg:text-2xl">{ATTENDANCE_RATE}%</span>
+            <span className="text-3xl font-bold text-gray-900 lg:text-2xl">{summary.attendanceRate}%</span>
             <span className="text-sm text-gray-400">출석률</span>
          </div>
          <div className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 lg:mb-2">
-            <div className="h-full bg-brand-red" style={{ width: `${ATTENDANCE_RATE}%` }} />
+            <div className="h-full bg-brand-red" style={{ width: `${summary.attendanceRate}%` }} />
          </div>
 
-         <ul className="mb-4 flex flex-col gap-2 lg:mb-2 lg:gap-1">
-            {ATTENDANCE_STATS.map((stat) => (
-               <li key={stat.label} className="flex items-center gap-2 text-sm">
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${stat.colorClassName}`} />
-                  <span className="min-w-0 flex-1 truncate text-gray-600">{stat.label}</span>
-                  <span className="shrink-0 font-medium text-gray-900">{stat.value}</span>
-               </li>
-            ))}
-         </ul>
+         <StatDotList stats={stats} />
 
-         <div className="flex items-start gap-1.5 rounded-sm bg-[#F5DFDC] px-3 py-2 text-xs text-brand-maroon lg:py-1.5">
-            <TriangleAlert size={14} className="mt-0.5 shrink-0" />
-            <span>경고 — 출석률 기준 근접 중</span>
-         </div>
-      </div>
+         {riskStatus !== 'NORMAL' && (
+            <div className="flex items-start gap-1.5 rounded-sm bg-[#F5DFDC] px-3 py-2 text-xs text-brand-maroon lg:py-1.5">
+               <TriangleAlert size={14} className="mt-0.5 shrink-0" />
+               <span>{TRAINEE_RISK_LABELS[riskStatus]} — 출석 상태를 확인해주세요.</span>
+            </div>
+         )}
+      </CardShell>
    );
+}
+
+function ManagerAttendanceCard() {
+   const [summary, setSummary] = useState<AttendanceDashboardSummary | null>(null);
+   const [isLoading, setIsLoading] = useState(true);
+   const [hasError, setHasError] = useState(false);
+   const [retryKey, setRetryKey] = useState(0);
+
+   useEffect(() => {
+      let isMounted = true;
+      getAttendanceDashboardSummary()
+         .then((result) => {
+            if (isMounted) setSummary(result);
+         })
+         .catch(() => {
+            if (isMounted) setHasError(true);
+         })
+         .finally(() => {
+            if (isMounted) setIsLoading(false);
+         });
+      return () => {
+         isMounted = false;
+      };
+   }, [retryKey]);
+
+   if (isLoading || hasError || !summary) {
+      return (
+         <CardShell>
+            <LoadingOrError
+               hasError={hasError}
+               onRetry={() => {
+                  setIsLoading(true);
+                  setHasError(false);
+                  setRetryKey((key) => key + 1);
+               }}
+            />
+         </CardShell>
+      );
+   }
+
+   // 구글 시트 동기화 전이면 서버가 이 값들을 null(또는 누락)로 내려줄 수 있어, 화면엔 항상 0으로 보정한다
+   const attendedTodayCount = summary.attendedTodayCount ?? 0;
+   const managedStudents = summary.managedStudents ?? 0;
+   const cautionStudents = summary.cautionStudents ?? 0;
+   const warningStudents = summary.warningStudents ?? 0;
+   const riskStudents = summary.riskStudents ?? 0;
+   const attendedRate = summary.activeStudents > 0 ? (attendedTodayCount / summary.activeStudents) * 100 : 0;
+   const stats: StatDot[] = [
+      { label: '정상', value: `${managedStudents}명`, colorClassName: 'bg-brand-sage' },
+      { label: '주의', value: `${cautionStudents}명`, colorClassName: 'bg-brand-gold' },
+      { label: '경고', value: `${warningStudents}명`, colorClassName: 'bg-brand-red' },
+      { label: '제적위험', value: `${riskStudents}명`, colorClassName: 'bg-brand-maroon' },
+   ];
+
+   return (
+      <CardShell>
+         <div className="mb-1.5 flex items-baseline gap-1.5">
+            <span className="text-3xl font-bold text-gray-900 lg:text-2xl">
+               {attendedTodayCount}/{summary.activeStudents}명
+            </span>
+            <span className="text-sm text-gray-400">정상 출결</span>
+         </div>
+         <div className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 lg:mb-2">
+            <div className="h-full bg-brand-sage" style={{ width: `${attendedRate}%` }} />
+         </div>
+
+         <StatDotList stats={stats} />
+      </CardShell>
+   );
+}
+
+export default function AttendanceCard() {
+   const { role } = useAuth();
+   if (role === 'STUDENT') return <StudentAttendanceCard />;
+   return <ManagerAttendanceCard />;
 }
