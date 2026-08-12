@@ -32,7 +32,12 @@ export default function TraineeDetailClient({ traineeId }: TraineeDetailClientPr
    const [activeTab, setActiveTab] = useState<TabKey>('attendance');
    const numericTraineeId = Number(traineeId);
 
-   const { students, error: directoryError, retry: retryDirectory } = useStudentDirectory();
+   const {
+      students,
+      isLoading: isLoadingDirectory,
+      error: directoryError,
+      retry: retryDirectory,
+   } = useStudentDirectory();
    const {
       overview,
       isLoadingOverview,
@@ -41,12 +46,13 @@ export default function TraineeDetailClient({ traineeId }: TraineeDetailClientPr
       currentDate,
       setCurrentDate,
       records,
+      recordsError,
    } = useAttendanceOverview(numericTraineeId);
 
    const student = students?.find((candidate) => candidate.userId === numericTraineeId) ?? null;
    const staticDetail = getTraineeStaticDetail(numericTraineeId);
 
-   const isLoading = students === null || isLoadingOverview;
+   const isLoading = isLoadingDirectory || isLoadingOverview;
    const hasError = directoryError || overviewError;
 
    const backLink = (
@@ -142,6 +148,7 @@ export default function TraineeDetailClient({ traineeId }: TraineeDetailClientPr
                   currentDate={currentDate}
                   onMonthChange={setCurrentDate}
                   records={records}
+                  recordsError={recordsError}
                />
             )}
             {activeTab === 'approval' && <ApprovalDetailTab approvals={staticDetail.approvals} />}

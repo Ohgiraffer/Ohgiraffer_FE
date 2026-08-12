@@ -21,6 +21,12 @@ export const ATTENDANCE_SHEET_COLUMNS: GoogleSheetColumnField[] = [
    { key: 'trainingDate', label: '훈련 일자' },
 ];
 
+// A1 표기법에서 시트 이름에 공백/하이픈 등이 있으면 단일 인용부호로 감싸야 하고, 이름 안의
+// 단일 인용부호는 두 번 써서 escape해야 한다(알파벳/숫자/밑줄만이어도 감싸는 건 항상 안전함)
+function quoteSheetName(sheetName: string) {
+   return `'${sheetName.replace(/'/g, "''")}'`;
+}
+
 // 출결 시트 연동 설정 - 탭을 옮겨도 연결 여부가 유지되도록 ManagerTrackerBoard에서 한 번만 호출한다
 export function useTrackerSheetSync() {
    const [isConnected, setIsConnected] = useState(false);
@@ -62,7 +68,7 @@ export function useTrackerSheetSync() {
          sheetUrl: result.spreadsheetUrl,
          tabName: result.sheetName,
          // 날짜는 항상 "시트 이름!I2" 셀에 있어야 함 - 사용자 입력이 아니라 고정 규칙으로 만든다
-         dateCellRange: `${result.sheetName}!I2`,
+         dateCellRange: `${quoteSheetName(result.sheetName)}!I2`,
          columnMapping,
       });
       setIsConnected(true);

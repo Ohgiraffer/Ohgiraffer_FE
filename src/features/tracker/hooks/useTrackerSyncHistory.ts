@@ -40,19 +40,31 @@ export function useTrackerSyncHistory(isConnected: boolean) {
 
    const runSync = useCallback(async () => {
       setIsSyncing(true);
+      // 동기화 자체와 이력 재조회는 서로 다른 실패 원인이라 따로 처리한다 - 동기화가 성공한 뒤
+      // 이력 재조회만 실패해도 "동기화에 실패했습니다"로 잘못 안내하면 안 된다
+      let result;
       try {
-         const result = await syncAttendanceSheet();
-         const logs = await getAttendanceSheetSyncLogs();
-         setHistory(logs);
-         if (result.failedCount > 0) {
-            toast.error(`동기화 완료 · 성공 ${result.successCount}건 / 실패 ${result.failedCount}건`);
-         } else {
-            toast.success(`동기화 완료 · 변동 ${result.successCount}건 반영`);
-         }
+         result = await syncAttendanceSheet();
       } catch (err) {
          toast.error(
             err instanceof ApiError ? err.message : '동기화에 실패했습니다. 잠시 후 다시 시도해주세요.',
          );
+         setIsSyncing(false);
+         return;
+      }
+
+      if (result.failedCount > 0) {
+         toast.error(`동기화 완료 · 성공 ${result.successCount}건 / 실패 ${result.failedCount}건`);
+      } else {
+         toast.success(`동기화 완료 · 변동 ${result.successCount}건 반영`);
+      }
+
+      try {
+         const logs = await getAttendanceSheetSyncLogs();
+         setHistory(logs);
+         setHistoryError(false);
+      } catch {
+         setHistoryError(true);
       } finally {
          setIsSyncing(false);
       }

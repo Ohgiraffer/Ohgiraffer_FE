@@ -109,35 +109,37 @@ export default function SheetSyncTab() {
                                     </td>
                                     <td className="px-6 py-4 text-gray-900">{entry.executorName}</td>
                                     <td className="px-6 py-4 text-gray-700 text-center">{entry.successCount}건</td>
-                                    <td className="px-6 py-4 flex items-center justify-center">
-                                       {entry.result === 'PARTIAL' ? (
-                                          <Popover>
-                                             <PopoverTrigger className="cursor-pointer">
-                                                <StatusBadge tone={RESULT_BADGE.PARTIAL.tone}>
-                                                   {RESULT_BADGE.PARTIAL.label} · {entry.failedRows.length}건
-                                                </StatusBadge>
-                                             </PopoverTrigger>
-                                             <PopoverContent align="end" className="w-fit min-w-0 max-w-64 rounded-xs!">
-                                                <p className="text-xs font-semibold text-gray-700">
-                                                   실패한 행
-                                                </p>
-                                                <ul className="mt-1 flex flex-col gap-1">
-                                                   {entry.failedRows.map((row) => (
-                                                      <li key={row.rowNumber} className="text-xs text-gray-500">
-                                                         <span className="font-medium text-gray-700">
-                                                            {row.rowNumber}행
-                                                         </span>{' '}
-                                                         · {row.reason}
-                                                      </li>
-                                                   ))}
-                                                </ul>
-                                             </PopoverContent>
-                                          </Popover>
-                                       ) : (
-                                          <StatusBadge tone={RESULT_BADGE[entry.result].tone}>
-                                             {RESULT_BADGE[entry.result].label}
-                                          </StatusBadge>
-                                       )}
+                                    <td className="px-6 py-4">
+                                       <div className="flex items-center justify-center">
+                                          {entry.result === 'PARTIAL' ? (
+                                             <Popover>
+                                                <PopoverTrigger className="cursor-pointer">
+                                                   <StatusBadge tone={RESULT_BADGE.PARTIAL.tone}>
+                                                      {RESULT_BADGE.PARTIAL.label} · {entry.failedRows.length}건
+                                                   </StatusBadge>
+                                                </PopoverTrigger>
+                                                <PopoverContent align="end" className="w-fit min-w-0 max-w-64 rounded-xs!">
+                                                   <p className="text-xs font-semibold text-gray-700">
+                                                      실패한 행
+                                                   </p>
+                                                   <ul className="mt-1 flex flex-col gap-1">
+                                                      {entry.failedRows.map((row) => (
+                                                         <li key={row.rowNumber} className="text-xs text-gray-500">
+                                                            <span className="font-medium text-gray-700">
+                                                               {row.rowNumber}행
+                                                            </span>{' '}
+                                                            · {row.reason}
+                                                         </li>
+                                                      ))}
+                                                   </ul>
+                                                </PopoverContent>
+                                             </Popover>
+                                          ) : (
+                                             <StatusBadge tone={RESULT_BADGE[entry.result].tone}>
+                                                {RESULT_BADGE[entry.result].label}
+                                             </StatusBadge>
+                                          )}
+                                       </div>
                                     </td>
                                  </tr>
                               ))

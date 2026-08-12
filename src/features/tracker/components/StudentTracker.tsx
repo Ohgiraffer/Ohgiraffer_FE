@@ -4,9 +4,23 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Plus, TriangleAlert } from 'lucide-react';
 import { useAttendanceOverview } from '../hooks/useAttendanceOverview';
-import { ATTENDANCE_DAY_STATUS_LABELS, ATTENDANCE_TARGET_RATE, RISK_WARNING_MESSAGES } from '../types';
+import {
+   ATTENDANCE_DAY_STATUS_COLOR_GROUP,
+   ATTENDANCE_DAY_STATUS_LABELS,
+   ATTENDANCE_TARGET_RATE,
+   RISK_WARNING_MESSAGES,
+   TRAINEE_RISK_LABELS,
+   type AttendanceColorGroup,
+} from '../types';
 import AttendanceStatRow from './AttendanceStatRow';
 import MonthAttendanceCalendar from './MonthAttendanceCalendar';
+
+// 오늘 출결 상태 배지 색상 - 달력 범례와 같은 규칙(정상 초록 / 지각·조퇴·외출 분홍 / 결석 빨강)
+const TODAY_STATUS_BADGE_CLASSES: Record<AttendanceColorGroup, string> = {
+   green: 'bg-[#EAF3EC] text-brand-green',
+   pink: 'bg-brand-red/10 text-brand-red',
+   red: 'bg-brand-maroon/10 text-brand-maroon',
+};
 
 type RateTab = 'month' | 'all';
 
@@ -21,6 +35,7 @@ export default function StudentTracker() {
       currentDate,
       setCurrentDate,
       records,
+      recordsError,
    } = useAttendanceOverview();
 
    if (isLoadingOverview) {
@@ -68,7 +83,7 @@ export default function StudentTracker() {
             <div className="mt-5 flex items-start gap-3 rounded-sm border border-[#F0C9C2] bg-[#FBEEEC] px-5 py-4">
                <TriangleAlert size={20} className="mt-0.5 shrink-0 text-brand-maroon" />
                <div>
-                  <p className="text-sm font-bold text-brand-maroon">경고 단계</p>
+                  <p className="text-sm font-bold text-brand-maroon">{TRAINEE_RISK_LABELS[overview.riskStatus]} 단계</p>
                   <p className="mt-0.5 text-sm text-brand-maroon/80">{warningMessage}</p>
                </div>
             </div>
@@ -78,7 +93,11 @@ export default function StudentTracker() {
             <div className="p-6">
                <p className="text-sm text-gray-400">오늘 출결 상태</p>
                {overview.todayStatus ? (
-                  <span className="mt-2 inline-block rounded-xs bg-[#EAF3EC] px-2.5 py-1 text-xs font-medium text-brand-green">
+                  <span
+                     className={`mt-2 inline-block rounded-xs px-2.5 py-1 text-xs font-medium ${
+                        TODAY_STATUS_BADGE_CLASSES[ATTENDANCE_DAY_STATUS_COLOR_GROUP[overview.todayStatus]]
+                     }`}
+                  >
                      {ATTENDANCE_DAY_STATUS_LABELS[overview.todayStatus]}
                   </span>
                ) : (
@@ -147,11 +166,15 @@ export default function StudentTracker() {
          </div>
 
          <div className="mt-5 rounded-sm border border-gray-200 bg-white p-6">
-            <MonthAttendanceCalendar
-               currentDate={currentDate}
-               onMonthChange={setCurrentDate}
-               records={records}
-            />
+            {recordsError ? (
+               <p className="py-10 text-center text-sm text-gray-400">달력 정보를 불러오지 못했습니다.</p>
+            ) : (
+               <MonthAttendanceCalendar
+                  currentDate={currentDate}
+                  onMonthChange={setCurrentDate}
+                  records={records}
+               />
+            )}
          </div>
       </div>
    );

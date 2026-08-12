@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { getUserList, type UserListItem } from '@/services/user.service';
+import { getBootcampSettings, type BootcampSettingsPeriod } from '@/services/bootcampSettings.service';
 import {
    getAttendanceDashboardSummary,
    getAttendanceList,
@@ -16,19 +17,24 @@ import { mapRiskLevel, type TraineeSummary } from '../types';
 // 매칭이 틀릴 수 있지만 현재로선 두 목록을 이어줄 다른 식별자가 없다
 export function useManagerTrackerData() {
    const [stats, setStats] = useState<AttendanceDashboardSummary | null>(null);
-   const [trend, setTrend] = useState<PresentAbsentCountPoint[]>([]);
    const [trainees, setTrainees] = useState<TraineeSummary[]>([]);
+   const [periods, setPeriods] = useState<BootcampSettingsPeriod[]>([]);
    const [isLoading, setIsLoading] = useState(true);
    const [error, setError] = useState(false);
    const [retryKey, setRetryKey] = useState(0);
 
    useEffect(() => {
       let isMounted = true;
-      Promise.all([getAttendanceDashboardSummary(), getPresentAbsentCount(), getAttendanceList(), getUserList()])
-         .then(([summary, trendPoints, list, users]) => {
+      Promise.all([
+         getAttendanceDashboardSummary(),
+         getAttendanceList(),
+         getUserList(),
+         getBootcampSettings(),
+      ])
+         .then(([summary, list, users, bootcampSettings]) => {
             if (!isMounted) return;
             setStats(summary);
-            setTrend(trendPoints);
+            setPeriods(bootcampSettings.periods);
 
             const studentsByName = new Map<string, UserListItem>();
             users
@@ -65,11 +71,52 @@ export function useManagerTrackerData() {
       };
    }, [retryKey]);
 
+   // 단위기간 추이 그래프 - null이면 백엔드 기본값(오늘이 속한 단위기간)을 그대로 쓴다
+   const [selectedPeriodId, setSelectedPeriodId] = useState<number | null>(null);
+   const [trend, setTrend] = useState<PresentAbsentCountPoint[]>([]);
+   const [isLoadingTrend, setIsLoadingTrend] = useState(true);
+   const [trendError, setTrendError] = useState(false);
+
+   useEffect(() => {
+      let isMounted = true;
+      getPresentAbsentCount(selectedPeriodId ?? undefined)
+         .then((points) => {
+            if (isMounted) setTrend(points);
+         })
+         .catch(() => {
+            if (isMounted) setTrendError(true);
+         })
+         .finally(() => {
+            if (isMounted) setIsLoadingTrend(false);
+         });
+      return () => {
+         isMounted = false;
+      };
+   }, [selectedPeriodId]);
+
    const retry = useCallback(() => {
       setIsLoading(true);
       setError(false);
       setRetryKey((key) => key + 1);
    }, []);
 
-   return { stats, trend, trainees, isLoading, error, retry };
+   const changePeriod = useCallback((periodId: number | null) => {
+      setIsLoadingTrend(true);
+      setTrendError(false);
+      setSelectedPeriodId(periodId);
+   }, []);
+
+   return {
+      stats,
+      trainees,
+      periods,
+      isLoading,
+      error,
+      retry,
+      trend,
+      isLoadingTrend,
+      trendError,
+      selectedPeriodId,
+      changePeriod,
+   };
 }

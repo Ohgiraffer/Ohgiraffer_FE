@@ -38,7 +38,19 @@ const OVERVIEW_STATS = [
 
 export default function StatusTab() {
    const router = useRouter();
-   const { stats, trend, trainees, isLoading, error, retry } = useManagerTrackerData();
+   const {
+      stats,
+      trainees,
+      periods,
+      isLoading,
+      error,
+      retry,
+      trend,
+      isLoadingTrend,
+      trendError,
+      selectedPeriodId,
+      changePeriod,
+   } = useManagerTrackerData();
    const [riskFilter, setRiskFilter] = useState<TraineeRiskStatus | ''>('');
    const [dangerOnly, setDangerOnly] = useState<'ALL' | 'AT_RISK'>('ALL');
    const [teamFilter, setTeamFilter] = useState('ALL');
@@ -104,8 +116,38 @@ export default function StatusTab() {
          </div>
 
          <div className="mt-6 rounded-sm border border-gray-200 bg-white p-6">
-            <p className="text-sm font-bold text-gray-900">출석 추이</p>
-            <AttendanceTrendChart data={trend} />
+            <div className="flex items-center justify-between">
+               <p className="text-sm font-bold text-gray-900">출석 추이</p>
+               <Select
+                  value={selectedPeriodId != null ? String(selectedPeriodId) : ''}
+                  onValueChange={(value) => changePeriod(value ? Number(value) : null)}
+               >
+                  <SelectTrigger className="h-9 w-35 rounded-xs bg-white">
+                     <SelectValue placeholder="현재 단위기간">
+                        {(value: string | null) => {
+                           const period = value
+                              ? periods.find((candidate) => String(candidate.id) === value)
+                              : undefined;
+                           return period ? `${period.periodNo}단위` : '현재 단위기간';
+                        }}
+                     </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false} align="end" sideOffset={4}>
+                     {periods.map((period) => (
+                        <SelectItem key={period.id} value={String(period.id)}>
+                           {period.periodNo}단위
+                        </SelectItem>
+                     ))}
+                  </SelectContent>
+               </Select>
+            </div>
+            {isLoadingTrend ? (
+               <p className="py-10 text-center text-sm text-gray-400">불러오는 중...</p>
+            ) : trendError ? (
+               <p className="py-10 text-center text-sm text-gray-400">출석 추이를 불러오지 못했습니다.</p>
+            ) : (
+               <AttendanceTrendChart data={trend} />
+            )}
          </div>
 
          <div className="mt-6 flex flex-wrap items-center gap-2">

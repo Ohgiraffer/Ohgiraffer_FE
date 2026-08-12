@@ -24,6 +24,7 @@ interface AttendanceDetailTabProps {
    currentDate: Date;
    onMonthChange: (date: Date) => void;
    records: AttendanceDayRecord[];
+   recordsError: boolean;
 }
 
 export default function AttendanceDetailTab({
@@ -31,6 +32,7 @@ export default function AttendanceDetailTab({
    currentDate,
    onMonthChange,
    records,
+   recordsError,
 }: AttendanceDetailTabProps) {
    // '전체'면 전체 출석률, 그 외엔 periodRates 중 해당 단위기간의 출석률을 보여준다
    const [unitPeriod, setUnitPeriod] = useState<'전체' | number>('전체');
@@ -114,7 +116,11 @@ export default function AttendanceDetailTab({
          </div>
 
          <div className="mt-5 rounded-sm border border-gray-200 bg-white p-6">
-            <MonthAttendanceCalendar currentDate={currentDate} onMonthChange={onMonthChange} records={records} />
+            {recordsError ? (
+               <p className="py-10 text-center text-sm text-gray-400">달력 정보를 불러오지 못했습니다.</p>
+            ) : (
+               <MonthAttendanceCalendar currentDate={currentDate} onMonthChange={onMonthChange} records={records} />
+            )}
          </div>
 
          <div className="mt-5">
@@ -148,7 +154,9 @@ export default function AttendanceDetailTab({
                               </td>
                               <td className="px-3 py-4 text-center text-gray-700">
                                  {record.checkInTime
-                                    ? `${record.checkInTime.slice(0, 5)} ~ ${record.checkOutTime?.slice(0, 5) ?? ''}`
+                                    ? `${record.checkInTime.slice(0, 5)} ~ ${
+                                         record.checkOutTime ? record.checkOutTime.slice(0, 5) : '미퇴실'
+                                      }`
                                     : '—'}
                               </td>
                            </tr>

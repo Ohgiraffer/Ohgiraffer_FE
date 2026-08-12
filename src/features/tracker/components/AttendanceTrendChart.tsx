@@ -7,9 +7,10 @@ export default function AttendanceTrendChart({ data }: { data: PresentAbsentCoun
    const height = 220;
    const paddingX = 32;
    const paddingY = 24;
-   // 전체 훈련생 수에 따라 그래프 상한이 달라지므로, 실제 값 중 최댓값을 기준으로 5칸 격자를 만든다
+   // 전체 훈련생 수에 따라 그래프 상한이 달라지므로, 실제 값 중 최댓값을 기준으로 격자를 만든다.
+   // 아래에서 4칸(5개 눈금)으로 나누므로 4의 배수로 올려야 각 눈금이 정수로 떨어진다
    const rawMax = Math.max(1, ...data.flatMap((point) => [point.presentCount, point.absentCount]));
-   const maxY = Math.ceil(rawMax / 5) * 5 || 5;
+   const maxY = Math.ceil(rawMax / 4) * 4 || 4;
    const gridValues = [0, 1, 2, 3, 4].map((step) => (maxY / 4) * step);
 
    const xStep = data.length > 1 ? (width - paddingX * 2) / (data.length - 1) : 0;

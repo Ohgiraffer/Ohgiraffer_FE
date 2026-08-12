@@ -84,7 +84,11 @@ export function useAttendanceOverview(userId?: number) {
             }
          })
          .catch(() => {
-            if (isMounted) setRecordsError(true);
+            if (!isMounted) return;
+            setRecordsError(true);
+            // currentDate는 이미 새 달로 바뀐 상태라, 이전 달 기록을 그대로 두면 새 달 헤더 밑에
+            // 옛 달의 출결 표시가 남는다 - 실패 시엔 비워서 잘못된 데이터를 보여주지 않는다
+            setRecords([]);
          })
          .finally(() => {
             if (isMounted) setIsLoadingRecords(false);
