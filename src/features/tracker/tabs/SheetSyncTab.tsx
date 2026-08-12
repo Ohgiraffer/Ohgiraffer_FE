@@ -1,6 +1,6 @@
 'use client';
 
-import { format, parseISO } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { RefreshCw } from 'lucide-react';
 import GoogleSheetSync from '@/components/ui/googlesheet/GoogleSheetSync';
 import StatusBadge from '@/features/submissions/components/StatusBadge';
@@ -12,6 +12,13 @@ const RESULT_BADGE: Record<TrackerSyncHistoryEntry['result'], { tone: 'success' 
    SUCCESS: { tone: 'success', label: '성공' },
    PARTIAL: { tone: 'gold', label: '부분 성공' },
 };
+
+// apiFetch 응답은 런타임 날짜 검증이 없어, 잘못된 문자열이 오면 parseISO가 Invalid Date를
+// 반환하고 format이 RangeError를 던져 전체 이력 테이블 렌더링이 중단될 수 있다
+function formatSyncedAt(value: string) {
+   const date = parseISO(value);
+   return isValid(date) ? format(date, 'yyyy.MM.dd HH:mm') : '—';
+}
 
 export default function SheetSyncTab() {
    const { isConnected, spreadsheetUrl, isLoading, loadError, handleSaveMapping } = useTrackerSheetSync();
@@ -104,9 +111,7 @@ export default function SheetSyncTab() {
                                     key={entry.syncLogId}
                                     className="border-b border-[#F3F4F6] last:border-b-0"
                                  >
-                                    <td className="px-6 py-4 text-gray-700">
-                                       {format(parseISO(entry.syncedAt), 'yyyy.MM.dd HH:mm')}
-                                    </td>
+                                    <td className="px-6 py-4 text-gray-700">{formatSyncedAt(entry.syncedAt)}</td>
                                     <td className="px-6 py-4 text-gray-900">{entry.executorName}</td>
                                     <td className="px-6 py-4 text-gray-700 text-center">{entry.successCount}건</td>
                                     <td className="px-6 py-4">

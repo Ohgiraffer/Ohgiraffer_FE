@@ -1,6 +1,6 @@
 'use client';
 
-import { format, parseISO } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import StatusBadge from '@/features/submissions/components/StatusBadge';
 import { useStudentSubmissionHistory } from '../../hooks/useStudentSubmissionHistory';
 import type {
@@ -26,7 +26,8 @@ const GOOGLE_FORMS_ERROR_CODES = new Set(['FORM_003', 'FORM_004']);
 
 function formatDateTime(value: string | null) {
    if (!value) return '—';
-   return format(parseISO(value), 'yyyy.MM.dd HH:mm');
+   const date = parseISO(value);
+   return isValid(date) ? format(date, 'yyyy.MM.dd HH:mm') : '—';
 }
 
 export default function SubmissionDetailTab({ traineeId }: { traineeId: number }) {
