@@ -11,7 +11,7 @@ const DOMAIN_META: Record<TodoSourceDomain, { href: string; badgeClassName: stri
    APPROVAL: { href: '/approvals', badgeClassName: 'bg-brand-maroon' },
    NOTICE: { href: '/notices', badgeClassName: 'bg-brand-red' },
    CONSULTATION: { href: '/counseling', badgeClassName: 'bg-brand-green' },
-   ATTENDANCE: { href: '/attendance', badgeClassName: 'bg-brand-red/60' },
+   ATTENDANCE: { href: '/tracker', badgeClassName: 'bg-brand-red/60' },
 };
 
 export default function TodoCard() {

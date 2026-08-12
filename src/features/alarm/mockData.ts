@@ -32,7 +32,7 @@ export const MOCK_NOTIFICATIONS: NotificationItem[] = [
       description: '출석률이 경고 단계에 근접하고 있습니다.',
       timestamp: '어제',
       isRead: false,
-      link: '/attendance',
+      link: '/tracker',
    },
    {
       id: 'notification-5',
