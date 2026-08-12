@@ -176,13 +176,16 @@ function ManagerAttendanceCard() {
 
    // 구글 시트 동기화 전이면 서버가 이 값들을 null(또는 누락)로 내려줄 수 있어, 화면엔 항상 0으로 보정한다
    const attendedTodayCount = summary.attendedTodayCount ?? 0;
+   // managedStudents는 "관리 대상"(주의 이상) 인원이라 정상 인원이 아니다(features/tracker/tabs/StatusTab.tsx
+   // 참고) - 정상 인원은 진행 중인 전체 훈련생에서 관리 대상을 뺀 나머지다
    const managedStudents = summary.managedStudents ?? 0;
+   const normalStudents = Math.max(summary.activeStudents - managedStudents, 0);
    const cautionStudents = summary.cautionStudents ?? 0;
    const warningStudents = summary.warningStudents ?? 0;
    const riskStudents = summary.riskStudents ?? 0;
    const attendedRate = summary.activeStudents > 0 ? (attendedTodayCount / summary.activeStudents) * 100 : 0;
    const stats: StatDot[] = [
-      { label: '정상', value: `${managedStudents}명`, colorClassName: 'bg-brand-sage' },
+      { label: '정상', value: `${normalStudents}명`, colorClassName: 'bg-brand-sage' },
       { label: '주의', value: `${cautionStudents}명`, colorClassName: 'bg-brand-gold' },
       { label: '경고', value: `${warningStudents}명`, colorClassName: 'bg-brand-red' },
       { label: '제적위험', value: `${riskStudents}명`, colorClassName: 'bg-brand-maroon' },

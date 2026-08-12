@@ -43,8 +43,15 @@ export default function SidePanelShell({
       const handleKeyDown = (event: KeyboardEvent) => {
          if (event.key === 'Escape') onClose();
       };
+      // 배경이 백드롭에 덮여 있어도 이미 포커스가 배경 요소에 가 있었다면 키보드(방향키/Space 등)로
+      // <main>을 스크롤할 수 있으므로, 패널이 열려 있는 동안은 배경 스크롤 자체를 잠근다
       document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+
+      return () => {
+         document.removeEventListener('keydown', handleKeyDown);
+         document.body.style.overflow = '';
+      };
    }, [isMounted, onClose]);
 
    if (!isMounted) return null;
@@ -61,7 +68,11 @@ export default function SidePanelShell({
             aria-modal="true"
             aria-labelledby={labelledBy}
             onClick={(event) => event.stopPropagation()}
-            onAnimationEnd={() => {
+            onAnimationEnd={(event) => {
+               // animationend는 버블링된다 - children 안의 다른 요소(예: 새 채팅 시트의
+               // slide-up 애니메이션)가 끝났을 때도 이 핸들러가 불려서 패널이 아직 닫히는
+               // 중도 아닌데 조기에 언마운트되지 않도록, 이 요소 자신의 애니메이션일 때만 처리한다
+               if (event.target !== event.currentTarget) return;
                if (isClosing) setIsMounted(false);
             }}
             className={`absolute top-0 right-0 bottom-0 flex ${widthClassName} flex-col bg-white shadow-lg ${

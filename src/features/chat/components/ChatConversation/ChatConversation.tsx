@@ -561,7 +561,9 @@ export default function ChatConversation({
             </button>
             <div className="min-w-0 flex-1">
                <p className="flex items-center gap-1.5">
-                  <span className="truncate text-sm font-bold text-gray-900">{title}</span>
+                  <span id="chat-panel-title" className="truncate text-sm font-bold text-gray-900">
+                     {title}
+                  </span>
                   {room.channelType === 'DM' && isPartnerOnline && (
                      <span className="h-2 w-2 shrink-0 rounded-full bg-brand-sage" aria-label="온라인" />
                   )}
