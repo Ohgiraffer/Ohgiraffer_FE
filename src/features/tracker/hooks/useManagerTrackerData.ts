@@ -73,6 +73,7 @@ export function useManagerTrackerData() {
 
    // 단위기간 추이 그래프 - null이면 백엔드 기본값(오늘이 속한 단위기간)을 그대로 쓴다
    const [selectedPeriodId, setSelectedPeriodId] = useState<number | null>(null);
+   const [trendRetryKey, setTrendRetryKey] = useState(0);
    const [trend, setTrend] = useState<PresentAbsentCountPoint[]>([]);
    const [isLoadingTrend, setIsLoadingTrend] = useState(true);
    const [trendError, setTrendError] = useState(false);
@@ -92,7 +93,8 @@ export function useManagerTrackerData() {
       return () => {
          isMounted = false;
       };
-   }, [selectedPeriodId]);
+      // trendRetryKey는 값 자체는 안 쓰고 재시도 버튼을 눌렀을 때 이 effect를 다시 돌리는 용도
+   }, [selectedPeriodId, trendRetryKey]);
 
    const retry = useCallback(() => {
       setIsLoading(true);
@@ -104,6 +106,12 @@ export function useManagerTrackerData() {
       setIsLoadingTrend(true);
       setTrendError(false);
       setSelectedPeriodId(periodId);
+   }, []);
+
+   const retryTrend = useCallback(() => {
+      setIsLoadingTrend(true);
+      setTrendError(false);
+      setTrendRetryKey((key) => key + 1);
    }, []);
 
    return {
@@ -118,5 +126,6 @@ export function useManagerTrackerData() {
       trendError,
       selectedPeriodId,
       changePeriod,
+      retryTrend,
    };
 }

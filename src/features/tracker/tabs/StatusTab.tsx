@@ -50,6 +50,7 @@ export default function StatusTab() {
       trendError,
       selectedPeriodId,
       changePeriod,
+      retryTrend,
    } = useManagerTrackerData();
    const [riskFilter, setRiskFilter] = useState<TraineeRiskStatus | ''>('');
    const [dangerOnly, setDangerOnly] = useState<'ALL' | 'AT_RISK'>('ALL');
@@ -144,7 +145,16 @@ export default function StatusTab() {
             {isLoadingTrend ? (
                <p className="py-10 text-center text-sm text-gray-400">불러오는 중...</p>
             ) : trendError ? (
-               <p className="py-10 text-center text-sm text-gray-400">출석 추이를 불러오지 못했습니다.</p>
+               <div className="flex flex-col items-center gap-2 py-10">
+                  <p className="text-sm text-gray-400">출석 추이를 불러오지 못했습니다.</p>
+                  <button
+                     type="button"
+                     onClick={retryTrend}
+                     className="cursor-pointer rounded-xs border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                     다시 시도
+                  </button>
+               </div>
             ) : (
                <AttendanceTrendChart data={trend} />
             )}
