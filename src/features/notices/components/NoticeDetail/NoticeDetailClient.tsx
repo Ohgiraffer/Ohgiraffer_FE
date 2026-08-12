@@ -15,6 +15,7 @@ import {
    type NoticeDetail,
 } from '@/services/notice.service';
 import { formatNoticeDate } from '../../formatNoticeDate';
+import { parseNoticeId } from '../../parseNoticeId';
 import NoticeAttachmentList from './NoticeAttachmentList';
 
 type Props = {
@@ -24,7 +25,7 @@ type Props = {
 // 공지사항 상세 조회 페이지 - 뒤로가기 + 카드(배지/제목/본문/첨부파일) + AI 일정추출 배너 조립
 export default function NoticeDetailClient({ noticeId }: Props) {
    const router = useRouter();
-   const numericNoticeId = Number(noticeId);
+   const numericNoticeId = parseNoticeId(noticeId);
 
    const [notice, setNotice] = useState<NoticeDetail | null>(null);
    const [isLoading, setIsLoading] = useState(true);
@@ -53,7 +54,7 @@ export default function NoticeDetailClient({ noticeId }: Props) {
    );
 
    useEffect(() => {
-      if (!Number.isInteger(numericNoticeId)) return;
+      if (numericNoticeId === undefined) return;
       let isMounted = true;
 
       getNoticeDetail(numericNoticeId)
@@ -108,7 +109,7 @@ export default function NoticeDetailClient({ noticeId }: Props) {
    };
 
    const handleDelete = async () => {
-      if (isDeleting) return;
+      if (isDeleting || numericNoticeId === undefined) return;
       setIsDeleting(true);
 
       try {
@@ -127,7 +128,7 @@ export default function NoticeDetailClient({ noticeId }: Props) {
       }
    };
 
-   if (!Number.isInteger(numericNoticeId) || (hasError && !isLoading)) {
+   if (numericNoticeId === undefined || (hasError && !isLoading)) {
       return (
          <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
             <div className="mx-auto w-full max-w-4xl">

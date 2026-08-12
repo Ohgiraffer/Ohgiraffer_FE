@@ -31,13 +31,15 @@ export default function CategoryManageModal({
    const [deletingId, setDeletingId] = useState<number | null>(null);
 
    // 닫아도 컴포넌트 자체는 계속 마운트돼있다(!open일 때 null만 반환) - 입력 중이던 값이 다음에
-   // 열었을 때도 남아있지 않도록, open이 바뀌는 순간(effect가 아니라 렌더링 중에) 초기화한다
+   // 열었을 때도 남아있지 않도록, open이 바뀌는 순간(effect가 아니라 렌더링 중에) 초기화한다.
+   // deletingId는 여기서 건드리지 않는다 - 삭제 요청이 진행 중일 때 모달을 닫았다가 다시 열면
+   // "한 번에 하나씩만" 지운다는 잠금이 풀려 새 삭제를 또 시작할 수 있다. 이 값은 handleRemove의
+   // finally가 실제 삭제가 끝난 시점에 알아서 풀어준다(컴포넌트가 계속 마운트돼있어 안전함)
    const [prevOpen, setPrevOpen] = useState(open);
    if (open !== prevOpen) {
       setPrevOpen(open);
       if (!open) {
          setNewCategoryName('');
-         setDeletingId(null);
       }
    }
 
