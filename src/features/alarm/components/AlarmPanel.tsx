@@ -28,6 +28,7 @@ export default function NotificationPanel({
    removeOne,
    notificationsEnabled,
    setNotificationsEnabled,
+   isUpdatingNotificationSetting,
    isLoading,
    hasError,
    retry,
@@ -90,8 +91,9 @@ export default function NotificationPanel({
             <Switch
                checked={notificationsEnabled}
                onCheckedChange={setNotificationsEnabled}
+               disabled={isUpdatingNotificationSetting}
                aria-label="알림 켜기/끄기"
-               className="cursor-pointer data-checked:bg-brand-green"
+               className="cursor-pointer data-checked:bg-brand-green disabled:cursor-not-allowed disabled:opacity-50"
             />
          </div>
 

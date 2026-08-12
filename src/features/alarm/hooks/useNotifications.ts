@@ -8,6 +8,8 @@ import {
    getUnreadNotificationCount,
    markNotificationAsRead,
 } from '@/services/notification.service';
+import { updateAlarmSetting } from '@/services/user.service';
+import { useAuth } from '@/components/auth/AuthContext';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import { mapNotificationDto } from '../mapNotification';
@@ -20,13 +22,41 @@ const TOAST_INDIVIDUAL_LIMIT = 3;
 
 // 알림 패널 전체 상태 - Header에서 한 번만 호출해서 배지 카운트와 패널에 동일한 상태를 공유해야 함
 export function useNotifications() {
+   const { me } = useAuth();
    const [notifications, setNotifications] = useState<NotificationItem[]>([]);
    const [selectedIds, setSelectedIds] = useState<number[]>([]);
-   // TODO: 알림 설정 저장 API가 아직 없어 지금은 로컬 상태만 - 새로고침하면 항상 켜짐으로 초기화됨.
-   // 다만 켜짐/꺼짐 자체는 배지·새 알림 토스트 노출 여부에 실제로 반영된다(저장만 안 될 뿐)
+   // /user/me의 notificationOn을 초깃값으로 쓴다(me가 아직 로딩 전이면 일단 켜짐으로 시작)
    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+   const [isUpdatingNotificationSetting, setIsUpdatingNotificationSetting] = useState(false);
    const [isLoading, setIsLoading] = useState(true);
    const [hasError, setHasError] = useState(false);
+
+   // me가 처음 로드되거나(로그인 복구 등) 서버 값이 실제로 바뀌었을 때만 동기화한다. useEffect 대신
+   // 렌더 중에 이전 값과 비교해 처리해야 값이 바뀐 바로 그 렌더에서 한 번에 반영되고, 그 뒤 내가
+   // 직접 토글한 값을 다른 이유로 재조회된 me가 되돌리지 않는다(ChatConversation.tsx의 패치 반영과 동일 패턴)
+   const [syncedMeNotificationOn, setSyncedMeNotificationOn] = useState<boolean | undefined>(undefined);
+   if (me && me.notificationOn !== syncedMeNotificationOn) {
+      setSyncedMeNotificationOn(me.notificationOn);
+      setNotificationsEnabled(me.notificationOn);
+   }
+
+   // 토글 API는 원하는 값을 보내는 게 아니라 호출할 때마다 서버가 현재 값을 뒤집는 방식이라,
+   // 연타하면 요청 순서가 뒤바뀌어 의도와 다른 상태로 끝날 수 있다 - 응답을 받기 전까진 다시 못 누르게 막는다
+   const toggleNotificationsEnabled = (nextEnabled: boolean) => {
+      if (isUpdatingNotificationSetting) return;
+      const previous = notificationsEnabled;
+      setNotificationsEnabled(nextEnabled);
+      setIsUpdatingNotificationSetting(true);
+      updateAlarmSetting()
+         .then((result) => setNotificationsEnabled(result.notificationOn))
+         .catch((err) => {
+            setNotificationsEnabled(previous);
+            toast.error(
+               err instanceof ApiError ? err.message : '알림 설정을 변경하지 못했습니다. 잠시 후 다시 시도해주세요.',
+            );
+         })
+         .finally(() => setIsUpdatingNotificationSetting(false));
+   };
 
    // 폴링 콜백/비동기 콜백이 항상 최신 값을 보도록 ref로도 들고 있는다(클로저가 호출 시점 값에 고정되는 것 방지)
    const notificationsEnabledRef = useRef(notificationsEnabled);
@@ -205,7 +235,8 @@ export function useNotifications() {
       removeSelected,
       removeOne,
       notificationsEnabled,
-      setNotificationsEnabled,
+      setNotificationsEnabled: toggleNotificationsEnabled,
+      isUpdatingNotificationSetting,
       isLoading,
       hasError,
       retry,

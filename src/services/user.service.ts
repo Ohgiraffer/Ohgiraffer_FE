@@ -17,6 +17,16 @@ export function getMe() {
    return apiFetch<Me>('/user/me');
 }
 
+export interface AlarmSettingResponse {
+   notificationOn: boolean;
+}
+
+// 개인 알림 설정 - 원하는 값을 보내는 게 아니라 호출할 때마다 서버가 현재 값을 뒤집는(toggle) 방식.
+// 응답의 notificationOn이 그 결과로 확정된 값
+export function updateAlarmSetting() {
+   return apiFetch<AlarmSettingResponse>('/user/alarm-setting', { method: 'PATCH' });
+}
+
 export interface RegisterUserRow {
    name: string;
    email: string;
