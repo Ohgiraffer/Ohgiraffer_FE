@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Building, LayoutGrid, List, TriangleAlert } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
 import SearchInput from '@/components/ui/SearchInput';
@@ -8,6 +8,7 @@ import SpaceGridView from './SpaceGridView';
 import SpaceListView from './SpaceListView';
 import SpaceManagePanel from './SpaceManagePanel';
 import { useSpaceReservation } from '../hooks/useSpaceReservation';
+import { useSidePanel } from '@/components/layout/SidePanelContext';
 
 // 공간 예약(자리 현황) 페이지 - 헤더(제목+검색+뷰토글) + 안내 배너 + 그리드/리스트 뷰 조립
 export default function SpaceReservationClient() {
@@ -29,7 +30,9 @@ export default function SpaceReservationClient() {
       addSpace,
       removeSpace,
    } = useSpaceReservation();
-   const [isManagePanelOpen, setIsManagePanelOpen] = useState(false);
+   // 알림/채팅 등 다른 우측 패널이 열려 있으면 공간 관리를 열 때 자동으로 닫히도록 공용 상태로 관리
+   const { isOpen: isManagePanelOpen, open: openManagePanel, close: closeManagePanel } =
+      useSidePanel('space-manage');
 
    // 공간 관리 패널에 넘길 행 - 재실 인원이 있으면 삭제 불가
    const manageRows = useMemo(
@@ -57,7 +60,7 @@ export default function SpaceReservationClient() {
                {canManageSpaces && (
                   <button
                      type="button"
-                     onClick={() => setIsManagePanelOpen(true)}
+                     onClick={openManagePanel}
                      className="flex cursor-pointer items-center gap-1.5 rounded-xs border border-brand-green bg-white px-3 h-9 text-sm font-semibold text-brand-green hover:bg-gray-50"
                   >
                      <Building size={16} />
@@ -143,7 +146,7 @@ export default function SpaceReservationClient() {
          {canManageSpaces && (
             <SpaceManagePanel
                open={isManagePanelOpen}
-               onClose={() => setIsManagePanelOpen(false)}
+               onClose={closeManagePanel}
                spaces={manageRows}
                onAddSpace={addSpace}
                onRemoveSpace={removeSpace}
