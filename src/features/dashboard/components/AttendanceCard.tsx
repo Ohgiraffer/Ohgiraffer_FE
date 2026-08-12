@@ -26,7 +26,7 @@ export default function AttendanceCard() {
                <ClipboardCheck size={16} className="text-gray-400" />
                출결 현황
             </h2>
-            <Link href="/attendance" className="text-xs text-gray-400 hover:text-gray-600">
+            <Link href="/tracker" className="text-xs text-gray-400 hover:text-gray-600">
                상세
             </Link>
          </div>
