@@ -18,6 +18,7 @@ import {
 import NoticeContentPanel from './NoticeContentPanel';
 import NoticeSettingsPanel from './NoticeSettingsPanel';
 import { useNoticeWriteForm } from '../../hooks/useNoticeWriteForm';
+import { parseNoticeId } from '../../parseNoticeId';
 
 type Props = {
    // 주어지면 수정 모드 - 해당 id의 공지를 실제 상세 조회 API로 불러와 폼을 프리필함
@@ -29,14 +30,17 @@ type Props = {
 // 폼(NoticeWriteForm)을 아예 그리지 않고 로딩 화면만 보여준다 - 도착한 뒤에야 그 값으로 마운트됨
 export default function NoticeWriteClient({ noticeId }: Props) {
    const router = useRouter();
-   const numericNoticeId = noticeId ? Number(noticeId) : undefined;
+   const numericNoticeId = parseNoticeId(noticeId);
    const isEditMode = Boolean(noticeId);
+   // noticeId가 양의 정수 문자열이 아니면(예: 잘못된 주소로 직접 진입) 조회 자체를 시도할 수 없는
+   // 상태 - 초기 state 값에서부터 이 경우를 반영해두면 effect가 "불러오는 중..."에서 못 빠져나오지 않는다
+   const isInvalidNoticeId = isEditMode && numericNoticeId === undefined;
 
    const [categories, setCategories] = useState<NoticeCategory[]>([]);
    const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
    const [initialNotice, setInitialNotice] = useState<NoticeDetail | null>(null);
-   const [isLoadingNotice, setIsLoadingNotice] = useState(isEditMode);
+   const [isLoadingNotice, setIsLoadingNotice] = useState(isEditMode && !isInvalidNoticeId);
    const [hasNoticeError, setHasNoticeError] = useState(false);
 
    useEffect(() => {
@@ -64,7 +68,9 @@ export default function NoticeWriteClient({ noticeId }: Props) {
    }, []);
 
    useEffect(() => {
-      if (!isEditMode || !numericNoticeId) return;
+      // isInvalidNoticeId가 false인데도 numericNoticeId가 undefined일 수는 없지만, TS는 그
+      // 관계를 모르므로 narrowing을 위해 명시적으로 한 번 더 확인한다
+      if (!isEditMode || isInvalidNoticeId || numericNoticeId === undefined) return;
       let isMounted = true;
 
       getNoticeDetail(numericNoticeId)
@@ -87,7 +93,7 @@ export default function NoticeWriteClient({ noticeId }: Props) {
       return () => {
          isMounted = false;
       };
-   }, [isEditMode, numericNoticeId, router]);
+   }, [isEditMode, isInvalidNoticeId, numericNoticeId, router]);
 
    if (isEditMode && isLoadingNotice) {
       return (
@@ -219,6 +225,7 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
                onRequiredChange={form.setIsRequired}
                visibility={form.visibility}
                onVisibilityChange={form.setVisibility}
+               isEditMode={isEditMode}
                existingAttachments={form.existingAttachments}
                onRemoveExisting={form.removeExistingAttachment}
                pendingAttachments={form.pendingAttachments}

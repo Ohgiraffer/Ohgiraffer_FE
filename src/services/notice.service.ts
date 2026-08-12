@@ -155,10 +155,11 @@ export interface UpdateNoticeRequest {
    categoryId: number;
    title: string;
    content: string;
-   // PUT 특성상 전체 교체라 생략하면 "그대로 유지"가 아니라 기본값(false)으로 저장됨 - 항상 보내야 함
-   pinned?: boolean;
+   // PUT 특성상 전체 교체라 생략하면 "그대로 유지"가 아니라 기본값(false)으로 저장됨 - 항상 보내야
+   // 해서 선택 필드로 두지 않는다(호출부가 실수로 빠뜨리면 컴파일 시점에 바로 걸리게 함)
+   pinned: boolean;
    // 생략하면 기본값(true)으로 저장됨(비공개였어도 공개로 바뀜) - 항상 보내야 함
-   visibleToTrainee?: boolean;
+   visibleToTrainee: boolean;
 }
 
 export interface UpdateNoticeResponse {
