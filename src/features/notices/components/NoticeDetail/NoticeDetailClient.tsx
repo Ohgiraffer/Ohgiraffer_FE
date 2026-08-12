@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ChevronLeft, Pencil, Pin, Sparkles, Trash2, User, CalendarDays } from 'lucide-react';
-import { format } from 'date-fns';
+import DOMPurify from 'isomorphic-dompurify';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
@@ -14,6 +14,7 @@ import {
    getNoticeDetail,
    type NoticeDetail,
 } from '@/services/notice.service';
+import { formatNoticeDate } from '../../formatNoticeDate';
 import NoticeAttachmentList from './NoticeAttachmentList';
 
 type Props = {
@@ -32,6 +33,24 @@ export default function NoticeDetailClient({ noticeId }: Props) {
    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
    const [isDeleting, setIsDeleting] = useState(false);
    const [isConfirming, setIsConfirming] = useState(false);
+
+   // noticeId가 다른 값으로 바뀌면(같은 페이지 컴포넌트가 재사용되며 다른 공지로 이동하는 경우)
+   // 이전 조회의 에러/로딩 상태가 남아있어 새 조회가 성공해도 이전 에러 화면이 계속 보일 수 있다 -
+   // effect 안이 아니라 렌더링 중에 바로 리셋한다(리트라이는 retry()가 이미 직접 리셋해줌)
+   const [prevNoticeId, setPrevNoticeId] = useState(numericNoticeId);
+   if (numericNoticeId !== prevNoticeId) {
+      setPrevNoticeId(numericNoticeId);
+      setIsLoading(true);
+      setHasError(false);
+   }
+
+   // 본문은 작성자가 에디터로 만든 HTML을 그대로 저장/조회한 값이라, 편집기를 거치지 않은 API
+   // 클라이언트가 <script>/onerror 같은 실행형 마크업을 실어 보내도 서버가 막지 않으면 그대로
+   // 저장돼 다른 사용자 화면에서 실행될 수 있다(저장형 XSS) - 렌더링 직전에 항상 정화한다
+   const sanitizedContent = useMemo(
+      () => (notice ? DOMPurify.sanitize(notice.content) : ''),
+      [notice],
+   );
 
    useEffect(() => {
       if (!Number.isInteger(numericNoticeId)) return;
@@ -215,7 +234,7 @@ export default function NoticeDetailClient({ noticeId }: Props) {
                         <span>·</span>
                         <span className="flex items-center gap-2">
                            <CalendarDays size={15} />
-                           {format(new Date(notice.createdAt), 'yyyy-MM-dd')}
+                           {formatNoticeDate(notice.createdAt)}
                         </span>
                      </div>
                      <label
@@ -240,7 +259,7 @@ export default function NoticeDetailClient({ noticeId }: Props) {
 
                <div
                   className="notice-editor-content px-8 py-6 text-sm"
-                  dangerouslySetInnerHTML={{ __html: notice.content }}
+                  dangerouslySetInnerHTML={{ __html: sanitizedContent }}
                />
 
                <NoticeAttachmentList attachments={notice.attachments} />

@@ -30,6 +30,17 @@ export default function CategoryManageModal({
    // 한 번에 하나씩만 지울 수 있게 지우는 중인 카테고리 id만 들고 있는다(다른 행은 그대로 조작 가능)
    const [deletingId, setDeletingId] = useState<number | null>(null);
 
+   // 닫아도 컴포넌트 자체는 계속 마운트돼있다(!open일 때 null만 반환) - 입력 중이던 값이 다음에
+   // 열었을 때도 남아있지 않도록, open이 바뀌는 순간(effect가 아니라 렌더링 중에) 초기화한다
+   const [prevOpen, setPrevOpen] = useState(open);
+   if (open !== prevOpen) {
+      setPrevOpen(open);
+      if (!open) {
+         setNewCategoryName('');
+         setDeletingId(null);
+      }
+   }
+
    useEffect(() => {
       if (!open) return;
 

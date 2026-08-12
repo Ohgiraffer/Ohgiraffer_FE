@@ -9,7 +9,6 @@ import SearchInput from '@/components/ui/SearchInput';
 import Pagination from '@/components/ui/Pagination';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
-import { format } from 'date-fns';
 import {
    createNoticeCategory,
    deleteNoticeCategory,
@@ -18,6 +17,7 @@ import {
    type NoticeCategory,
    type NoticeListItem,
 } from '@/services/notice.service';
+import { formatNoticeDate } from '../formatNoticeDate';
 import CategoryManageModal from './CategoryManageModal';
 
 const PAGE_SIZE = 6;
@@ -265,7 +265,7 @@ export default function NoticesPageClient() {
                                  {notice.authorName ?? '(알 수 없음)'}
                               </td>
                               <td className="px-6 py-4 text-gray-500">
-                                 {format(new Date(notice.createdAt), 'yyyy-MM-dd')}
+                                 {formatNoticeDate(notice.createdAt)}
                               </td>
                            </tr>
                         );
