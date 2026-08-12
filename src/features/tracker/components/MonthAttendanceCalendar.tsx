@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
 import { addMonths, endOfMonth, format, getDay, startOfMonth, subMonths } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
-   ATTENDANCE_STATUS_COLOR_GROUP,
+   ATTENDANCE_DAY_STATUS_COLOR_GROUP,
    type AttendanceColorGroup,
    type AttendanceDayRecord,
 } from '../types';
@@ -13,21 +12,24 @@ import {
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 // 대시보드 출결 요약 카드(AttendanceCard)와 같은 색 규칙: 출석 계열은 초록, 지각/조퇴/외출은
-// brand-red, 결석만 더 진한 brand-maroon으로 구분한다
-const COLOR_GROUP_TEXT_CLASSES: Record<AttendanceColorGroup, string> = {
-   green: 'text-brand-green font-semibold',
-   pink: 'text-brand-red font-semibold',
-   red: 'text-brand-maroon font-bold',
+// brand-red, 결석만 더 진한 brand-maroon으로 구분한다. 숫자 글자색이 아니라 배경으로 구분한다
+const COLOR_GROUP_BG_CLASSES: Record<AttendanceColorGroup, string> = {
+   green: 'bg-brand-green/15 text-brand-green font-semibold',
+   pink: 'bg-brand-red/15 text-brand-red font-semibold',
+   red: 'bg-brand-maroon/15 text-brand-maroon font-bold',
 };
 
 interface MonthAttendanceCalendarProps {
-   initialDate?: Date;
+   currentDate: Date;
+   onMonthChange: (date: Date) => void;
    records: AttendanceDayRecord[];
 }
 
-export default function MonthAttendanceCalendar({ initialDate, records }: MonthAttendanceCalendarProps) {
-   const [currentDate, setCurrentDate] = useState(() => initialDate ?? new Date());
-
+export default function MonthAttendanceCalendar({
+   currentDate,
+   onMonthChange,
+   records,
+}: MonthAttendanceCalendarProps) {
    const recordsByDate = new Map(records.map((record) => [record.date, record]));
 
    const monthStart = startOfMonth(currentDate);
@@ -50,7 +52,7 @@ export default function MonthAttendanceCalendar({ initialDate, records }: MonthA
             <div className="flex items-center gap-1">
                <button
                   type="button"
-                  onClick={() => setCurrentDate((prev) => subMonths(prev, 1))}
+                  onClick={() => onMonthChange(subMonths(currentDate, 1))}
                   aria-label="이전 달"
                   className="cursor-pointer rounded-xs p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                >
@@ -58,7 +60,7 @@ export default function MonthAttendanceCalendar({ initialDate, records }: MonthA
                </button>
                <button
                   type="button"
-                  onClick={() => setCurrentDate((prev) => addMonths(prev, 1))}
+                  onClick={() => onMonthChange(addMonths(currentDate, 1))}
                   aria-label="다음 달"
                   className="cursor-pointer rounded-xs p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                >
@@ -83,11 +85,16 @@ export default function MonthAttendanceCalendar({ initialDate, records }: MonthA
 
                   const dateStr = format(date, 'yyyy-MM-dd');
                   const record = recordsByDate.get(dateStr);
-                  const colorGroup = record ? ATTENDANCE_STATUS_COLOR_GROUP[record.status] : null;
+                  const colorGroup = record?.status ? ATTENDANCE_DAY_STATUS_COLOR_GROUP[record.status] : null;
 
                   return (
                      <div key={key} className="py-2.5">
-                        <span className={cn('text-gray-700', colorGroup && COLOR_GROUP_TEXT_CLASSES[colorGroup])}>
+                        <span
+                           className={cn(
+                              'inline-flex h-7 w-7 items-center justify-center rounded-full text-gray-700',
+                              colorGroup && COLOR_GROUP_BG_CLASSES[colorGroup],
+                           )}
+                        >
                            {date.getDate()}
                         </span>
                      </div>

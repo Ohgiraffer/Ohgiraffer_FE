@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, Search } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import {
    Select,
    SelectContent,
@@ -11,8 +11,9 @@ import {
    SelectValue,
 } from '@/components/ui/shadcn/select';
 import Pagination from '@/components/ui/Pagination';
+import SearchInput from '@/components/ui/SearchInput';
 import StatusBadge from '@/features/submissions/components/StatusBadge';
-import { MOCK_ATTENDANCE_TREND, MOCK_TRAINEES, MOCK_TRAINING_OVERVIEW_STATS } from '../mockData';
+import { useManagerTrackerData } from '../hooks/useManagerTrackerData';
 import { TRAINEE_RISK_LABELS, TRAINEE_RISK_TONES, type TraineeRiskStatus } from '../types';
 import AttendanceTrendChart from '../components/AttendanceTrendChart';
 
@@ -28,35 +29,52 @@ const RISK_FILTER_OPTIONS: Array<{ value: TraineeRiskStatus; label: string }> = 
 const OVERVIEW_STATS = [
    { label: '평균 출석률', valueKey: 'averageAttendanceRate', suffix: '%', caption: '전체 기준' },
    { label: '예상 수료율', valueKey: 'expectedCompletionRate', suffix: '%', caption: '진행 기준' },
-   { label: '전체 훈련생', valueKey: 'totalTrainees', suffix: '명', caption: '등록 기준' },
-   { label: '진행 훈련생', valueKey: 'activeTrainees', suffix: '명', caption: '정상 진행 중' },
-   { label: '관리 대상', valueKey: 'managedTrainees', suffix: '명', caption: '주의 이상' },
-   { label: '위기 훈련생', valueKey: 'atRiskTrainees', suffix: '명', caption: '경고·제적위험' },
-   { label: '중도 이탈', valueKey: 'dropoutTrainees', suffix: '명', caption: '수강 철회' },
+   { label: '전체 훈련생', valueKey: 'totalStudents', suffix: '명', caption: '등록 기준' },
+   { label: '진행 훈련생', valueKey: 'activeStudents', suffix: '명', caption: '정상 진행 중' },
+   { label: '관리 대상', valueKey: 'managedStudents', suffix: '명', caption: '주의 이상' },
+   { label: '위기 훈련생', valueKey: 'atRiskStudents', suffix: '명', caption: '경고·제적위험' },
+   { label: '중도 이탈', valueKey: 'dropoutStudents', suffix: '명', caption: '수강 철회' },
 ] as const;
 
 export default function StatusTab() {
    const router = useRouter();
+   const {
+      stats,
+      trainees,
+      periods,
+      isLoading,
+      error,
+      retry,
+      trend,
+      isLoadingTrend,
+      trendError,
+      selectedPeriodId,
+      changePeriod,
+      retryTrend,
+   } = useManagerTrackerData();
    const [riskFilter, setRiskFilter] = useState<TraineeRiskStatus | ''>('');
    const [dangerOnly, setDangerOnly] = useState<'ALL' | 'AT_RISK'>('ALL');
-   const [classFilter, setClassFilter] = useState('ALL');
+   const [teamFilter, setTeamFilter] = useState('ALL');
    const [searchText, setSearchText] = useState('');
    const [currentPage, setCurrentPage] = useState(1);
 
-   const classOptions = useMemo(
-      () => Array.from(new Set(MOCK_TRAINEES.map((trainee) => trainee.className))),
-      [],
+   const teamOptions = useMemo(
+      () =>
+         Array.from(
+            new Set(trainees.map((trainee) => trainee.teamName).filter((name): name is string => !!name)),
+         ),
+      [trainees],
    );
 
    const filteredTrainees = useMemo(() => {
-      return MOCK_TRAINEES.filter((trainee) => {
+      return trainees.filter((trainee) => {
          if (riskFilter && trainee.riskStatus !== riskFilter) return false;
          if (dangerOnly === 'AT_RISK' && trainee.riskStatus === 'NORMAL') return false;
-         if (classFilter !== 'ALL' && trainee.className !== classFilter) return false;
+         if (teamFilter !== 'ALL' && trainee.teamName !== teamFilter) return false;
          if (searchText.trim() && !trainee.name.includes(searchText.trim())) return false;
          return true;
       });
-   }, [riskFilter, dangerOnly, classFilter, searchText]);
+   }, [trainees, riskFilter, dangerOnly, teamFilter, searchText]);
 
    const totalPages = Math.max(1, Math.ceil(filteredTrainees.length / PAGE_SIZE));
    const pagedTrainees = filteredTrainees.slice(
@@ -64,24 +82,82 @@ export default function StatusTab() {
       currentPage * PAGE_SIZE,
    );
 
+   if (isLoading) {
+      return <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>;
+   }
+
+   if (error || !stats) {
+      return (
+         <div className="flex flex-col items-center gap-3 py-16">
+            <p className="text-sm text-gray-400">현황 정보를 불러오지 못했습니다.</p>
+            <button
+               type="button"
+               onClick={retry}
+               className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+               다시 시도
+            </button>
+         </div>
+      );
+   }
+
    return (
       <div>
-         <div className="grid grid-cols-7 gap-4">
+         <div className="grid grid-cols-7 divide-x divide-gray-100 rounded-sm border border-gray-200 bg-white">
             {OVERVIEW_STATS.map((stat) => (
-               <div key={stat.label}>
-                  <p className="text-xs text-gray-400">{stat.label}</p>
-                  <p className="mt-1 text-xl font-bold text-gray-900">
-                     {MOCK_TRAINING_OVERVIEW_STATS[stat.valueKey]}
+               <div key={stat.label} className="flex flex-col items-center gap-1 py-4">
+                  <span className="text-xs text-gray-400">{stat.label}</span>
+                  <span className="text-xl font-bold text-gray-900">
+                     {stats[stat.valueKey]}
                      {stat.suffix}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-gray-400">{stat.caption}</p>
+                  </span>
+                  <span className="text-[11px] text-gray-400">{stat.caption}</span>
                </div>
             ))}
          </div>
 
          <div className="mt-6 rounded-sm border border-gray-200 bg-white p-6">
-            <p className="text-sm font-bold text-gray-900">출석 추이</p>
-            <AttendanceTrendChart data={MOCK_ATTENDANCE_TREND} />
+            <div className="flex items-center justify-between">
+               <p className="text-sm font-bold text-gray-900">출석 추이</p>
+               <Select
+                  value={selectedPeriodId != null ? String(selectedPeriodId) : ''}
+                  onValueChange={(value) => changePeriod(value ? Number(value) : null)}
+               >
+                  <SelectTrigger className="h-9 w-35 rounded-xs bg-white">
+                     <SelectValue placeholder="현재 단위기간">
+                        {(value: string | null) => {
+                           const period = value
+                              ? periods.find((candidate) => String(candidate.id) === value)
+                              : undefined;
+                           return period ? `${period.periodNo}단위` : '현재 단위기간';
+                        }}
+                     </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false} align="end" sideOffset={4}>
+                     {periods.map((period) => (
+                        <SelectItem key={period.id} value={String(period.id)}>
+                           {period.periodNo}단위
+                        </SelectItem>
+                     ))}
+                  </SelectContent>
+               </Select>
+            </div>
+            {isLoadingTrend ? (
+               <p className="py-10 text-center text-sm text-gray-400">불러오는 중...</p>
+            ) : trendError ? (
+               <div className="flex flex-col items-center gap-2 py-10">
+                  <p className="text-sm text-gray-400">출석 추이를 불러오지 못했습니다.</p>
+                  <button
+                     type="button"
+                     onClick={retryTrend}
+                     className="cursor-pointer rounded-xs border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                     다시 시도
+                  </button>
+               </div>
+            ) : (
+               <AttendanceTrendChart data={trend} />
+            )}
          </div>
 
          <div className="mt-6 flex flex-wrap items-center gap-2">
@@ -92,14 +168,14 @@ export default function StatusTab() {
                   setCurrentPage(1);
                }}
             >
-               <SelectTrigger className="h-9 w-32 rounded-xs">
+               <SelectTrigger className="h-9 w-32 rounded-xs bg-white">
                   <SelectValue placeholder="출결 상태">
                      {(value: string | null) =>
                         RISK_FILTER_OPTIONS.find((option) => option.value === value)?.label ?? '출결 상태'
                      }
                   </SelectValue>
                </SelectTrigger>
-               <SelectContent>
+               <SelectContent alignItemWithTrigger={false} align="start" sideOffset={4}>
                   {RISK_FILTER_OPTIONS.map((option) => (
                      <SelectItem key={option.value} value={option.value}>
                         {option.label}
@@ -115,51 +191,47 @@ export default function StatusTab() {
                   setCurrentPage(1);
                }}
             >
-               <SelectTrigger className="h-9 w-32 rounded-xs">
-                  <SelectValue placeholder="위험 여부">
-                     {(value: string | null) => (value === 'AT_RISK' ? '위험군만' : '전체')}
+               <SelectTrigger className="h-9 w-32 rounded-xs bg-white">
+                  <SelectValue placeholder="위험여부">
+                     {(value: string | null) => (value === 'AT_RISK' ? '위험군만' : '위험여부')}
                   </SelectValue>
                </SelectTrigger>
-               <SelectContent>
+               <SelectContent alignItemWithTrigger={false} align="start" sideOffset={4}>
                   <SelectItem value="ALL">전체</SelectItem>
                   <SelectItem value="AT_RISK">위험군만</SelectItem>
                </SelectContent>
             </Select>
 
             <Select
-               value={classFilter}
+               value={teamFilter}
                onValueChange={(value) => {
-                  setClassFilter(value ?? 'ALL');
+                  setTeamFilter(value ?? 'ALL');
                   setCurrentPage(1);
                }}
             >
-               <SelectTrigger className="h-9 w-28 rounded-xs">
-                  <SelectValue placeholder="전체">
-                     {(value: string | null) => (value === 'ALL' || !value ? '전체' : value)}
+               <SelectTrigger className="h-9 w-28 rounded-xs bg-white">
+                  <SelectValue placeholder="팀 전체">
+                     {(value: string | null) => (value === 'ALL' || !value ? '팀 전체' : value)}
                   </SelectValue>
                </SelectTrigger>
-               <SelectContent>
+               <SelectContent alignItemWithTrigger={false} align="start" sideOffset={4}>
                   <SelectItem value="ALL">전체</SelectItem>
-                  {classOptions.map((className) => (
-                     <SelectItem key={className} value={className}>
-                        {className}
+                  {teamOptions.map((teamName) => (
+                     <SelectItem key={teamName} value={teamName}>
+                        {teamName}
                      </SelectItem>
                   ))}
                </SelectContent>
             </Select>
 
-            <div className="relative ml-auto w-64">
-               <Search size={14} className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400" />
-               <input
-                  value={searchText}
-                  onChange={(e) => {
-                     setSearchText(e.target.value);
-                     setCurrentPage(1);
-                  }}
-                  placeholder="훈련생 이름 검색"
-                  className="h-9 w-full rounded-xs border border-gray-200 bg-white pr-3 pl-8 text-sm text-gray-900 outline-none focus:border-gray-400"
-               />
-            </div>
+            <SearchInput
+               onSearch={(value) => {
+                  setSearchText(value);
+                  setCurrentPage(1);
+               }}
+               placeholder="훈련생 이름 검색"
+               className="ml-auto w-64"
+            />
          </div>
 
          <div className="mt-4 overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
@@ -167,8 +239,8 @@ export default function StatusTab() {
                <thead>
                   <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
                      <th className="w-[18%] px-6 py-3 font-medium">이름</th>
-                     <th className="w-[10%] px-3 py-3 font-medium">반</th>
-                     <th className="w-[18%] px-3 py-3 font-medium">출석율</th>
+                     <th className="w-[10%] px-3 py-3 font-medium">팀</th>
+                     <th className="w-[18%] px-3 py-3 font-medium text-center">출석율</th>
                      <th className="w-[10%] px-3 py-3 text-center font-medium">지각</th>
                      <th className="w-[10%] px-3 py-3 text-center font-medium">조퇴</th>
                      <th className="w-[10%] px-3 py-3 text-center font-medium">외출</th>
@@ -185,17 +257,23 @@ export default function StatusTab() {
                         </td>
                      </tr>
                   ) : (
-                     pagedTrainees.map((trainee) => (
+                     pagedTrainees.map((trainee, index) => (
                         <tr
-                           key={trainee.traineeId}
-                           onClick={() => router.push(`/tracker/${trainee.traineeId}`)}
-                           className="cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]"
+                           key={`${trainee.name}-${index}`}
+                           onClick={() => {
+                              if (trainee.traineeId != null) router.push(`/tracker/${trainee.traineeId}`);
+                           }}
+                           className={
+                              trainee.traineeId != null
+                                 ? 'cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]'
+                                 : 'border-b border-[#F3F4F6] last:border-b-0'
+                           }
                         >
                            <td className="px-6 py-4 font-medium text-gray-900">{trainee.name}</td>
-                           <td className="px-3 py-4 text-gray-700">{trainee.className}</td>
+                           <td className="px-3 py-4 text-gray-700">{trainee.teamName ?? '-'}</td>
                            <td className="px-3 py-4">
-                              <div className="flex items-center gap-2">
-                                 <div className="h-1.5 w-16 shrink-0 overflow-hidden rounded-full bg-gray-100">
+                              <div className="flex items-center justify-center gap-2">
+                                 <div className="h-1.5 w-full shrink-0 overflow-hidden rounded-full bg-gray-100">
                                     <div
                                        className="h-full rounded-full bg-brand-sage"
                                        style={{ width: `${trainee.attendanceRate}%` }}
@@ -214,7 +292,7 @@ export default function StatusTab() {
                               </StatusBadge>
                            </td>
                            <td className="px-3 py-4 text-right text-gray-300">
-                              <ChevronRight size={16} />
+                              {trainee.traineeId != null && <ChevronRight size={16} />}
                            </td>
                         </tr>
                      ))

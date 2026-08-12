@@ -3,7 +3,7 @@ import type { TraineeApprovalHistoryEntry } from '../../types';
 export default function ApprovalDetailTab({ approvals }: { approvals: TraineeApprovalHistoryEntry[] }) {
    return (
       <div className="overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
-         <table className="w-full table-fixed text-left text-sm">
+         <table className="w-full table-fixed text-center text-sm">
             <thead>
                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
                   <th className="w-[20%] px-6 py-3 font-medium">신청일</th>
