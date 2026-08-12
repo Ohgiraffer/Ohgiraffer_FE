@@ -24,7 +24,10 @@ export default function LeaveRequestForm() {
          <h2 className="text-lg font-bold text-gray-900">휴가 신청</h2>
 
          <div className="mt-2 rounded-xs border border-[#F3DFA0] bg-[#FFF9EC] px-4 py-3 text-sm text-gray-700">
-            잔여 휴가: <span className="font-bold">{remainingLeaveDays}일</span>
+            잔여 휴가:{' '}
+            <span className="font-bold">
+               {remainingLeaveDays === null ? '불러오는 중...' : `${remainingLeaveDays}일`}
+            </span>
          </div>
 
          <div className="mt-4 grid grid-cols-2 gap-6">

@@ -1,13 +1,11 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import { createLeaveApproval } from '@/services/approval.service';
+import { getLeaveSickCount } from '@/services/attendance.service';
 import type { LeaveRequestFormData } from '../types';
-
-// 잔여 휴가 일수 조회 API가 아직 없어 임시로 하드코딩 (백엔드 준비되면 연동)
-const MOCK_REMAINING_LEAVE_DAYS = 3;
 
 const INITIAL_FORM: LeaveRequestFormData = {
    startDate: '',
@@ -24,6 +22,30 @@ export function useLeaveRequestForm() {
    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
    // 더블클릭으로 인한 중복 제출 방지 - state는 비동기라 클릭 시점에 바로 막아줄 동기 가드가 필요
    const isSubmittingRef = useRef(false);
+
+   // 이 페이지는 휴가 신청만 다루므로 잔여 병결(remainingSickDays)은 조회는 하되 화면에는 쓰지 않는다
+   const [remainingLeaveDays, setRemainingLeaveDays] = useState<number | null>(null);
+
+   useEffect(() => {
+      let isMounted = true;
+
+      getLeaveSickCount()
+         .then((data) => {
+            if (isMounted) setRemainingLeaveDays(data.remainingLeaveDays);
+         })
+         .catch((err) => {
+            if (!isMounted) return;
+            toast.error(
+               err instanceof ApiError
+                  ? err.message
+                  : '잔여 휴가 일수를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+            );
+         });
+
+      return () => {
+         isMounted = false;
+      };
+   }, []);
 
    const updateField = <K extends keyof LeaveRequestFormData>(
       field: K,
@@ -85,6 +107,6 @@ export function useLeaveRequestForm() {
       submit,
       confirmSubmit,
       cancelSubmit,
-      remainingLeaveDays: MOCK_REMAINING_LEAVE_DAYS,
+      remainingLeaveDays,
    };
 }

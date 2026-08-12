@@ -8,6 +8,7 @@ import type {
    GoogleSheetSaveResult,
 } from '@/components/ui/googlesheet/GoogleSheetSync';
 import {
+   getBudgetSheetSettings,
    getBudgetSummary,
    saveBudgetSheetSettings,
    syncBudgetSheet,
@@ -31,16 +32,41 @@ function notifyUnlessNotConnected(err: unknown, fallback: string) {
    toast.error(err instanceof ApiError ? err.message : fallback);
 }
 
+// GET /budgets/sheets/settings는 연동 전이면 400이 아니라 404(COMMON_006)로 내려온다 - summary
+// 쪽의 400/COMMON_001과 코드가 다르므로 별도로 판별한다
+function notifyUnlessNotFound(err: unknown, fallback: string) {
+   if (err instanceof ApiError && err.status === 404 && err.code === 'COMMON_006') return;
+   toast.error(err instanceof ApiError ? err.message : fallback);
+}
+
 // 매니저의 "예산 관리" 탭 상태. 페이지 진입/새로고침 시마다 먼저 시트를 다시 동기화(POST
 // /budgets/sync)한 뒤 GET /budgets/summary로 최신값을 읽어온다 - summary 조회 자체는 재동기화를
 // 하지 않으므로 sync를 안 부르면 시트를 고쳐도 화면이 갱신되지 않는다.
-// 저장된 시트 설정이 없으면(400/COMMON_001) 아직 연동 전인 정상 상태로 보고 연동 폼만 보여준다
+// 저장된 시트 설정이 없으면(400/COMMON_001) 아직 연동 전인 정상 상태로 보고 연동 폼만 보여준다.
+// 저장된 연동 설정 자체(GET /budgets/sheets/settings)도 별도로 조회해서, 이미 연동을 마친 뒤
+// 새로고침해도 GoogleSheetSync가 "연결됨" 상태로 다시 그려지도록 한다(그동안 이 조회가 없어서
+// 저장은 됐는데 화면엔 매번 연동 폼부터 다시 보이는 문제가 있었음)
 export function useBudgetManagement() {
    const [summary, setSummary] = useState<BudgetSummary | null>(null);
    const [isLoading, setIsLoading] = useState(true);
+   const [isConnected, setIsConnected] = useState(false);
+   const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
 
    useEffect(() => {
       let isMounted = true;
+
+      async function loadSettings() {
+         try {
+            const settings = await getBudgetSheetSettings();
+            if (isMounted) {
+               setIsConnected(true);
+               setSpreadsheetUrl(settings.spreadsheetUrl);
+            }
+         } catch (err) {
+            if (!isMounted) return;
+            notifyUnlessNotFound(err, '예산 시트 연동 설정을 불러오지 못했습니다.');
+         }
+      }
 
       async function loadSummary() {
          try {
@@ -68,6 +94,8 @@ export function useBudgetManagement() {
          }
       }
 
+      // 서로 독립적인 조회라 병렬로 실행한다(하나가 느려도 다른 하나를 막지 않음)
+      loadSettings();
       loadSummary();
 
       return () => {
@@ -91,7 +119,9 @@ export function useBudgetManagement() {
       });
       const freshSummary = await getBudgetSummary();
       setSummary(freshSummary);
+      setIsConnected(true);
+      setSpreadsheetUrl(result.spreadsheetUrl);
    };
 
-   return { summary, isLoading, handleSaveMapping };
+   return { summary, isLoading, isConnected, spreadsheetUrl, handleSaveMapping };
 }

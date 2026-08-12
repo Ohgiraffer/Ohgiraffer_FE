@@ -8,7 +8,8 @@ import { BUDGET_SHEET_COLUMNS, useBudgetManagement } from '../hooks/useBudgetMan
 // 연동 폼 위에 대시보드가 함께 노출된다(사진2). 저장이 끝난 GoogleSheetSync는 스스로 "연결됨"
 // 카드로 바뀐다(사진3) - 강사는 이 탭에서 연동 폼 없이 대시보드만 보게 될 예정(추후 구현)
 export default function BudgetManagementTab() {
-   const { summary, isLoading, handleSaveMapping } = useBudgetManagement();
+   const { summary, isLoading, isConnected, spreadsheetUrl, handleSaveMapping } =
+      useBudgetManagement();
 
    if (isLoading) {
       return <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>;
@@ -17,7 +18,11 @@ export default function BudgetManagementTab() {
    return (
       <div className="flex flex-col gap-6">
          {summary && <BudgetDashboardSummary summary={summary} />}
-         <GoogleSheetSync columns={BUDGET_SHEET_COLUMNS} onSave={handleSaveMapping} />
+         <GoogleSheetSync
+            columns={BUDGET_SHEET_COLUMNS}
+            onSave={handleSaveMapping}
+            initialConnection={isConnected ? { spreadsheetUrl } : undefined}
+         />
       </div>
    );
 }
