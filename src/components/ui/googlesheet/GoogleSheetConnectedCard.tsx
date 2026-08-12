@@ -17,7 +17,7 @@ export default function GoogleSheetConnectedCard({
    extra,
 }: GoogleSheetConnectedCardProps) {
    return (
-      <div className="rounded-xs border border-gray-200 p-5">
+      <div className="rounded-xs border border-gray-200 bg-white p-5">
          <h3 className="text-sm font-bold text-gray-900">Google Sheet 연동</h3>
          <div className="mt-4 flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -34,8 +34,8 @@ export default function GoogleSheetConnectedCard({
             </div>
             <div className="flex shrink-0 items-center gap-2">
                {extra}
-               <span className="flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-brand-green">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-green" />
+               <span className="flex items-center gap-1.5 rounded-sm border border-[#C8D9CE] bg-[#E8F0EC] px-3 py-1 text-[12px] font-semibold text-brand-sage">
+                  <span className="h-1.5 w-1.5 rounded-full bg-brand-sage" />
                   연결됨
                </span>
                <button
