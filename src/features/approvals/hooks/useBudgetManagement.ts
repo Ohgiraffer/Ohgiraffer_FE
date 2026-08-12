@@ -10,6 +10,7 @@ import type {
 import {
    getBudgetSummary,
    saveBudgetSheetSettings,
+   syncBudgetSheet,
    type BudgetSummary,
 } from '@/services/budget.service';
 
@@ -25,8 +26,15 @@ export const BUDGET_SHEET_COLUMNS: GoogleSheetColumnField[] = [
    { key: 'remainingAmount', label: '잔여 예산' },
 ];
 
-// 매니저의 "예산 관리" 탭 상태. 페이지 진입/새로고침 시 GET /budgets/summary로 연동 여부까지 함께
-// 확인한다 - 저장된 시트 설정이 없으면(400/COMMON_001) 아직 연동 전인 정상 상태로 보고 연동 폼만 보여준다
+function notifyUnlessNotConnected(err: unknown, fallback: string) {
+   if (err instanceof ApiError && err.status === 400 && err.code === 'COMMON_001') return;
+   toast.error(err instanceof ApiError ? err.message : fallback);
+}
+
+// 매니저의 "예산 관리" 탭 상태. 페이지 진입/새로고침 시마다 먼저 시트를 다시 동기화(POST
+// /budgets/sync)한 뒤 GET /budgets/summary로 최신값을 읽어온다 - summary 조회 자체는 재동기화를
+// 하지 않으므로 sync를 안 부르면 시트를 고쳐도 화면이 갱신되지 않는다.
+// 저장된 시트 설정이 없으면(400/COMMON_001) 아직 연동 전인 정상 상태로 보고 연동 폼만 보여준다
 export function useBudgetManagement() {
    const [summary, setSummary] = useState<BudgetSummary | null>(null);
    const [isLoading, setIsLoading] = useState(true);
@@ -34,25 +42,33 @@ export function useBudgetManagement() {
    useEffect(() => {
       let isMounted = true;
 
-      getBudgetSummary()
-         .then((data) => {
-            if (isMounted) setSummary(data);
-         })
-         .catch((err) => {
+      async function loadSummary() {
+         try {
+            await syncBudgetSheet();
+         } catch (err) {
             if (!isMounted) return;
-            // 연동 전 상태(400/COMMON_001)는 정상 케이스라 에러 안내 없이 연동 폼만 보여준다.
-            // 그 외(구글 시트 접근 오류 등)는 알려주되, 연동 폼에서 재연동을 시도할 수 있게 둔다
-            if (!(err instanceof ApiError && err.code === 'COMMON_001')) {
-               toast.error(
-                  err instanceof ApiError
-                     ? err.message
-                     : '예산 현황을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
-               );
-            }
-         })
-         .finally(() => {
+            // sync 실패는(연동 전 제외) 알리되, summary는 마지막으로 동기화된 값이라도 계속 시도해서 보여준다
+            notifyUnlessNotConnected(
+               err,
+               '예산 시트 동기화에 실패했습니다. 최신 데이터가 아닐 수 있습니다.',
+            );
+         }
+
+         try {
+            const data = await getBudgetSummary();
+            if (isMounted) setSummary(data);
+         } catch (err) {
+            if (!isMounted) return;
+            notifyUnlessNotConnected(
+               err,
+               '예산 현황을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+            );
+         } finally {
             if (isMounted) setIsLoading(false);
-         });
+         }
+      }
+
+      loadSummary();
 
       return () => {
          isMounted = false;
