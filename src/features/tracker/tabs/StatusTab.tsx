@@ -36,7 +36,11 @@ const OVERVIEW_STATS = [
    { label: '중도 이탈', valueKey: 'dropoutStudents', suffix: '명', caption: '수강 철회' },
 ] as const;
 
-export default function StatusTab() {
+interface StatusTabProps {
+   onGoToSheetSync: () => void;
+}
+
+export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
    const router = useRouter();
    const {
       stats,
@@ -90,13 +94,25 @@ export default function StatusTab() {
       return (
          <div className="flex flex-col items-center gap-3 py-16">
             <p className="text-sm text-gray-400">현황 정보를 불러오지 못했습니다.</p>
-            <button
-               type="button"
-               onClick={retry}
-               className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-               다시 시도
-            </button>
+            <p className="text-xs text-gray-400">
+               출결 시트 연동을 아직 하지 않았다면, 연동 설정 탭에서 먼저 연동해주세요.
+            </p>
+            <div className="flex items-center gap-2">
+               <button
+                  type="button"
+                  onClick={retry}
+                  className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+               >
+                  다시 시도
+               </button>
+               <button
+                  type="button"
+                  onClick={onGoToSheetSync}
+                  className="cursor-pointer rounded-xs bg-brand-green px-4 py-2 text-sm font-medium text-white hover:bg-[#4D655A]"
+               >
+                  연동 설정으로 이동
+               </button>
+            </div>
          </div>
       );
    }

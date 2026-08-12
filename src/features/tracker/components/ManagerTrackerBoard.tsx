@@ -37,7 +37,7 @@ export default function ManagerTrackerBoard() {
          </div>
 
          <div className="mt-6">
-            {activeTab === 'status' && <StatusTab />}
+            {activeTab === 'status' && <StatusTab onGoToSheetSync={() => setActiveTab('sheet-sync')} />}
             {activeTab === 'sheet-sync' && <SheetSyncTab />}
          </div>
       </div>

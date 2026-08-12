@@ -90,18 +90,6 @@ export interface StudentAttendanceOverview {
    periodRates: Array<{ periodNo: number; attendanceRate: number }>;
 }
 
-export interface TraineeApprovalHistoryEntry {
-   requestedAt: string;
-   type: string;
-   period: string;
-   approvedAt: string | null;
-}
-
-export interface TraineeTeamHistoryEntry {
-   teamName: string;
-   activePeriod: string;
-}
-
 export interface TraineeConsultationEntry {
    consultedAt: string;
    counselorName: string;
@@ -109,19 +97,8 @@ export interface TraineeConsultationEntry {
    status: '완료' | '예정';
 }
 
-export type TraineeSubmissionStatus = '제출완료' | '미제출';
-
-export interface TraineeSubmissionEntry {
-   boxName: string;
-   status: TraineeSubmissionStatus;
-   submittedAt: string | null;
-}
-
-// 훈련생 상세 페이지 중 출결 API로 다루지 않는 나머지 탭(결재/팀/상담/제출) - 대응하는 API가 아직
-// 없어 디자인 확인용 목데이터를 그대로 쓴다
+// 훈련생 상세 페이지 중 상담 탭 - 대응하는 API가 아직 없어 디자인 확인용 목데이터를 그대로 쓴다
+// (출결/결재/팀/제출 탭은 각자의 서비스 API로 조회하므로 여기 포함되지 않음)
 export interface TraineeStaticDetail {
-   approvals: TraineeApprovalHistoryEntry[];
-   teams: TraineeTeamHistoryEntry[];
    consultations: TraineeConsultationEntry[];
-   submissions: TraineeSubmissionEntry[];
 }

@@ -64,3 +64,19 @@ export function getTeamHistories(periodId: number, startDate: string, endDate: s
 export function getTeamWorkspace(teamId: number) {
    return apiFetch<TeamWorkspace>(`/teams/${teamId}/workspace`);
 }
+
+export interface TraineeTeamHistoryEntry {
+   teamId: number;
+   teamName: string;
+   // 팀이 속한 단위기간의 시작일·종료일 기준
+   startDate: string;
+   endDate: string;
+}
+
+// 운영진용 - 훈련생 관리 상세 페이지의 팀 탭. getTeamHistories(단위기간 기준 전체 팀 이력)와
+// 달리 특정 훈련생 1명의 팀 배정 이력만 최신순으로 조회한다
+export function getTraineeTeamHistories(userId: number) {
+   return apiFetch<{ histories: TraineeTeamHistoryEntry[] }>(`/teams/users/${userId}/histories`).then(
+      (res) => res.histories,
+   );
+}
