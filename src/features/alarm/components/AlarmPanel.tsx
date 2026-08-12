@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Bell, Trash2, X } from 'lucide-react';
 import { Switch } from '@/components/ui/shadcn/switch';
 import SidePanelShell, { PanelHeaderBar } from '@/components/ui/SidePanelShell';
+import { useSidePanel } from '@/components/layout/SidePanelContext';
 import type { useNotifications } from '../hooks/useNotifications';
 import type { NotificationItem } from '../types';
 
@@ -27,11 +28,22 @@ export default function NotificationPanel({
    removeOne,
    notificationsEnabled,
    setNotificationsEnabled,
+   isUpdatingNotificationSetting,
+   isLoading,
+   hasError,
+   retry,
 }: Props) {
    const router = useRouter();
+   // CHAT_MENTION처럼 이동할 페이지가 없는 알림은 채팅 패널을 대신 연다(다른 패널이 열려 있으면 자동으로 닫힘)
+   const { open: openChatPanel } = useSidePanel('chat');
 
    const handleItemClick = (item: NotificationItem) => {
       markAsRead(item.id);
+      if (item.opensChatPanel) {
+         onClose();
+         openChatPanel();
+         return;
+      }
       if (item.link) {
          onClose();
          router.push(item.link);
@@ -79,13 +91,27 @@ export default function NotificationPanel({
             <Switch
                checked={notificationsEnabled}
                onCheckedChange={setNotificationsEnabled}
+               disabled={isUpdatingNotificationSetting}
                aria-label="알림 켜기/끄기"
-               className="cursor-pointer data-checked:bg-brand-green"
+               className="cursor-pointer data-checked:bg-brand-green disabled:cursor-not-allowed disabled:opacity-50"
             />
          </div>
 
          <div className="flex-1 overflow-y-auto">
-            {notifications.length === 0 ? (
+            {isLoading ? (
+               <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+            ) : hasError ? (
+               <div className="flex flex-col items-center gap-3 py-16">
+                  <p className="text-sm text-gray-400">알림을 불러오지 못했습니다.</p>
+                  <button
+                     type="button"
+                     onClick={retry}
+                     className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                     다시 시도
+                  </button>
+               </div>
+            ) : notifications.length === 0 ? (
                <div className="flex h-full flex-col items-center justify-center gap-2 text-gray-400">
                   <Bell size={32} />
                   <p className="text-sm">알림이 없습니다</p>
