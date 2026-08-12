@@ -30,7 +30,7 @@ const STAFF_MENU_ITEMS: MenuItem[] = [
    { label: '대시보드', href: '/', icon: Home },
    { label: '공지사항', href: '/notices', icon: Megaphone },
    { label: '출결 관리', href: '/attendance', icon: ClipboardList },
-   { label: '상담 이력', href: '/counseling', icon: CalendarDays },
+   { label: '상담 관리', href: '/counseling', icon: CalendarDays },
    { label: '팀 관리', href: '/team', icon: Users },
    { label: '제출물 관리', href: '/submissions', icon: Upload },
    { label: '공간 예약', href: '/space-reservations', icon: Building },

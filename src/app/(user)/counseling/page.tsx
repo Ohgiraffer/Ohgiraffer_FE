@@ -1,3 +1,5 @@
+import CounselingPageClient from '@/features/counseling/components/CounselingPageClient';
+
 export default function CounselingPage() {
-   return <div>CounselingPage</div>;
+   return <CounselingPageClient />;
 }
