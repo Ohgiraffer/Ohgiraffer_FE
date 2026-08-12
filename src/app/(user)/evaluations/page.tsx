@@ -1,5 +1,10 @@
+import { Suspense } from 'react';
 import EvaluationsPageClient from '@/features/evaluations/components/EvaluationsPageClient';
 
 export default function EvaluationsPage() {
-   return <EvaluationsPageClient />;
+   return (
+      <Suspense>
+         <EvaluationsPageClient />
+      </Suspense>
+   );
 }

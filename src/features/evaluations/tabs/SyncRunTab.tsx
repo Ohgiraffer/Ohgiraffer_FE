@@ -36,18 +36,18 @@ export default function SyncRunTab({
             <p className="mt-1 text-sm text-gray-500">
                연결된 Google Sheet에서 평가 데이터를 가져와 AI가 변경 사항을 분석합니다.
             </p>
-            <div className="mt-4 flex items-center gap-3">
+            <div className="mt-3 flex items-center gap-3">
                <button
                   type="button"
                   onClick={onRunSync}
                   disabled={isSyncing}
-                  className="flex cursor-pointer items-center gap-1.5 rounded-sm bg-brand-green px-4 py-2 text-sm font-semibold text-white hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
+                  className="flex cursor-pointer items-center gap-1.5 rounded-xs bg-brand-green px-4 py-2 text-[13px] font-semibold text-white hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
                >
                   <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
                   {isSyncing ? '동기화 중...' : '동기화 실행'}
                </button>
                {latestSync && !isSyncing && (
-                  <span className="flex items-center gap-1 text-sm text-brand-green">
+                  <span className="flex items-center gap-1 text-[13px] text-brand-green">
                      <Check size={16} />
                      동기화 완료
                   </span>
@@ -58,7 +58,11 @@ export default function SyncRunTab({
          {latestSync && (
             <AiSyncSummaryCard
                subtitle="방금 동기화"
-               items={latestSync.summary}
+               addedCount={latestSync.addedCount}
+               updatedCount={latestSync.updatedCount}
+               changedCount={latestSync.changedCount}
+               diffSummary={latestSync.diffSummary}
+               skipped={latestSync.skipped}
                footer={
                   <button
                      type="button"
