@@ -20,13 +20,13 @@ const ATTENDANCE_STATS: AttendanceStat[] = [
 
 export default function AttendanceCard() {
    return (
-      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-4">
-         <div className="mb-4 flex items-center justify-between lg:mb-2">
-            <h2 className="flex items-center gap-1.5 text-sm font-bold text-gray-900">
+      <div className="h-full rounded-xs border border-gray-200 bg-white p-6 lg:p-6">
+         <div className="mb-4 flex items-center justify-between lg:mb-4">
+            <h2 className="flex items-center gap-1.5 -ml-1 text-sm font-bold text-gray-900">
                <ClipboardCheck size={16} className="text-gray-400" />
                출결 현황
             </h2>
-            <Link href="/attendance" className="text-xs text-gray-400 hover:text-gray-600">
+            <Link href="/tracker" className="text-xs text-gray-400 hover:text-gray-600">
                상세
             </Link>
          </div>
@@ -43,15 +43,15 @@ export default function AttendanceCard() {
             {ATTENDANCE_STATS.map((stat) => (
                <li key={stat.label} className="flex items-center gap-2 text-sm">
                   <span className={`h-2 w-2 shrink-0 rounded-full ${stat.colorClassName}`} />
-                  <span className="flex-1 text-gray-600">{stat.label}</span>
-                  <span className="font-medium text-gray-900">{stat.value}</span>
+                  <span className="min-w-0 flex-1 truncate text-gray-600">{stat.label}</span>
+                  <span className="shrink-0 font-medium text-gray-900">{stat.value}</span>
                </li>
             ))}
          </ul>
 
-         <div className="flex items-center gap-1.5 rounded-sm bg-[#F5DFDC] px-3 py-2 text-xs text-brand-maroon lg:py-1.5">
-            <TriangleAlert size={14} />
-            경고 — 출석률 기준 근접 중
+         <div className="flex items-start gap-1.5 rounded-sm bg-[#F5DFDC] px-3 py-2 text-xs text-brand-maroon lg:py-1.5">
+            <TriangleAlert size={14} className="mt-0.5 shrink-0" />
+            <span>경고 — 출석률 기준 근접 중</span>
          </div>
       </div>
    );

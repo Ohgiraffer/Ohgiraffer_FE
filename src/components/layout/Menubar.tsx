@@ -29,7 +29,7 @@ type MenuItem = {
 const STAFF_MENU_ITEMS: MenuItem[] = [
    { label: '대시보드', href: '/', icon: Home },
    { label: '공지사항', href: '/notices', icon: Megaphone },
-   { label: '출결 관리', href: '/attendance', icon: ClipboardList },
+   { label: '출결 관리', href: '/tracker', icon: ClipboardList },
    { label: '상담 이력', href: '/counseling', icon: CalendarDays },
    { label: '팀 관리', href: '/team', icon: Users },
    { label: '제출물 관리', href: '/submissions', icon: Upload },
@@ -43,7 +43,7 @@ const STAFF_MENU_ITEMS: MenuItem[] = [
 const STUDENT_MENU_ITEMS: MenuItem[] = [
    { label: '대시보드', href: '/', icon: Home },
    { label: '공지사항', href: '/notices', icon: Megaphone },
-   { label: '출결 관리', href: '/attendance', icon: ClipboardList },
+   { label: '출결 관리', href: '/tracker', icon: ClipboardList },
    { label: '상담 신청', href: '/counseling', icon: CalendarDays },
    { label: '팀 현황', href: '/team', icon: Users },
    { label: '제출물 관리', href: '/submissions', icon: Upload },
@@ -65,7 +65,7 @@ export default function Menubar() {
    };
 
    return (
-      <aside className="sticky top-14 flex h-[calc(100vh-3.5rem)] w-22.5 shrink-0 flex-col gap-0.5 border-r border-gray-200 bg-white p-2">
+      <aside className="flex h-full w-22.5 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-gray-200 bg-white p-2">
          {menuItems.map(({ label, href, icon: Icon }) => {
             const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
 

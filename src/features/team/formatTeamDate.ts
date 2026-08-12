@@ -13,3 +13,10 @@ function formatTeamDate(value: string | null) {
    const date = parseISO(value);
    return isValid(date) ? format(date, 'yyyy-MM-dd') : '';
 }
+
+// 팀 변경 이력 화면 전용 - "yyyy.MM.dd" 점 구분 표기
+export function formatTeamDateDot(value: string | null) {
+   if (!value) return '';
+   const date = parseISO(value);
+   return isValid(date) ? format(date, 'yyyy.MM.dd') : '';
+}

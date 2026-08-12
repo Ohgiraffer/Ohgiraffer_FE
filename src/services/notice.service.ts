@@ -184,6 +184,19 @@ export function deleteNotice(noticeId: number) {
    });
 }
 
+export interface NoticeSummaryItem {
+   noticeId: number;
+   title: string;
+   pinned: boolean;
+   createdAt: string;
+}
+
+// 대시보드 공지사항 카드 전용 - 최근 고정 공지(3일 이내) + 내가 아직 확인하지 않은 공지.
+// 파라미터 없음, 정렬(고정 우선·최신순)과 role별 필터링(훈련생 비공개 제외)은 서버가 처리
+export function getNoticeSummary() {
+   return apiFetch<NoticeSummaryItem[]>('/notices/summary');
+}
+
 export interface ConfirmNoticeResponse {
    noticeId: number;
    confirmationCount: number;
