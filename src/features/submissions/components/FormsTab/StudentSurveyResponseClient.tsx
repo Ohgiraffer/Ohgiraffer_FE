@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ExternalLink, TriangleAlert } from 'lucide-react';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
 import { getSurveyFormDetail } from '@/services/surveyForm.service';
@@ -51,7 +51,10 @@ export default function StudentSurveyResponseClient({ formId }: StudentSurveyRes
    if (!Number.isInteger(surveyFormId)) {
       return (
          <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
-            <Link href="/submissions" className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+            <Link
+               href="/submissions"
+               className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+            >
                <ChevronLeft size={16} />
                목록으로
             </Link>
@@ -62,7 +65,10 @@ export default function StudentSurveyResponseClient({ formId }: StudentSurveyRes
 
    return (
       <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
-         <Link href="/submissions" className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+         <Link
+            href="/submissions"
+            className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+         >
             <ChevronLeft size={16} />
             목록으로
          </Link>
@@ -74,6 +80,18 @@ export default function StudentSurveyResponseClient({ formId }: StudentSurveyRes
          ) : (
             <>
                <h1 className="mt-3 text-2xl font-bold text-gray-900">{detail.title}</h1>
+
+               <div className="mt-4 flex items-start gap-2 rounded-xs bg-[#F5DFDC] px-4 py-3 text-xs text-brand-maroon">
+                  <TriangleAlert size={14} className="mt-0.5 shrink-0" />
+                  <div>
+                     <p>부트캠프에 등록한 Google 이메일과 동일한 계정으로 응답해 주세요.</p>
+                     <p>
+                        현재 계정이 다르거나 로그인되어 있지 않다면 로그인 또는 계정 전환이 필요하며,
+                     </p>
+                     <p>이 과정에서 설문이 새 탭으로 열릴 수 있습니다.</p>
+                     <p>다른 이메일로 응답하면 미응답으로 표시될 수 있습니다.</p>
+                  </div>
+               </div>
 
                <div className="mt-5 overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
                   <p className="border-b border-[#E5E7EB] px-6 py-4 text-sm text-gray-500">

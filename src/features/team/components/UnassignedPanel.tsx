@@ -3,18 +3,20 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import SearchInput from '@/components/ui/SearchInput';
+import ChatAvatar from '@/features/chat/components/ChatAvatar';
 import MemberActionMenu from './MemberActionMenu';
-import { TEAM_MEMBER_DRAG_TYPE, type Team } from '../types';
+import { TEAM_MEMBER_DRAG_TYPE, type DraftTeam } from '../types';
 
 export interface UnassignedStudentItem {
    userId: number;
-   name: string;
-   email: string;
+   name: string | null;
+   email: string | null;
+   profileImgUrl: string | null;
 }
 
 interface UnassignedPanelProps {
    students: UnassignedStudentItem[];
-   teams: Team[];
+   teams: DraftTeam[];
    isDragOver: boolean;
    onDragOverChange: (isOver: boolean) => void;
    onDropUser: (userId: number) => void;
@@ -34,7 +36,7 @@ export default function UnassignedPanel({
    const [keyword, setKeyword] = useState('');
 
    const filtered = students.filter((student) =>
-      student.name.toLowerCase().includes(keyword.trim().toLowerCase()),
+      (student.name ?? '').toLowerCase().includes(keyword.trim().toLowerCase()),
    );
 
    return (
@@ -53,7 +55,7 @@ export default function UnassignedPanel({
             if (Number.isSafeInteger(userId) && userId > 0) onDropUser(userId);
          }}
          className={cn(
-            'h-fit rounded-sm border bg-white p-4 transition-colors',
+            'h-fit rounded-xs border bg-white p-4 transition-colors',
             isDragOver ? 'border-brand-green bg-[#F0F4F2]' : 'border-[#E5E7EB]',
          )}
       >
@@ -89,10 +91,8 @@ export default function UnassignedPanel({
                      className="flex cursor-grab items-center justify-between gap-2 rounded-xs border border-gray-100 bg-[#F9FAFB] px-2.5 py-2 active:cursor-grabbing"
                   >
                      <div className="flex min-w-0 items-center gap-2">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-600">
-                           {student.name.slice(0, 1)}
-                        </span>
-                        <span className="truncate text-sm text-gray-700">{student.name}</span>
+                        <ChatAvatar name={student.name} imageUrl={student.profileImgUrl} size="sm" />
+                        <span className="truncate text-sm text-gray-700">{student.name || '이름 없음'}</span>
                      </div>
                      <MemberActionMenu
                         currentTeamId={null}

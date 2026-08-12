@@ -12,8 +12,8 @@ export default function GroupChatListItem({ room, onClick }: GroupChatListItemPr
    return (
       <ChatListItem
          avatar={
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-400">
-               <Users size={18} />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-sage/10 text-gray-500">
+               <Users size={22} />
             </span>
          }
          title={room.name}

@@ -65,6 +65,7 @@ export default function SpaceGridView({
                            <>
                               <PersonAvatar
                                  name={occupant.userName}
+                                 profileImgUrl={occupant.profileImgUrl}
                                  isCurrentUser={occupant.mine}
                               />
                               <div className="min-w-0">

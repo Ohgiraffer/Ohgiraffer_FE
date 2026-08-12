@@ -47,7 +47,8 @@ function createId() {
 
 // 항목명 / 파일 업로드 / 외부 링크 / 삭제 버튼 컬럼 너비 비율.
 // 각 항목 행과 그 아래 힌트 입력란이 항상 같은 그리드를 써야 세로로 열이 어긋나지 않는다
-const ITEM_GRID_COLUMNS = 'grid-cols-[24px_minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_28px]';
+const ITEM_GRID_COLUMNS =
+   'grid-cols-1 sm:grid-cols-[24px_minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_28px]';
 
 function ToggleButton({
    selected,
@@ -298,43 +299,51 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
             <div className="mt-2 flex flex-col gap-3">
                {items.map((item, index) => (
                   <div key={item.draftId} className="rounded-xs border border-gray-200 p-3">
-                     <div className={cn('grid items-center gap-3', ITEM_GRID_COLUMNS)}>
-                        <span className="text-sm text-gray-400">{index + 1}</span>
-                        <label htmlFor={`item-name-${item.draftId}`} className="sr-only">
-                           항목 {index + 1} 이름
-                        </label>
-                        <input
-                           id={`item-name-${item.draftId}`}
-                           value={item.name}
-                           onChange={(e) => updateItem(item.draftId, { name: e.target.value })}
-                           placeholder="항목명 (예: 발표자료)"
-                           className="h-10 w-full min-w-0 rounded-sm border border-[#E5E7EB] px-3 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-green"
-                        />
-                        <ToggleButton
-                           selected={item.type === 'FILE'}
-                           onClick={() => updateItem(item.draftId, { type: 'FILE' })}
-                        >
-                           파일 업로드
-                        </ToggleButton>
-                        <ToggleButton
-                           selected={item.type === 'LINK'}
-                           onClick={() => updateItem(item.draftId, { type: 'LINK' })}
-                        >
-                           외부 링크
-                        </ToggleButton>
-                        <button
-                           type="button"
-                           onClick={() => removeItem(item.draftId)}
-                           disabled={items.length === 1}
-                           aria-label="항목 삭제"
-                           className="cursor-pointer rounded-xs p-1.5 text-gray-400 hover:bg-gray-50 hover:text-brand-maroon disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-400"
-                        >
-                           <X size={16} />
-                        </button>
+                     <div className={cn('grid items-start gap-3 sm:items-center', ITEM_GRID_COLUMNS)}>
+                        <div className="flex items-center gap-3 sm:contents">
+                           <span className="shrink-0 text-sm text-gray-400 sm:order-1">
+                              {index + 1}
+                           </span>
+                           <label htmlFor={`item-name-${item.draftId}`} className="sr-only">
+                              항목 {index + 1} 이름
+                           </label>
+                           <input
+                              id={`item-name-${item.draftId}`}
+                              value={item.name}
+                              onChange={(e) => updateItem(item.draftId, { name: e.target.value })}
+                              placeholder="항목명 (예: 발표자료)"
+                              className="h-10 min-w-0 flex-1 rounded-sm border border-[#E5E7EB] px-3 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-green sm:order-2 sm:w-full"
+                           />
+                           <button
+                              type="button"
+                              onClick={() => removeItem(item.draftId)}
+                              disabled={items.length === 1}
+                              aria-label="항목 삭제"
+                              className="shrink-0 cursor-pointer rounded-xs p-1.5 text-gray-400 hover:bg-gray-50 hover:text-brand-maroon disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-400 sm:order-5"
+                           >
+                              <X size={16} />
+                           </button>
+                        </div>
+                        <div className="flex gap-2 sm:contents">
+                           <ToggleButton
+                              className="flex-1 sm:order-3 sm:flex-none"
+                              selected={item.type === 'FILE'}
+                              onClick={() => updateItem(item.draftId, { type: 'FILE' })}
+                           >
+                              파일 업로드
+                           </ToggleButton>
+                           <ToggleButton
+                              className="flex-1 sm:order-4 sm:flex-none"
+                              selected={item.type === 'LINK'}
+                              onClick={() => updateItem(item.draftId, { type: 'LINK' })}
+                           >
+                              외부 링크
+                           </ToggleButton>
+                        </div>
                      </div>
                      <div className={cn('mt-2 grid gap-3', ITEM_GRID_COLUMNS)}>
-                        <span />
-                        <div className="col-span-3 min-w-0">
+                        <span className="hidden sm:block" />
+                        <div className="min-w-0 sm:col-span-3">
                            {item.type === 'FILE' ? (
                               <input
                                  value={item.hint}

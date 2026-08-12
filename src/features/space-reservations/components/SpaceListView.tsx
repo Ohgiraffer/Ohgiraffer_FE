@@ -51,6 +51,7 @@ export default function SpaceListView({ spaces, searchKeyword, onCheckIn, onChec
                            <div className="flex items-center gap-2">
                               <PersonAvatar
                                  name={occupant.userName}
+                                 profileImgUrl={occupant.profileImgUrl}
                                  isCurrentUser={occupant.mine}
                               />
                               <span className="text-sm font-medium text-gray-900">

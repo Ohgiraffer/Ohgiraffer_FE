@@ -12,10 +12,13 @@ import { format, getDay, parse, startOfWeek } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from '@/lib/toast';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import CreateEventModal from './CreateEventModal';
 import DayAgendaModal from './DayAgendaModal';
 import { CURRENT_USER, EVENT_TYPE_COLORS, type CalendarEvent, type EventType } from '../types';
+import { isEventInDay, mapCalendarEvent } from '../calendarEventUtils';
+import { getCalendarEvents } from '@/services/calendarEvent.service';
 import type { Holiday } from '@/services/holiday.service';
 
 export type { CalendarEvent, EventType, UserRole } from '../types';
@@ -86,6 +89,28 @@ export default function DashboardCalendar({ holidays: initialHolidays = [] }: Da
    }));
 
    const currentYear = currentDate.getFullYear();
+   // API의 month는 1~12 (Date.getMonth()는 0부터라 +1)
+   const currentMonth = currentDate.getMonth() + 1;
+
+   // 화면에 보이는 달이 바뀔 때마다(최초 진입 포함) 그 달의 일정을 다시 불러온다. 이번 세션에
+   // 로컬로만 등록/삭제한 일정(서버 저장 API가 없는 임시 등록 흐름)은 달을 이동하면 함께 리셋된다
+   useEffect(() => {
+      let isMounted = true;
+      getCalendarEvents(currentYear, currentMonth)
+         .then((items) => {
+            if (!isMounted) return;
+            const mapped = items
+               .map(mapCalendarEvent)
+               .filter((event): event is CalendarEvent => event !== null);
+            setEvents(mapped);
+         })
+         .catch(() => {
+            if (isMounted) toast.error('일정을 불러오지 못했습니다.');
+         });
+      return () => {
+         isMounted = false;
+      };
+   }, [currentYear, currentMonth]);
 
    useEffect(() => {
       if (currentYear in holidaysByYear) return;
@@ -118,10 +143,10 @@ export default function DashboardCalendar({ holidays: initialHolidays = [] }: Da
          const isSunday = !isOffRange && getDay(date) === 0;
          const isRed = isSunday || Boolean(holidayName);
          return (
-            <span className={cn('rbc-button-link', isRed && '!text-brand-red')}>
+            <span className={cn('rbc-button-link', isRed && 'text-brand-red!')}>
                {label}
                {holidayName && (
-                  <span className="ml-1 text-[11px] font-normal !text-brand-red">{holidayName}</span>
+                  <span className="ml-1 text-[11px] font-normal text-brand-red!">{holidayName}</span>
                )}
             </span>
          );
@@ -174,9 +199,11 @@ export default function DashboardCalendar({ holidays: initialHolidays = [] }: Da
    }, []);
 
    const handleCreate = (event: Omit<CalendarEvent, 'id' | 'registrant'>) => {
+      // 서버에 저장하는 API가 아직 없어 화면에서만 보이는 임시 등록(달을 이동하면 사라짐).
+      // 내가 방금 등록한 항목이라 editable은 항상 true
       setEvents((prev) => [
          ...prev,
-         { ...event, id: crypto.randomUUID(), registrant: CURRENT_USER.name },
+         { ...event, id: crypto.randomUUID(), registrant: CURRENT_USER.name, editable: true },
       ]);
       setCreateDate(null);
    };
@@ -185,18 +212,14 @@ export default function DashboardCalendar({ holidays: initialHolidays = [] }: Da
       setEvents((prev) => prev.filter((event) => !ids.includes(event.id)));
    };
 
+   // 시작일만 비교하면 이전 날짜에 시작해 이 날짜까지 걸쳐 있는 일정이 빠지므로 겹침으로 판정한다
    const viewDateEvents = useMemo(() => {
       if (!viewDate) return [];
-      return events.filter(
-         (event) =>
-            event.start.getFullYear() === viewDate.getFullYear() &&
-            event.start.getMonth() === viewDate.getMonth() &&
-            event.start.getDate() === viewDate.getDate(),
-      );
+      return events.filter((event) => isEventInDay(event.start, event.end, viewDate));
    }, [events, viewDate]);
 
    return (
-      <div className="campflow-calendar rounded-sm border border-gray-200 bg-white p-6">
+      <div className="campflow-calendar rounded-xs border border-gray-200 bg-white p-6">
          <Calendar
             localizer={localizer}
             culture="ko"

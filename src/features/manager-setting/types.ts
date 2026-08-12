@@ -17,7 +17,9 @@ export type ManagerSettingUser = {
    email: string;
    role: UserRole;
    team: string | null;
-   status: '활성' | '삭제됨';
+   // 백엔드 UserStatus(ACTIVE/COMPLETED/WITHDRAWN/EXPELLED)를 화면 라벨로 매핑한 값 -
+   // 자퇴/제적은 둘 다 "삭제됨"으로 묶어서 보여준다
+   status: '활성' | '수료' | '삭제됨';
 };
 
 // /bootcamp/settings/logs 응답 그대로 - 백엔드에 카테고리·강조표시 구분이 없어 그 항목들은 화면에서도 뺐다

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import SearchInput from '@/components/ui/SearchInput';
 import DirectChatListItem from './DirectChatListItem';
@@ -15,12 +15,28 @@ interface ChatRoomListProps {
 
 type Tab = 'direct' | 'group';
 
+// 최근 메시지가 있는 방이 위로 오도록 최신순 정렬 - 아직 메시지가 없는 방(lastMessageSentAt이
+// null)은 맨 아래로 보낸다. ISO 8601 문자열은 사전순 비교가 곧 시간순 비교와 같다
+function sortByLatestMessage(channels: ChatChannel[]) {
+   return [...channels].sort((a, b) => {
+      if (!a.lastMessageSentAt && !b.lastMessageSentAt) return 0;
+      if (!a.lastMessageSentAt) return 1;
+      if (!b.lastMessageSentAt) return -1;
+      return b.lastMessageSentAt.localeCompare(a.lastMessageSentAt);
+   });
+}
+
 export default function ChatRoomList({ channels, isLoading, onSelectRoom }: ChatRoomListProps) {
    const [tab, setTab] = useState<Tab>('direct');
    const [query, setQuery] = useState('');
 
-   const directRooms = channels.filter((room) => room.channelType === 'DM');
-   const groupRooms = channels.filter((room) => room.channelType === 'GROUP');
+   const sortedChannels = useMemo(() => sortByLatestMessage(channels), [channels]);
+   const directRooms = sortedChannels.filter((room) => room.channelType === 'DM');
+   const groupRooms = sortedChannels.filter((room) => room.channelType === 'GROUP');
+
+   // 탭 옆에 띄우는 안읽음 배지는 검색어로 걸러지기 전, 탭 전체 기준 합계
+   const directUnreadCount = directRooms.reduce((sum, room) => sum + room.unreadCount, 0);
+   const groupUnreadCount = groupRooms.reduce((sum, room) => sum + room.unreadCount, 0);
 
    const filteredDirectRooms = directRooms.filter((room) =>
       room.name.toLowerCase().includes(query.toLowerCase()),
@@ -36,8 +52,8 @@ export default function ChatRoomList({ channels, isLoading, onSelectRoom }: Chat
          <div className="flex border-b border-gray-200">
             {(
                [
-                  { key: 'direct', label: '1 대 1 채팅방' },
-                  { key: 'group', label: '단체 채팅방' },
+                  { key: 'direct', label: '1 대 1 채팅방', unreadCount: directUnreadCount },
+                  { key: 'group', label: '단체 채팅방', unreadCount: groupUnreadCount },
                ] as const
             ).map((item) => (
                <button
@@ -48,13 +64,18 @@ export default function ChatRoomList({ channels, isLoading, onSelectRoom }: Chat
                      setQuery('');
                   }}
                   className={cn(
-                     'flex-1 cursor-pointer border-b-2 py-3 text-sm font-medium',
+                     'flex flex-1 cursor-pointer items-center justify-center gap-1.5 border-b-2 py-3 text-sm font-medium',
                      tab === item.key
                         ? 'border-gray-900 text-gray-900'
                         : 'border-transparent text-gray-400',
                   )}
                >
                   {item.label}
+                  {item.unreadCount > 0 && (
+                     <span className="flex h-5 min-w-5 items-center justify-center rounded-xs bg-brand-green px-1 text-[11px] font-medium text-white">
+                        {item.unreadCount}
+                     </span>
+                  )}
                </button>
             ))}
          </div>

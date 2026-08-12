@@ -26,7 +26,7 @@ const STATUS_OPTIONS: Array<{ value: SurveyFormStatus; label: string }> = [
 interface FormEditModalProps {
    form: SurveyFormDetail;
    onClose: () => void;
-   onSaved: () => void;
+   onSaved: (editUrl?: string) => void;
 }
 
 export default function FormEditModal({ form, onClose, onSaved }: FormEditModalProps) {
@@ -43,6 +43,11 @@ export default function FormEditModal({ form, onClose, onSaved }: FormEditModalP
       setIsSubmitting(true);
       setTitleError('');
       const prevStatus = form.status;
+      // 저장 API 호출(await) 이후에 window.open을 부르면 사용자 제스처가 끊겨 팝업이 차단되므로,
+      // 클릭 이벤트 안에서 빈 탭을 먼저 열어두고 저장이 끝나면 주소만 채운다.
+      // 'noopener'를 넘기면 탭 핸들을 아예 못 받으므로(항상 null), 대신 연 뒤 opener를 직접 끊는다
+      const editTab = form.editUrl ? window.open() : null;
+      if (editTab) editTab.opener = null;
       try {
          await updateSurveyForm(form.surveyFormId, {
             title: title.trim(),
@@ -50,8 +55,14 @@ export default function FormEditModal({ form, onClose, onSaved }: FormEditModalP
             status,
          });
          toast.success('설문/평가 폼을 수정했습니다.');
-         onSaved();
+         if (editTab && !editTab.closed && form.editUrl) {
+            editTab.location.href = form.editUrl;
+            onSaved();
+         } else {
+            onSaved(form.editUrl);
+         }
       } catch (err) {
+         editTab?.close();
          if (err instanceof ApiError && err.code === 'SURVEY_002') {
             setStatus(prevStatus);
             toast.error(err.message || '허용되지 않는 상태 변경입니다.');

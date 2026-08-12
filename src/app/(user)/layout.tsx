@@ -2,17 +2,20 @@
 import AuthGuard from '@/components/auth/AuthGuard';
 import Header from '@/components/layout/Header';
 import Menubar from '@/components/layout/Menubar';
+import SendbirdProvider from '@/features/chat/components/SendbirdProvider';
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
    return (
       <AuthGuard>
-         <div className="flex min-h-screen flex-col">
-            <Header />
-            <div className="flex flex-1">
-               <Menubar />
-               <main className="flex-1 bg-[#F7F8FA]">{children}</main>
+         <SendbirdProvider>
+            <div className="flex h-screen flex-col overflow-hidden">
+               <Header />
+               <div className="flex flex-1 overflow-hidden">
+                  <Menubar />
+                  <main className="flex-1 overflow-y-auto bg-[#F7F8FA]">{children}</main>
+               </div>
             </div>
-         </div>
+         </SendbirdProvider>
       </AuthGuard>
    );
 }

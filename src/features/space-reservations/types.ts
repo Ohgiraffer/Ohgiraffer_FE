@@ -6,6 +6,9 @@ export type SpaceOccupant = {
    role: UserRole;
    // 로그인한 사용자 본인 여부 - "(나)" 표기 및 퇴실 대상 판별에 사용
    mine: boolean;
+   // 아직 공식 문서에는 반영되지 않은 필드 - 백엔드가 우선 바디에 추가해준 상태라 optional로 방어적으로 받는다.
+   // 필드명이 다르거나 응답에 아예 없으면 문서 업데이트 후 다시 확인 필요
+   profileImgUrl?: string | null;
 };
 
 export type Space = {

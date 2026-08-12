@@ -29,6 +29,10 @@ export default function DayAgendaModal({ date, events, onClose, onDelete }: DayA
       setCheckedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
    };
 
+   // 서버 데이터의 editable이 명시적으로 false인 일정(남의 일정·공휴일)만 삭제를 막는다.
+   // 로컬로 새로 등록한 일정은 editable이 없어도(undefined) 삭제 가능하게 둔다
+   const canDelete = (event: CalendarEvent) => event.editable !== false;
+
    const handleDelete = () => {
       // 더블클릭으로 인한 중복 삭제 요청 방지 (state의 disabled만으로는 비동기 업데이트 특성상 완전히 막을 수 없음)
       if (isDeletingRef.current || checkedIds.length === 0) return;
@@ -55,18 +59,23 @@ export default function DayAgendaModal({ date, events, onClose, onDelete }: DayA
             <ul className="mb-4 flex flex-col gap-2">
                {events.map((event) => {
                   const colors = EVENT_TYPE_COLORS[event.type];
-                  const timeRange = formatTimeRange(event.startTime, event.endTime);
+                  const timeLabel = event.allDay ? '종일' : formatTimeRange(event.startTime, event.endTime);
+                  const metaText = [event.registrant, timeLabel].filter(Boolean).join(' · ');
                   return (
                      <li
                         key={event.id}
                         className="flex items-center gap-3 rounded-sm border border-gray-200 px-3 py-2.5"
                      >
-                        <input
-                           type="checkbox"
-                           checked={checkedIds.includes(event.id)}
-                           onChange={() => toggleChecked(event.id)}
-                           className="h-4 w-4 cursor-pointer accent-brand-green"
-                        />
+                        {canDelete(event) ? (
+                           <input
+                              type="checkbox"
+                              checked={checkedIds.includes(event.id)}
+                              onChange={() => toggleChecked(event.id)}
+                              className="h-4 w-4 cursor-pointer accent-brand-green"
+                           />
+                        ) : (
+                           <span className="h-4 w-4 shrink-0" />
+                        )}
                         <div className="flex min-w-0 flex-1 flex-col">
                            <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-gray-900">
                               <span className="truncate">
@@ -80,10 +89,7 @@ export default function DayAgendaModal({ date, events, onClose, onDelete }: DayA
                                  style={{ backgroundColor: colors.dot }}
                               />
                            </span>
-                           <span className="text-xs text-gray-400">
-                              {event.registrant}
-                              {timeRange ? ` · ${timeRange}` : ''}
-                           </span>
+                           {metaText && <span className="text-xs text-gray-400">{metaText}</span>}
                         </div>
                      </li>
                   );
