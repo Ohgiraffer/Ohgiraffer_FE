@@ -7,10 +7,16 @@ export interface CalendarEvent {
    start: Date;
    end: Date;
    type: EventType;
-   registrant: string;
+   // 서버에서 받아온 일정은 등록자명을 내려주지 않음(editable로만 소유 여부 판단) - 이번 세션에
+   // 로컬로 새로 등록한 일정에만 채워짐
+   registrant?: string;
    startTime?: string;
    endTime?: string;
    place?: string;
+   // 종일 일정이면 시각 대신 "종일"로 표시
+   allDay?: boolean;
+   // 삭제 가능 여부(= 내가 등록했는지). 서버 데이터는 API 값을 그대로, 로컬 생성 일정은 항상 true
+   editable?: boolean;
 }
 
 export const EVENT_TYPE_COLORS: Record<EventType, { dot: string; bg: string; text: string }> = {

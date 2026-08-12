@@ -8,11 +8,11 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
    return (
       <AuthGuard>
          <SendbirdProvider>
-            <div className="flex min-h-screen flex-col">
+            <div className="flex h-screen flex-col overflow-hidden">
                <Header />
-               <div className="flex flex-1">
+               <div className="flex flex-1 overflow-hidden">
                   <Menubar />
-                  <main className="flex-1 bg-[#F7F8FA]">{children}</main>
+                  <main className="flex-1 overflow-y-auto bg-[#F7F8FA]">{children}</main>
                </div>
             </div>
          </SendbirdProvider>
