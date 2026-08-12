@@ -26,9 +26,8 @@ export const BUDGET_SHEET_COLUMNS: GoogleSheetColumnField[] = [
    { key: 'remainingAmount', label: '잔여 예산' },
 ];
 
-// 연동 전(400/COMMON_001)은 정상 케이스라 조용히 넘어가고, 그 외 실패만 토스트로 안내한다
 function notifyUnlessNotConnected(err: unknown, fallback: string) {
-   if (err instanceof ApiError && err.code === 'COMMON_001') return;
+   if (err instanceof ApiError && err.status === 400 && err.code === 'COMMON_001') return;
    toast.error(err instanceof ApiError ? err.message : fallback);
 }
 
