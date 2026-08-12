@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import SheetSyncTab from '../tabs/SheetSyncTab';
 import SyncRunTab from '../tabs/SyncRunTab';
 import SyncHistoryTab from '../tabs/SyncHistoryTab';
@@ -26,12 +26,19 @@ function resolveInitialTab(requestedTab: string | null): TabKey {
 // 평가 관리 페이지(운영진 전용) - 연동 설정/동기화 실행/이력을 탭으로 묶음.
 // 연동 상태(isConnected)와 동기화 이력은 탭을 옮겨도 유지되어야 해서 이 상위 컴포넌트에서 한 번만 관리한다
 export default function EvaluationsPageClient() {
+   const router = useRouter();
    const requestedTab = useSearchParams().get('tab');
    const [activeTab, setActiveTab] = useState<TabKey>(() => resolveInitialTab(requestedTab));
    const { isConnected, spreadsheetUrl, isLoading, loadError, handleSaveMapping } =
       useEvaluationSheetSync();
    const { history, isLoadingHistory, historyError, latestSync, isSyncing, runSync, notifyStaff } =
       useSyncHistory();
+
+   // URL도 같이 갱신해둬야 새로고침하거나 주소를 공유해도 선택한 탭이 유지된다
+   const changeTab = (tab: TabKey) => {
+      setActiveTab(tab);
+      router.replace(`/evaluations?tab=${tab}`);
+   };
 
    return (
       <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
@@ -42,7 +49,7 @@ export default function EvaluationsPageClient() {
                <button
                   key={tab.key}
                   type="button"
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => changeTab(tab.key)}
                   className={`cursor-pointer border-b-2 pb-3 text-sm transition-colors ${
                      activeTab === tab.key
                         ? 'border-brand-green font-bold text-[#111827]'

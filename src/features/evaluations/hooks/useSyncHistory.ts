@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/components/auth/AuthContext';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
@@ -48,15 +48,22 @@ export function useSyncHistory() {
    const [historyError, setHistoryError] = useState(false);
    const [latestSync, setLatestSync] = useState<SyncHistoryEntry | null>(null);
    const [isSyncing, setIsSyncing] = useState(false);
+   // 마운트 시점의 최초 조회와 runSync()가 동기화 후 다시 부르는 조회가 서로 경쟁할 수 있다(최초
+   // 조회가 느려서 나중에 끝나면, 이미 최신인 목록을 그걸로 덮어써버림) - 요청마다 번호를 매겨서
+   // 가장 마지막에 "시작한" 요청의 결과만 반영한다
+   const latestHistoryRequestId = useRef(0);
 
    useEffect(() => {
       let isMounted = true;
+      const requestId = ++latestHistoryRequestId.current;
       getEvaluationSyncLogs()
          .then((logs) => {
-            if (isMounted) setHistory(logs.map(toHistoryEntry));
+            if (isMounted && requestId === latestHistoryRequestId.current) {
+               setHistory(logs.map(toHistoryEntry));
+            }
          })
          .catch(() => {
-            if (isMounted) setHistoryError(true);
+            if (isMounted && requestId === latestHistoryRequestId.current) setHistoryError(true);
          })
          .finally(() => {
             if (isMounted) setIsLoadingHistory(false);
@@ -101,12 +108,15 @@ export function useSyncHistory() {
          return;
       }
 
+      const requestId = ++latestHistoryRequestId.current;
       try {
          const logs = await getEvaluationSyncLogs();
-         setHistory(logs.map(toHistoryEntry));
-         setHistoryError(false);
+         if (requestId === latestHistoryRequestId.current) {
+            setHistory(logs.map(toHistoryEntry));
+            setHistoryError(false);
+         }
       } catch {
-         setHistoryError(true);
+         if (requestId === latestHistoryRequestId.current) setHistoryError(true);
       } finally {
          setIsSyncing(false);
       }
