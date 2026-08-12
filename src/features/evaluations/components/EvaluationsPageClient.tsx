@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import SheetSyncTab from '../tabs/SheetSyncTab';
 import SyncRunTab from '../tabs/SyncRunTab';
 import SyncHistoryTab from '../tabs/SyncHistoryTab';
@@ -15,12 +16,29 @@ const TABS: Array<{ key: TabKey; label: string }> = [
    { key: 'history', label: '이력' },
 ];
 
+// 이력 상세 화면의 "이력 목록으로 돌아가기"가 ?tab=history로 넘어오는 경우처럼, 쿼리로 넘어온 탭이
+// 유효할 때만 그 탭을 초기값으로 쓰고, 아니면 첫 탭으로 대체한다
+function resolveInitialTab(requestedTab: string | null): TabKey {
+   const matched = TABS.find((tab) => tab.key === requestedTab);
+   return (matched ?? TABS[0]).key;
+}
+
 // 평가 관리 페이지(운영진 전용) - 연동 설정/동기화 실행/이력을 탭으로 묶음.
 // 연동 상태(isConnected)와 동기화 이력은 탭을 옮겨도 유지되어야 해서 이 상위 컴포넌트에서 한 번만 관리한다
 export default function EvaluationsPageClient() {
-   const [activeTab, setActiveTab] = useState<TabKey>('sheet-sync');
-   const { isConnected, handleSaveMapping } = useEvaluationSheetSync();
-   const { history, latestSync, isSyncing, runSync, notifyStaff } = useSyncHistory();
+   const router = useRouter();
+   const requestedTab = useSearchParams().get('tab');
+   const [activeTab, setActiveTab] = useState<TabKey>(() => resolveInitialTab(requestedTab));
+   const { isConnected, spreadsheetUrl, isLoading, loadError, handleSaveMapping } =
+      useEvaluationSheetSync();
+   const { history, isLoadingHistory, historyError, latestSync, isSyncing, runSync, notifyStaff } =
+      useSyncHistory();
+
+   // URL도 같이 갱신해둬야 새로고침하거나 주소를 공유해도 선택한 탭이 유지된다
+   const changeTab = (tab: TabKey) => {
+      setActiveTab(tab);
+      router.replace(`/evaluations?tab=${tab}`);
+   };
 
    return (
       <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
@@ -31,7 +49,7 @@ export default function EvaluationsPageClient() {
                <button
                   key={tab.key}
                   type="button"
-                  onClick={() => setActiveTab(tab.key)}
+                  onClick={() => changeTab(tab.key)}
                   className={`cursor-pointer border-b-2 pb-3 text-sm transition-colors ${
                      activeTab === tab.key
                         ? 'border-brand-green font-bold text-[#111827]'
@@ -44,7 +62,15 @@ export default function EvaluationsPageClient() {
          </div>
 
          <div className="mt-6">
-            {activeTab === 'sheet-sync' && <SheetSyncTab onSaveMapping={handleSaveMapping} />}
+            {activeTab === 'sheet-sync' && (
+               <SheetSyncTab
+                  isConnected={isConnected}
+                  spreadsheetUrl={spreadsheetUrl}
+                  isLoading={isLoading}
+                  loadError={loadError}
+                  onSaveMapping={handleSaveMapping}
+               />
+            )}
             {activeTab === 'sync-run' && (
                <SyncRunTab
                   isConnected={isConnected}
@@ -54,7 +80,13 @@ export default function EvaluationsPageClient() {
                   onNotifyStaff={notifyStaff}
                />
             )}
-            {activeTab === 'history' && <SyncHistoryTab history={history} />}
+            {activeTab === 'history' && (
+               <SyncHistoryTab
+                  history={history}
+                  isLoadingHistory={isLoadingHistory}
+                  historyError={historyError}
+               />
+            )}
          </div>
       </div>
    );
