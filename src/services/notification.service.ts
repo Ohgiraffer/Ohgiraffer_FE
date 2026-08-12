@@ -23,9 +23,11 @@ export interface NotificationDto {
    createdAt: string;
 }
 
-// 알림 목록 조회 - 스펙상 조회인데도 POST로 정의돼 있어 그대로 따름(바디 없음)
+// 알림 목록 조회 - 문서에는 POST로 적혀 있었지만 실제로는 그 경로가 "6. 알림 생성(내부용)"
+// 핸들러 하나뿐이라(notificationType/userId/title/content 필수 검증 400이 그 증거) GET으로 호출한다.
+// 백엔드에 확인 후 문서가 GET으로 정정되면 이 주석만 지우면 됨
 export function getNotifications() {
-   return apiFetch<NotificationDto[]>('/notifications', { method: 'POST' });
+   return apiFetch<NotificationDto[]>('/notifications', { method: 'GET' });
 }
 
 export function markNotificationAsRead(notificationId: number) {
