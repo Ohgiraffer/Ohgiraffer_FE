@@ -178,6 +178,31 @@
    animation-delay: var(--dot-delay, 0s);
 }
 
+/* 우측 슬라이드 패널(알림/채팅/공간관리) 공용 - SidePanelShell.tsx */
+@keyframes fadeIn {
+   from {
+      opacity: 0;
+   }
+   to {
+      opacity: 1;
+   }
+}
+@keyframes fadeOut {
+   from {
+      opacity: 1;
+   }
+   to {
+      opacity: 0;
+   }
+}
+.animate-fade-in {
+   animation: fadeIn 0.25s ease-out forwards;
+}
+.animate-fade-out {
+   /* fill-mode:forwards가 없으면 애니메이션이 끝나는 순간 opacity가 초기값으로 리셋되면서 배경이 다시 번쩍인다 */
+   animation: fadeOut 0.25s ease-out forwards;
+}
+
 /* 채팅 패널(우측 슬라이드)과 그 안의 새 채팅 시트(하단 슬라이드) 전용 */
 @keyframes slideInFromRight {
    from {

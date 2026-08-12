@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -10,11 +9,14 @@ import ChatButton from '@/features/chat/components/ChatButton';
 import NotificationPanel from '@/features/alarm/components/AlarmPanel';
 import { useNotifications } from '@/features/alarm/hooks/useNotifications';
 import { useAuth } from '@/components/auth/AuthContext';
+import { useSidePanel } from '@/components/layout/SidePanelContext';
 
 export default function Header() {
    const pathname = usePathname();
    const isSettingActive = pathname === '/manager-setting';
-   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+   // 채팅/공간관리 등 다른 우측 패널이 열려 있으면 알림을 열 때 자동으로 닫히도록 공용 상태로 관리
+   const { isOpen: isNotificationOpen, toggle: toggleNotification, close: closeNotification } =
+      useSidePanel('notification');
    // 관리자 설정은 매니저 role만 접근 가능한 화면이라 헤더에서도 매니저에게만 노출
    const { role } = useAuth();
    const isManager = role === 'MANAGER';
@@ -42,8 +44,10 @@ export default function Header() {
             <button
                type="button"
                aria-label="알림"
-               onClick={() => setIsNotificationOpen(true)}
-               className="relative rounded-xs p-2 transition-colors hover:bg-[#4D655A]"
+               onClick={toggleNotification}
+               className={`relative cursor-pointer rounded-xs p-2 transition-colors hover:bg-[#4D655A] ${
+                  isNotificationOpen ? 'bg-[#4D655A]' : ''
+               }`}
             >
                <Bell size={18} />
                {notifications.unreadCount > 0 && (
@@ -57,11 +61,7 @@ export default function Header() {
             <ProfileDropdown />
          </div>
 
-         <NotificationPanel
-            open={isNotificationOpen}
-            onClose={() => setIsNotificationOpen(false)}
-            {...notifications}
-         />
+         <NotificationPanel open={isNotificationOpen} onClose={closeNotification} {...notifications} />
       </header>
    );
 }

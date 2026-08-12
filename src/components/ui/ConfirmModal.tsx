@@ -52,7 +52,8 @@ export default function ConfirmModal({
 
    return createPortal(
       <div
-         className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+         // 우측 슬라이드 패널(SidePanelShell, z-60) 위에서도 뜰 수 있어(예: 공간관리 패널의 삭제 확인) 그보다 높게 둔다
+         className="fixed inset-0 z-70 flex items-center justify-center bg-black/40 px-4"
          onClick={busy ? undefined : onClose}
       >
          <div

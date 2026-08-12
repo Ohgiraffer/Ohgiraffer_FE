@@ -96,12 +96,13 @@ export interface AttendanceDashboardSummary {
    // 메인 대시보드의 "오늘 출석한 사람 수" - 구글 시트 동기화 데이터가 반영된다. 아직 한 번도
    // 동기화하지 않았으면 null로 내려올 수 있음
    attendedTodayCount: number | null;
-   managedStudents: number;
+   // 아래 인원 통계들도 attendedTodayCount와 같은 이유로(구글 시트 동기화 전) null로 내려올 수 있음
+   managedStudents: number | null;
    atRiskStudents: number;
    dropoutStudents: number;
-   cautionStudents: number;
-   warningStudents: number;
-   riskStudents: number;
+   cautionStudents: number | null;
+   warningStudents: number | null;
+   riskStudents: number | null;
 }
 
 // 운영진용 훈련생 전체 출결 통계
