@@ -47,7 +47,7 @@ export default function SyncRunTab({
                   {isSyncing ? '동기화 중...' : '동기화 실행'}
                </button>
                {latestSync && !isSyncing && (
-                  <span className="flex items-center gap-1 text-[13px] text-brand-green">
+                  <span className="flex items-center gap-1 text-[13px] font-semibold text-brand-sage">
                      <Check size={16} />
                      동기화 완료
                   </span>
