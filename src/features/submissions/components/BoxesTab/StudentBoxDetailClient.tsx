@@ -169,7 +169,7 @@ export default function StudentBoxDetailClient({ boxId }: StudentBoxDetailClient
                   {(detail.canSubmit || detail.canEdit) && (
                      <Link
                         href={`/submissions/boxes/${detail.submissionBoxId}/submit`}
-                        className="mt-4 flex w-fit cursor-pointer items-center gap-1.5 rounded-sm bg-brand-green px-4 py-2 text-sm font-semibold text-white hover:bg-[#4D655A]"
+                        className="mt-4 flex w-fit cursor-pointer items-center gap-1.5 rounded-xs bg-brand-green px-4 py-2 text-sm font-semibold text-white hover:bg-[#4D655A]"
                      >
                         {detail.canEdit ? <Pencil size={14} /> : <Upload size={14} />}
                         {detail.canEdit ? '내 제출물 수정' : '제출하기'}
