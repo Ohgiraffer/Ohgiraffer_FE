@@ -231,10 +231,13 @@ export interface ExtractedScheduleCandidate {
 }
 
 // 공지에서 AI로 일정 후보를 추출(운영진 전용) - 몇 초 걸리므로 호출 중 버튼을 반드시 잠가야 한다.
-// 빈 배열이 정상(일정이 없는 공지가 더 많음) - 오류가 아니라 "추출된 일정 없음"으로 안내
+// 빈 배열이 정상(일정이 없는 공지가 더 많음) - 오류가 아니라 "추출된 일정 없음"으로 안내.
+// apiFetch엔 공통 타임아웃이 없어서, AI 호출이 응답 없이 무한정 걸리면 "추출 중..." 버튼이 영영
+// 안 풀릴 수 있다 - AI 처리에 걸리는 정상 시간(몇 초)보다 넉넉하게 30초로 끊는다
 export function extractNoticeSchedules(noticeId: number) {
    return apiFetch<ExtractedScheduleCandidate[]>(`/notices/${noticeId}/schedule-extraction`, {
       method: 'POST',
+      signal: AbortSignal.timeout(30_000),
    });
 }
 

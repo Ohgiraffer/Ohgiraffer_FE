@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import { ChevronLeft, ChevronRight, Sparkles, X } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { DatePicker } from '@/components/ui/date-picker';
@@ -42,6 +43,18 @@ export default function AiScheduleExtractionModal({
    onSubmit,
    onClose,
 }: Props) {
+   // 한 번에 후보 하나만 그려지므로(전체 목록을 동시에 안 그림) currentIndex별로 나눌 필요 없이
+   // 고정된 id로 충분하다
+   const idPrefix = useId();
+   const titleId = `${idPrefix}-title`;
+   const eventTypeId = `${idPrefix}-event-type`;
+   const eventTypeWarningId = `${idPrefix}-event-type-warning`;
+   const startDateId = `${idPrefix}-start-date`;
+   const startTimeId = `${idPrefix}-start-time`;
+   const endDateId = `${idPrefix}-end-date`;
+   const endTimeId = `${idPrefix}-end-time`;
+   const locationId = `${idPrefix}-location`;
+
    const candidate = candidates[currentIndex];
    if (!candidate) return null;
 
@@ -102,10 +115,11 @@ export default function AiScheduleExtractionModal({
                </div>
 
                <div className="mt-4">
-                  <label className="text-sm font-semibold text-gray-900">
+                  <label htmlFor={titleId} className="text-sm font-semibold text-gray-900">
                      일정명 <span className="font-bold text-brand-gold">*</span>
                   </label>
                   <input
+                     id={titleId}
                      type="text"
                      value={candidate.title}
                      onChange={(e) => onUpdate(currentIndex, 'title', e.target.value)}
@@ -114,7 +128,7 @@ export default function AiScheduleExtractionModal({
                </div>
 
                <div className="mt-4">
-                  <label className="text-sm font-semibold text-gray-900">
+                  <label htmlFor={eventTypeId} className="text-sm font-semibold text-gray-900">
                      유형 <span className="font-bold text-brand-gold">*</span>
                   </label>
                   <Select
@@ -124,6 +138,8 @@ export default function AiScheduleExtractionModal({
                      }
                   >
                      <SelectTrigger
+                        id={eventTypeId}
+                        aria-describedby={showTypeWarning ? eventTypeWarningId : undefined}
                         className={`mt-2 h-10 w-full rounded-xs bg-white ${
                            showTypeWarning ? 'border-brand-red' : 'border-[#E5E7EB]'
                         }`}
@@ -152,7 +168,7 @@ export default function AiScheduleExtractionModal({
                      </SelectContent>
                   </Select>
                   {showTypeWarning && (
-                     <p className="mt-1.5 text-xs text-brand-red">
+                     <p id={eventTypeWarningId} className="mt-1.5 text-xs text-brand-red">
                         ⚠ 공지사항 유형을 선택해야 일정 등록이 가능합니다.
                      </p>
                   )}
@@ -160,20 +176,22 @@ export default function AiScheduleExtractionModal({
 
                <div className="mt-4 grid grid-cols-2 gap-4">
                   <div>
-                     <label className="text-sm font-semibold text-gray-900">
+                     <label htmlFor={startDateId} className="text-sm font-semibold text-gray-900">
                         시작일 <span className="font-bold text-brand-gold">*</span>
                      </label>
                      <DatePicker
+                        id={startDateId}
                         value={candidate.startDate}
                         onChange={(value) => onUpdate(currentIndex, 'startDate', value)}
                         className="mt-2"
                      />
                   </div>
                   <div>
-                     <label className="text-sm font-semibold text-gray-900">
+                     <label htmlFor={startTimeId} className="text-sm font-semibold text-gray-900">
                         시작 시각 <span className="text-gray-400">(선택)</span>
                      </label>
                      <input
+                        id={startTimeId}
                         type="time"
                         value={candidate.startTime}
                         onChange={(e) => onUpdate(currentIndex, 'startTime', e.target.value)}
@@ -184,20 +202,22 @@ export default function AiScheduleExtractionModal({
 
                <div className="mt-4 grid grid-cols-2 gap-4">
                   <div>
-                     <label className="text-sm font-semibold text-gray-900">
+                     <label htmlFor={endDateId} className="text-sm font-semibold text-gray-900">
                         종료일 <span className="font-bold text-brand-gold">*</span>
                      </label>
                      <DatePicker
+                        id={endDateId}
                         value={candidate.endDate}
                         onChange={(value) => onUpdate(currentIndex, 'endDate', value)}
                         className="mt-2"
                      />
                   </div>
                   <div>
-                     <label className="text-sm font-semibold text-gray-900">
+                     <label htmlFor={endTimeId} className="text-sm font-semibold text-gray-900">
                         종료 시각 <span className="text-gray-400">(선택)</span>
                      </label>
                      <input
+                        id={endTimeId}
                         type="time"
                         value={candidate.endTime}
                         onChange={(e) => onUpdate(currentIndex, 'endTime', e.target.value)}
@@ -207,10 +227,11 @@ export default function AiScheduleExtractionModal({
                </div>
 
                <div className="mt-4">
-                  <label className="text-sm font-semibold text-gray-900">
+                  <label htmlFor={locationId} className="text-sm font-semibold text-gray-900">
                      장소 <span className="text-gray-400">(선택)</span>
                   </label>
                   <input
+                     id={locationId}
                      type="text"
                      value={candidate.location}
                      onChange={(e) => onUpdate(currentIndex, 'location', e.target.value)}

@@ -118,6 +118,15 @@ export function useAiScheduleExtraction(noticeId: number, onRegistered: () => vo
          setIsModalOpen(false);
          onRegistered();
       } catch (err) {
+         // 이미 등록된 공지(1회성이라 되돌릴 수 없음) - 실제로는 이미 등록된 상태이므로 상위의
+         // aiCalendarRegistered도 같이 동기화해서 노란 박스가 사라지게 한다(새로고침 안내만 하고
+         // 끝내면 화면과 서버 상태가 계속 어긋난 채로 남는다)
+         if (err instanceof ApiError && err.code === 'NOTICE_013') {
+            toast.error(err.message);
+            setIsModalOpen(false);
+            onRegistered();
+            return;
+         }
          toast.error(
             err instanceof ApiError
                ? err.message
