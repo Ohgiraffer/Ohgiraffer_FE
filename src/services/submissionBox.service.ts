@@ -4,6 +4,7 @@ import type {
    SubmissionBoxListItem,
    SubmissionBoxSubmissionsDetail,
    SubmissionBoxWriteRequest,
+   SubmissionItemType,
    SubmissionItemValue,
 } from '@/features/submissions/types';
 
@@ -92,6 +93,7 @@ export function downloadSubmissionItem(submissionItemValueId: number) {
 
 export interface SubmitItemInput {
    submissionBoxItemId: number;
+   itemType: SubmissionItemType;
    fileIndex: number | null;
    externalUrl: string | null;
 }

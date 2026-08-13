@@ -24,9 +24,11 @@ export type ConsultationStatusFilter = 'ALL' | ConsultationStatus;
 export function useStaffCounselingHistory() {
    const [upcoming, setUpcoming] = useState<StaffConsultationSummary[]>([]);
    const [isLoadingUpcoming, setIsLoadingUpcoming] = useState(true);
+   const [hasUpcomingError, setHasUpcomingError] = useState(false);
 
    const [history, setHistory] = useState<StaffConsultationSummary[]>([]);
    const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+   const [hasHistoryError, setHasHistoryError] = useState(false);
 
    // 상담 이력 응답엔 담당자의 역할이 없어서, "담당자" 필터(강사/매니저)는 상담 가능 운영진
    // 목록(이름 기준)에서 역할을 가져와 매칭한다. 상담 가능 시간을 한 번도 등록한 적 없는
@@ -45,6 +47,7 @@ export function useStaffCounselingHistory() {
          })
          .catch((err) => {
             if (!isMounted) return;
+            setHasUpcomingError(true);
             toast.error(getApiErrorMessage(err, '다가오는 상담을 불러오지 못했습니다.'));
          })
          .finally(() => {
@@ -69,6 +72,7 @@ export function useStaffCounselingHistory() {
          })
          .catch((err) => {
             if (!isMounted) return;
+            setHasHistoryError(true);
             toast.error(getApiErrorMessage(err, '상담 이력을 불러오지 못했습니다.'));
          })
          .finally(() => {
@@ -110,8 +114,10 @@ export function useStaffCounselingHistory() {
    return {
       upcoming,
       isLoadingUpcoming,
+      hasUpcomingError,
       history: filteredHistory,
       isLoadingHistory,
+      hasHistoryError,
       roleFilter,
       setRoleFilter,
       statusFilter,

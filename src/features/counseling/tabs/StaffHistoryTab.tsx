@@ -33,8 +33,10 @@ export default function StaffHistoryTab() {
    const {
       upcoming,
       isLoadingUpcoming,
+      hasUpcomingError,
       history,
       isLoadingHistory,
+      hasHistoryError,
       roleFilter,
       setRoleFilter,
       statusFilter,
@@ -59,6 +61,10 @@ export default function StaffHistoryTab() {
             </h3>
             {isLoadingUpcoming ? (
                <p className="py-10 text-center text-sm text-gray-400">불러오는 중...</p>
+            ) : hasUpcomingError ? (
+               <p className="py-10 text-center text-sm text-brand-red">
+                  다가오는 상담을 불러오지 못했습니다.
+               </p>
             ) : upcoming.length === 0 ? (
                <p className="py-10 text-center text-sm text-gray-400">다가오는 상담이 없습니다.</p>
             ) : (
@@ -115,6 +121,10 @@ export default function StaffHistoryTab() {
             </div>
             {isLoadingHistory ? (
                <p className="py-10 text-center text-sm text-gray-400">불러오는 중...</p>
+            ) : hasHistoryError ? (
+               <p className="py-10 text-center text-sm text-brand-red">
+                  상담 이력을 불러오지 못했습니다.
+               </p>
             ) : history.length === 0 ? (
                <p className="py-10 text-center text-sm text-gray-400">상담 이력이 없습니다.</p>
             ) : (

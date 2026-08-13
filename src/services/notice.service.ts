@@ -71,6 +71,9 @@ export interface NoticeDetail {
    attachments: NoticeAttachment[];
    createdAt: string;
    updatedAt: string;
+   // 이 공지에서 추출한 일정을 캘린더에 등록한 적 있는지 - 1회성이라 true가 되면 다시 false로
+   // 돌아가지 않음(등록된 캘린더 일정을 지워도 유지됨). true면 "AI 일정 추출" 노란 박스를 안 보여줌
+   aiCalendarRegistered: boolean;
 }
 
 // 공지 상세 조회 - 훈련생은 비공개(visibleToTrainee: false) 공지에 접근 시 404(NOTICE_001)
@@ -104,6 +107,20 @@ export function uploadNoticeAttachments(files: File[]) {
 export function deleteNoticeAttachment(noticeId: number, noticeAttachmentId: number) {
    return apiFetch<void>(`/notices/${noticeId}/attachments/${noticeAttachmentId}`, {
       method: 'DELETE',
+   });
+}
+
+// 이미 저장된 공지에 새 첨부파일을 바로 추가(수정 화면 전용) - uploadNoticeAttachments와 달리
+// noticeId가 있고, 호출 즉시 DB에 반영된다(등록 API에 다시 실어 보낼 필요 없음).
+// 작성자 본인만 가능, 개수 제한(5개, 기존 첨부 포함)을 넘기면 400(NOTICE_008 - 메시지에 현재
+// 개수가 포함되어 내려옴). 응답은 새로 추가된 첨부파일만 담긴 배열(NoticeDetail.attachments와
+// 동일한 형태 - fileKey가 아니라 noticeAttachmentId/downloadUrl을 바로 가짐)
+export function addNoticeAttachments(noticeId: number, files: File[]) {
+   const formData = new FormData();
+   files.forEach((file) => formData.append('files', file));
+   return apiFetch<NoticeAttachment[]>(`/notices/${noticeId}/attachments`, {
+      method: 'POST',
+      body: formData,
    });
 }
 
@@ -210,5 +227,55 @@ export interface ConfirmNoticeResponse {
 export function confirmNotice(noticeId: number) {
    return apiFetch<ConfirmNoticeResponse>(`/notices/${noticeId}/confirmation`, {
       method: 'POST',
+   });
+}
+
+export type NoticeEventType = 'CLASS' | 'PRESENTATION' | 'ASSIGNMENT' | 'EVENT';
+
+export interface ExtractedScheduleCandidate {
+   title: string;
+   // AI가 확신 없으면 null - 억지로 채워서 보내면 안 됨(사용자가 직접 골라야 함)
+   eventType: NoticeEventType | null;
+   startDate: string; // yyyy-MM-dd
+   // HH:mm:ss 또는 null로 내려옴(초 단위 포함) - 화면의 <input type="time">엔 HH:mm만 써야 함
+   startTime: string | null;
+   endDate: string;
+   endTime: string | null;
+   location: string | null;
+}
+
+// 공지에서 AI로 일정 후보를 추출(운영진 전용) - 몇 초 걸리므로 호출 중 버튼을 반드시 잠가야 한다.
+// 빈 배열이 정상(일정이 없는 공지가 더 많음) - 오류가 아니라 "추출된 일정 없음"으로 안내.
+// apiFetch엔 공통 타임아웃이 없어서, AI 호출이 응답 없이 무한정 걸리면 "추출 중..." 버튼이 영영
+// 안 풀릴 수 있다 - AI 처리에 걸리는 정상 시간(몇 초)보다 넉넉하게 30초로 끊는다
+export function extractNoticeSchedules(noticeId: number) {
+   return apiFetch<ExtractedScheduleCandidate[]>(`/notices/${noticeId}/schedule-extraction`, {
+      method: 'POST',
+      signal: AbortSignal.timeout(30_000),
+   });
+}
+
+export interface CalendarEventInput {
+   title: string;
+   eventType: NoticeEventType;
+   startDate: string;
+   // HH:mm 또는 null (요청 시엔 초 단위 없이 보내야 함)
+   startTime: string | null;
+   endDate: string;
+   endTime: string | null;
+   location: string | null;
+}
+
+export interface RegisterCalendarEventsResponse {
+   registeredCount: number;
+}
+
+// 모달에서 [이 일정 포함]을 켠(+유형을 고른) 후보만 골라 캘린더에 등록(운영진 전용, 1~20건).
+// 성공하면 이 공지의 aiCalendarRegistered가 true로 바뀌고(1회성, 되돌릴 수 없음) 노란 박스가 사라짐.
+// 이미 등록한 공지면 409(NOTICE_013)
+export function registerNoticeCalendarEvents(noticeId: number, schedules: CalendarEventInput[]) {
+   return apiFetch<RegisterCalendarEventsResponse>(`/notices/${noticeId}/calendar-events`, {
+      method: 'POST',
+      body: JSON.stringify({ schedules }),
    });
 }
