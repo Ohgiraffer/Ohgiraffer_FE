@@ -283,6 +283,11 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                                  >
                                     <td className="px-6 py-4 font-medium text-gray-900">
                                        {entry.targetName}
+                                       {detail.targetScope === 'INDIVIDUAL' && entry.targetEmail && (
+                                          <p className="mt-0.5 text-xs font-normal text-gray-400">
+                                             {entry.targetEmail}
+                                          </p>
+                                       )}
                                     </td>
                                     {detail.items.map((item) => {
                                        const value = entry.values.find(

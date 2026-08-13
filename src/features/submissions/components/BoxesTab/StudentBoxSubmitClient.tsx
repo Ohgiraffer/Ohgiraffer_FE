@@ -148,10 +148,16 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
          if (item.itemType === 'FILE' && value.file) {
             const fileIndex = files.length;
             files.push(value.file);
-            return { submissionBoxItemId: item.submissionBoxItemId!, fileIndex, externalUrl: null };
+            return {
+               submissionBoxItemId: item.submissionBoxItemId!,
+               itemType: item.itemType,
+               fileIndex,
+               externalUrl: null,
+            };
          }
          return {
             submissionBoxItemId: item.submissionBoxItemId!,
+            itemType: item.itemType,
             fileIndex: null,
             externalUrl: item.itemType === 'LINK' ? value.externalUrl ?? null : null,
          };
@@ -184,20 +190,22 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
          if (err instanceof ApiError && err.code === 'SUBMISSION_005') {
             toast.error('이미 제출된 항목입니다.');
             refetch();
+         } else if (err instanceof ApiError && err.code === 'SUBMISSION_006') {
+            toast.error('아직 제출 시작 전입니다.');
+            refetch();
          } else if (err instanceof ApiError && err.code === 'SUBMISSION_007') {
-            const notStartedYet = new Date() < new Date(detail.startAt);
-            toast.error(
-               notStartedYet
-                  ? '아직 제출 시작 전입니다.'
-                  : isEditing
-                    ? '수정 가능 기간이 종료되었습니다.'
-                    : '마감 후 제출이 차단되었습니다.',
-            );
+            toast.error(isEditing ? '수정 가능 기간이 종료되었습니다.' : '마감 후 제출이 차단되었습니다.');
             refetch();
          } else if (err instanceof ApiError && err.code === 'SUBMISSION_009') {
             toast.error(getErrorMessage(err, '허용되지 않는 파일 확장자입니다.'));
          } else if (err instanceof ApiError && err.code === 'SUBMISSION_008') {
             toast.error('제출 항목이 변경되었습니다. 다시 확인해주세요.');
+            refetch();
+         } else if (err instanceof ApiError && err.code === 'SUBMISSION_010') {
+            toast.error(getErrorMessage(err, '현재 소속된 팀을 찾을 수 없어 제출할 수 없습니다.'));
+            refetch();
+         } else if (err instanceof ApiError && (err.code === 'SUBMISSION_004' || err.code === 'SUBMISSION_011')) {
+            toast.error(getErrorMessage(err, '제출물 정보를 찾을 수 없습니다.'));
             refetch();
          } else {
             toast.error(getErrorMessage(err, '처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'));
