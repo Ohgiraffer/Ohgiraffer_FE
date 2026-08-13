@@ -173,8 +173,18 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
                pinned: form.isRequired,
                visibleToTrainee: form.visibility === 'public',
             });
-            toast.success('공지사항을 수정했습니다.');
+
+            // 첨부파일 추가/삭제는 별도 API라 본문 수정과 별개로 성공/실패할 수 있다. 일부라도
+            // 실패하면(예: 삭제하려던 파일이 이미 없어짐) 상세 페이지로 이동하지 않고 이 화면에
+            // 남겨서 실패한 항목을 다시 저장해볼 수 있게 한다 - 그대로 나가면 재시도할 방법이 없음
+            const attachmentsOk = await form.commitAttachmentChanges();
             setIsConfirmOpen(false);
+            if (!attachmentsOk) {
+               toast.warning('공지사항 내용은 수정했습니다. 첨부파일은 다시 저장해주세요.');
+               return;
+            }
+
+            toast.success('공지사항을 수정했습니다.');
             router.push(`/notices/${noticeId}`);
             return;
          }
@@ -227,7 +237,11 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
                onVisibilityChange={form.setVisibility}
                isEditMode={isEditMode}
                existingAttachments={form.existingAttachments}
+               pendingDeleteIds={form.pendingDeleteIds}
                onRemoveExisting={form.removeExistingAttachment}
+               onUndoRemoveExisting={form.undoRemoveExistingAttachment}
+               pendingNewFiles={form.pendingNewFiles}
+               onPendingNewFileRemove={form.removePendingNewFile}
                pendingAttachments={form.pendingAttachments}
                isUploadingFiles={form.isUploadingFiles}
                onFilesAdd={form.addFiles}

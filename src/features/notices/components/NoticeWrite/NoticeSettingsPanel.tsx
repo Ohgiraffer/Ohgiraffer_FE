@@ -1,6 +1,6 @@
 'use client';
 
-import { Paperclip, Upload, X } from 'lucide-react';
+import { Paperclip, RotateCcw, Upload, X } from 'lucide-react';
 import {
    Select,
    SelectContent,
@@ -9,6 +9,7 @@ import {
    SelectValue,
 } from '@/components/ui/shadcn/select';
 import { formatFileSize } from '@/lib/formatFileSize';
+import { getAttachmentFileError } from '../../hooks/useNoticeWriteForm';
 import type {
    NoticeAttachment,
    NoticeCategory,
@@ -25,14 +26,19 @@ type Props = {
    onRequiredChange: (value: boolean) => void;
    visibility: NoticeVisibility;
    onVisibilityChange: (value: NoticeVisibility) => void;
-   // 수정 모드에서는 새 첨부파일을 등록에 연결하는 API가 아직 없어(수정 API에 첨부 필드 자체가
-   // 없음) 파일 추가 입력 자체를 숨긴다 - 기존 첨부파일 삭제만 지원
+   // 수정 모드에서는 첨부파일 추가/삭제도 다른 필드들과 마찬가지로 저장을 눌러야 실제로 반영된다 -
+   // 그 전까지는 화면에만 "추가/삭제 예정"으로 표시됨(안내 문구 분기에만 씀)
    isEditMode: boolean;
-   // 수정 모드에서 이미 서버에 저장돼있는 첨부파일 - 삭제 시 실제 삭제 API가 호출됨
+   // 수정 모드에서 이미 서버에 저장돼있는 첨부파일 - 저장 전까지는 그대로 유지되고, pendingDeleteIds에
+   // 있는 항목만 "삭제 예정"으로 표시됨
    existingAttachments: NoticeAttachment[];
+   pendingDeleteIds: Set<number>;
    onRemoveExisting: (noticeAttachmentId: number) => void;
-   // 이번 작성 중에 새로 업로드해서 등록 요청에 실어 보낼 첨부파일(이미 업로드 완료된 상태) -
-   // 작성 모드에서만 쓰임
+   onUndoRemoveExisting: (noticeAttachmentId: number) => void;
+   // 수정 모드에서 저장 전까지 로컬에만 쌓아둔 "추가 예정" 새 파일(아직 서버에 업로드 안 함)
+   pendingNewFiles: File[];
+   onPendingNewFileRemove: (index: number) => void;
+   // 이번 작성 중에 이미 업로드 완료돼 등록 요청에 그대로 실어 보낼 첨부파일 - 작성 모드에서만 쓰임
    pendingAttachments: UploadedNoticeAttachment[];
    isUploadingFiles: boolean;
    onFilesAdd: (files: File[]) => void;
@@ -40,7 +46,7 @@ type Props = {
 };
 
 // 오른쪽 영역 - 카테고리 / 고정 여부 / 공개 설정 / 파일 첨부.
-// 파일은 선택하는 즉시 업로드되므로(로컬에 들고 있지 않음), 목록엔 업로드 완료된 결과만 표시된다
+// 작성 모드는 파일이 선택 즉시 업로드되고, 수정 모드는 저장을 누르기 전까지 로컬 상태로만 존재한다
 export default function NoticeSettingsPanel({
    category,
    onCategoryChange,
@@ -52,7 +58,11 @@ export default function NoticeSettingsPanel({
    onVisibilityChange,
    isEditMode,
    existingAttachments,
+   pendingDeleteIds,
    onRemoveExisting,
+   onUndoRemoveExisting,
+   pendingNewFiles,
+   onPendingNewFileRemove,
    pendingAttachments,
    isUploadingFiles,
    onFilesAdd,
@@ -139,66 +149,90 @@ export default function NoticeSettingsPanel({
          <div className="mt-4 flex min-h-0 flex-1 flex-col">
             <div className="shrink-0">
                <span className="text-[15px] font-semibold text-gray-900">파일 첨부</span>
-               {isEditMode ? (
-                  <p className="mt-2 text-xs text-gray-400">
-                     수정 화면에서는 기존 첨부파일 삭제만 가능합니다. 새 파일을 추가하려면 공지를
-                     다시 작성해주세요.
+
+               <div className="relative mt-2">
+                  <input
+                     id="notice-file-input"
+                     type="file"
+                     multiple
+                     disabled={isUploadingFiles}
+                     onChange={(event) => {
+                        const selected = Array.from(event.target.files ?? []);
+                        if (selected.length > 0) onFilesAdd(selected);
+                        // 같은 파일을 다시 선택해도 onChange가 또 발생하도록 초기화
+                        event.target.value = '';
+                     }}
+                     className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+                  />
+                  <div className="flex h-10 items-center gap-2 rounded-xs border border-[#E5E7EB] px-3 text-sm text-gray-400 peer-hover:bg-gray-50">
+                     <Upload size={16} className="shrink-0 text-gray-400" />
+                     {isUploadingFiles ? '업로드 중...' : '파일 선택'}
+                  </div>
+               </div>
+               <p className="mt-1.5 text-xs text-gray-400">
+                  최대 5개(기존 첨부 포함) · 파일당 최대 10MB · PDF, DOCX, XLS, HWP, JPG, PNG
+               </p>
+               {pendingNewFiles.some((file) => getAttachmentFileError(file) !== null) && (
+                  <p className="mt-1.5 text-xs text-brand-red">
+                     ⚠ 파일 당 용량이 초과되었거나 지원하지 않는 파일 형식이 포함되어있습니다.
                   </p>
-               ) : (
-                  <>
-                     <div className="relative mt-2">
-                        <input
-                           id="notice-file-input"
-                           type="file"
-                           multiple
-                           disabled={isUploadingFiles}
-                           onChange={(event) => {
-                              const selected = Array.from(event.target.files ?? []);
-                              if (selected.length > 0) onFilesAdd(selected);
-                              // 같은 파일을 다시 선택해도 onChange가 또 발생하도록 초기화
-                              event.target.value = '';
-                           }}
-                           className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
-                        />
-                        <div className="flex h-10 items-center gap-2 rounded-xs border border-[#E5E7EB] px-3 text-sm text-gray-400 peer-hover:bg-gray-50">
-                           <Upload size={16} className="shrink-0 text-gray-400" />
-                           {isUploadingFiles ? '업로드 중...' : '파일 선택'}
-                        </div>
-                     </div>
-                     <p className="mt-1.5 text-xs text-gray-400">
-                        최대 5개 · 파일당 최대 10MB · PDF, DOCX, XLS, HWP, JPG, PNG
-                     </p>
-                  </>
                )}
             </div>
 
             {/* 파일이 쌓여 패널 높이를 넘어가면 이 목록만 내부 스크롤되고, 위쪽 필드들은 항상 고정 노출됨 */}
-            {(existingAttachments.length > 0 || pendingAttachments.length > 0) && (
+            {(existingAttachments.length > 0 ||
+               pendingAttachments.length > 0 ||
+               pendingNewFiles.length > 0) && (
                <div className="mt-1.5 min-h-0 flex-1 space-y-2 overflow-y-auto">
-                  {existingAttachments.map((attachment) => (
-                     <div
-                        key={attachment.noticeAttachmentId}
-                        className="flex items-center justify-between gap-2 rounded-xs bg-[#F9FAFB] px-3 py-2.5 text-sm text-gray-700"
-                     >
-                        <div className="flex min-w-0 items-center gap-2">
-                           <Paperclip size={14} className="shrink-0 text-gray-400" />
-                           <span className="truncate">{attachment.fileName}</span>
+                  {existingAttachments.map((attachment) => {
+                     const isPendingDelete = pendingDeleteIds.has(attachment.noticeAttachmentId);
+                     return (
+                        <div
+                           key={attachment.noticeAttachmentId}
+                           className={`flex items-center justify-between gap-2 rounded-xs px-3 py-2.5 text-sm ${
+                              isPendingDelete
+                                 ? 'bg-[#FEF2F2] text-gray-400'
+                                 : 'bg-[#F9FAFB] text-gray-700'
+                           }`}
+                        >
+                           <div className="flex min-w-0 items-center gap-2">
+                              <Paperclip size={14} className="shrink-0 text-gray-400" />
+                              <span className={`truncate ${isPendingDelete ? 'line-through' : ''}`}>
+                                 {attachment.fileName}
+                              </span>
+                              {isPendingDelete && (
+                                 <span className="shrink-0 text-xs text-brand-red">삭제 예정</span>
+                              )}
+                           </div>
+                           <div className="flex shrink-0 items-center gap-2">
+                              <span className="text-xs text-gray-400">
+                                 {formatFileSize(attachment.fileSizeBytes)}
+                              </span>
+                              {isPendingDelete ? (
+                                 <button
+                                    type="button"
+                                    onClick={() =>
+                                       onUndoRemoveExisting(attachment.noticeAttachmentId)
+                                    }
+                                    aria-label={`${attachment.fileName} 삭제 취소`}
+                                    className="cursor-pointer rounded-xs p-0.5 text-gray-400 hover:text-gray-700"
+                                 >
+                                    <RotateCcw size={14} />
+                                 </button>
+                              ) : (
+                                 <button
+                                    type="button"
+                                    onClick={() => onRemoveExisting(attachment.noticeAttachmentId)}
+                                    aria-label={`${attachment.fileName} 삭제`}
+                                    className="cursor-pointer rounded-xs p-0.5 text-gray-400 hover:text-gray-700"
+                                 >
+                                    <X size={14} />
+                                 </button>
+                              )}
+                           </div>
                         </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                           <span className="text-xs text-gray-400">
-                              {formatFileSize(attachment.fileSizeBytes)}
-                           </span>
-                           <button
-                              type="button"
-                              onClick={() => onRemoveExisting(attachment.noticeAttachmentId)}
-                              aria-label={`${attachment.fileName} 삭제`}
-                              className="cursor-pointer rounded-xs p-0.5 text-gray-400 hover:text-gray-700"
-                           >
-                              <X size={14} />
-                           </button>
-                        </div>
-                     </div>
-                  ))}
+                     );
+                  })}
                   {pendingAttachments.map((attachment, index) => (
                      <div
                         key={attachment.fileKey}
@@ -223,6 +257,44 @@ export default function NoticeSettingsPanel({
                         </div>
                      </div>
                   ))}
+                  {pendingNewFiles.map((file, index) => {
+                     const fileError = getAttachmentFileError(file);
+                     return (
+                        <div
+                           key={`${file.name}-${file.size}-${index}`}
+                           className={`flex items-center justify-between gap-2 rounded-xs px-3 py-2.5 text-sm text-gray-700 ${
+                              fileError ? 'bg-[#FEF2F2]' : 'bg-[#ECF6EF]'
+                           }`}
+                        >
+                           <div className="flex min-w-0 items-center gap-2">
+                              <Paperclip size={14} className="shrink-0 text-gray-400" />
+                              <span className="truncate">{file.name}</span>
+                              {fileError ? (
+                                 <span className="shrink-0 text-xs text-brand-red">
+                                    {fileError}
+                                 </span>
+                              ) : (
+                                 <span className="shrink-0 text-xs text-brand-green">
+                                    추가 예정
+                                 </span>
+                              )}
+                           </div>
+                           <div className="flex shrink-0 items-center gap-2">
+                              <span className="text-xs text-gray-400">
+                                 {formatFileSize(file.size)}
+                              </span>
+                              <button
+                                 type="button"
+                                 onClick={() => onPendingNewFileRemove(index)}
+                                 aria-label={`${file.name} 삭제`}
+                                 className="cursor-pointer rounded-xs p-0.5 text-gray-400 hover:text-gray-700"
+                              >
+                                 <X size={14} />
+                              </button>
+                           </div>
+                        </div>
+                     );
+                  })}
                </div>
             )}
          </div>
