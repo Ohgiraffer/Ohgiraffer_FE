@@ -27,6 +27,8 @@ export default function NoticesPageClient() {
    const { role } = useAuth();
    // 카테고리 등록/삭제는 운영진(강사·매니저)만 가능 - 훈련생에게는 관리 버튼 자체를 숨긴다
    const canManageCategories = role === 'INSTRUCTOR' || role === 'MANAGER';
+   // 공지 작성도 운영진 전용 - 훈련생에게는 버튼 자체를 숨긴다
+   const canWriteNotice = role === 'INSTRUCTOR' || role === 'MANAGER';
    const [categories, setCategories] = useState<NoticeCategory[]>([]);
    const [notices, setNotices] = useState<NoticeListItem[]>([]);
    const [isLoading, setIsLoading] = useState(true);
@@ -148,12 +150,14 @@ export default function NoticesPageClient() {
       <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
          <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900">공지사항</h1>
-            <Link
-               href="/notices/write"
-               className="cursor-pointer rounded-xs bg-brand-green px-4 py-2 text-sm font-semibold text-white hover:bg-[#4D655A]"
-            >
-               + 공지 작성
-            </Link>
+            {canWriteNotice && (
+               <Link
+                  href="/notices/write"
+                  className="cursor-pointer rounded-xs bg-brand-green px-4 py-2 text-sm font-semibold text-white hover:bg-[#4D655A]"
+               >
+                  + 공지 작성
+               </Link>
+            )}
          </div>
 
          <div className="mt-5 rounded-sm border border-[#E5E7EB] bg-white">
