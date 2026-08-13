@@ -1,27 +1,24 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
 import Pagination from '@/components/ui/Pagination';
-import SyncHistoryDetail from '../components/SyncHistoryDetail';
 import type { SyncHistoryEntry } from '../types';
 
 const PAGE_SIZE = 6;
 
 type Props = {
    history: SyncHistoryEntry[];
+   isLoadingHistory: boolean;
+   historyError: boolean;
 };
 
-// "이력" 탭 - 처음엔 항상 목록이 먼저 보이고(탭 재진입 시에도 목록으로 리셋됨),
-// 목록에서 항목을 고르면 그 시점의 AI 요약 상세로 전환된다
-export default function SyncHistoryTab({ history }: Props) {
-   const [selectedId, setSelectedId] = useState<string | null>(null);
+// "이력" 탭 - 항목을 선택하면 이력 상세 페이지(/evaluations/sync-logs/{syncLogId})로 이동한다.
+// hover 스타일은 결재 이력 등 다른 목록과 동일하게 cursor-pointer + hover:bg-[#F9FAFB]
+export default function SyncHistoryTab({ history, isLoadingHistory, historyError }: Props) {
+   const router = useRouter();
    const [currentPage, setCurrentPage] = useState(1);
-
-   const selectedEntry = history.find((entry) => entry.id === selectedId) ?? null;
-   if (selectedEntry) {
-      return <SyncHistoryDetail entry={selectedEntry} onBack={() => setSelectedId(null)} />;
-   }
 
    const totalPages = Math.max(1, Math.ceil(history.length / PAGE_SIZE));
    const pagedHistory = history.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -32,14 +29,26 @@ export default function SyncHistoryTab({ history }: Props) {
             <table className="w-full table-fixed text-left text-sm">
                <thead>
                   <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
-                     <th className="w-[10%] px-6 py-3 text-center font-medium">#</th>
+                     <th className="w-[8%] px-6 py-3 text-center font-medium">#</th>
                      <th className="w-[25%] px-15 py-3 text-center font-medium">실행자</th>
-                     <th className="w-[30%] px-15 py-3 font-medium">동기화 일시</th>
-                     <th className="w-[35%] px-6 py-3 font-medium">변경 건수</th>
+                     <th className="w-[37%] px-15 py-3 font-medium">동기화 일시</th>
+                     <th className="w-[30%] px-6 py-3 font-medium">변경 건수</th>
                   </tr>
                </thead>
                <tbody>
-                  {pagedHistory.length === 0 ? (
+                  {isLoadingHistory ? (
+                     <tr>
+                        <td colSpan={4} className="px-6 py-10 text-center text-gray-400">
+                           불러오는 중...
+                        </td>
+                     </tr>
+                  ) : historyError ? (
+                     <tr>
+                        <td colSpan={4} className="px-6 py-10 text-center text-gray-400">
+                           동기화 이력을 불러오지 못했습니다.
+                        </td>
+                     </tr>
+                  ) : pagedHistory.length === 0 ? (
                      <tr>
                         <td colSpan={4} className="px-6 py-10 text-center text-gray-400">
                            동기화 이력이 없습니다.
@@ -52,7 +61,7 @@ export default function SyncHistoryTab({ history }: Props) {
                         return (
                            <tr
                               key={entry.id}
-                              onClick={() => setSelectedId(entry.id)}
+                              onClick={() => router.push(`/evaluations/sync-logs/${entry.syncLogId}`)}
                               className="cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]"
                            >
                               <td className="px-6 py-4 text-center text-gray-500">{rowNumber}</td>
@@ -60,7 +69,7 @@ export default function SyncHistoryTab({ history }: Props) {
                               <td className="px-15 py-4 text-gray-700">
                                  {format(parseISO(entry.syncedAt), 'yyyy.MM.dd HH:mm')}
                               </td>
-                              <td className="px-6 py-4 text-gray-700">{entry.changeCount}건</td>
+                              <td className="px-6 py-4 text-gray-700">{entry.changedCount}건</td>
                            </tr>
                         );
                      })

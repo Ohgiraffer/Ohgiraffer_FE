@@ -31,6 +31,16 @@ export function getStudentAttendanceSummary(userId: number) {
    return apiFetch<AttendanceSummaryResponse>(`/attendance/summary/${userId}`);
 }
 
+export interface LeaveSickCountResponse {
+   remainingLeaveDays: number;
+   remainingSickDays: number;
+}
+
+// 훈련생 본인의 잔여 휴가/병결 일수 조회 - 부캠 시작 전/종료 후면 둘 다 0
+export function getLeaveSickCount() {
+   return apiFetch<LeaveSickCountResponse>('/attendance/leave-sick/count');
+}
+
 // 출결 기록이 없는 날은 status/checkInTime/checkOutTime이 전부 null로 내려옴
 export type AttendanceMonthlyDayStatus = 'NORMAL' | 'IRREGULAR' | 'ABSENT';
 

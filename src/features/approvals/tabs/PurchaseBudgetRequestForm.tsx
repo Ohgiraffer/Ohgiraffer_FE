@@ -12,7 +12,6 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useAuth } from '@/components/auth/AuthContext';
 import SignatureUpload from '../components/SignatureUpload';
 import { usePurchaseBudgetRequestForm } from '../hooks/usePurchaseBudgetRequestForm';
-import { PURCHASE_BUDGET_CATEGORIES, type PurchaseBudgetCategory } from '../types';
 
 export default function PurchaseBudgetRequestForm() {
    const { me } = useAuth();
@@ -20,8 +19,11 @@ export default function PurchaseBudgetRequestForm() {
       form,
       updateField,
       setHasSignature,
+      categories,
+      isLoadingCategories,
       isFilled,
       isConfirmOpen,
+      isSubmitting,
       submit,
       confirmSubmit,
       cancelSubmit,
@@ -36,18 +38,35 @@ export default function PurchaseBudgetRequestForm() {
                카테고리 <span className="font-bold text-[16px] text-brand-gold">*</span>
             </label>
             <Select
-               value={form.category}
-               onValueChange={(value) =>
-                  value && updateField('category', value as PurchaseBudgetCategory)
-               }
+               value={form.category === '' ? '' : String(form.category)}
+               onValueChange={(value) => value && updateField('category', Number(value))}
+               disabled={isLoadingCategories}
             >
                <SelectTrigger className="data-[size=default]:h-10 mt-2 w-full rounded-xs bg-white">
-                  <SelectValue placeholder="카테고리를 선택해주세요" />
+                  {/* base-ui의 SelectValue는 children이 함수면 placeholder prop을 완전히 무시하고
+                      그 함수의 반환값만 쓴다 - 값이 없을 때 보여줄 문구도 함수 안에서 직접 계산해야 함 */}
+                  <SelectValue placeholder="카테고리를 선택해주세요">
+                     {(value: string | null) => {
+                        if (value) {
+                           return (
+                              categories.find((c) => String(c.categoryId) === value)
+                                 ?.categoryName ?? null
+                           );
+                        }
+                        if (isLoadingCategories) return '불러오는 중...';
+                        if (categories.length === 0) return '연동된 예산 카테고리가 없습니다';
+                        return '카테고리를 선택해주세요';
+                     }}
+                  </SelectValue>
                </SelectTrigger>
                <SelectContent alignItemWithTrigger={false} align="start" sideOffset={4}>
-                  {PURCHASE_BUDGET_CATEGORIES.map((category) => (
-                     <SelectItem key={category} value={category} className="cursor-pointer">
-                        {category}
+                  {categories.map((category) => (
+                     <SelectItem
+                        key={category.categoryId}
+                        value={String(category.categoryId)}
+                        className="cursor-pointer"
+                     >
+                        {category.categoryName}
                      </SelectItem>
                   ))}
                </SelectContent>
@@ -138,8 +157,9 @@ export default function PurchaseBudgetRequestForm() {
             open={isConfirmOpen}
             title="구매 예산 결재 서류를 신청하시겠습니까?"
             description="신청 후 결재 담당자에게 알림이 발송됩니다."
+            confirmLabel={isSubmitting ? '처리 중...' : '확인'}
             onConfirm={confirmSubmit}
-            onClose={cancelSubmit}
+            onClose={() => !isSubmitting && cancelSubmit()}
          />
       </div>
    );

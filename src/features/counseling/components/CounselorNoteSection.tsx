@@ -21,15 +21,24 @@ export default function CounselorNoteSection({ detail, onSaved }: Props) {
    const hasNote = Boolean(detail.counselorNote);
    const [isEditing, setIsEditing] = useState(!hasNote);
    const [draft, setDraft] = useState(detail.counselorNote ?? '');
+   // 편집을 시작한 시점의 값 - 여기서 실질적으로 바뀐 게 있을 때만(공백만 고친 건 제외) 저장 버튼을
+   // 활성화한다. 처음 작성하는 경우(hasNote가 false)는 이 값도 빈 문자열이라 뭐라도 입력하는 순간
+   // 바로 "바뀜"으로 잡혀서 별도 분기가 필요 없다
+   const [initialDraft, setInitialDraft] = useState(detail.counselorNote ?? '');
    const [isSaving, setIsSaving] = useState(false);
 
    const startEdit = () => {
-      setDraft(detail.counselorNote ?? '');
+      const value = detail.counselorNote ?? '';
+      setDraft(value);
+      setInitialDraft(value);
       setIsEditing(true);
    };
 
+   const hasChanges = draft.trim() !== initialDraft.trim();
+   const canSave = !isSaving && draft.trim().length > 0 && hasChanges;
+
    const handleSave = async () => {
-      if (isSaving || !draft.trim()) return;
+      if (!canSave) return;
       setIsSaving(true);
       try {
          const result = await saveCounselorNote(detail.consultationId, {
@@ -68,7 +77,11 @@ export default function CounselorNoteSection({ detail, onSaved }: Props) {
                onChange={(event) => setDraft(event.target.value)}
                placeholder="상담 후 24시간까지 상담 기록 작성이 가능합니다."
                rows={6}
-               className="mt-2 w-full resize-none rounded-xs border border-[#E5E7EB] p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
+               disabled={isSaving}
+               // 저장 요청이 나간 뒤에도 입력이 가능하면, 응답이 오는 사이 사용자가 추가로 고친
+               // 내용이 저장 성공 후 setIsEditing(false)로 화면이 읽기 전용으로 바뀌면서
+               // 조용히 버려진다(서버엔 클릭 시점의 값만 반영됨) - 저장 중엔 입력을 잠근다
+               className="mt-2 w-full resize-none rounded-xs border border-[#E5E7EB] p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
             />
          ) : (
             <p className="mt-2 rounded-xs border border-[#E5E7EB] bg-[#F9FAFB] p-3 text-sm whitespace-pre-line text-gray-700">
@@ -93,11 +106,11 @@ export default function CounselorNoteSection({ detail, onSaved }: Props) {
                <button
                   type="button"
                   onClick={handleSave}
-                  disabled={isSaving || !draft.trim()}
+                  disabled={!canSave}
                   className={`rounded-sm px-5 py-2.5 text-sm font-semibold transition-colors ${
-                     isSaving || !draft.trim()
-                        ? 'cursor-not-allowed bg-[#E5E7EB] text-[#9CA3AF]'
-                        : 'cursor-pointer bg-brand-green text-white hover:bg-[#4D655A]'
+                     canSave
+                        ? 'cursor-pointer bg-brand-green text-white hover:bg-[#4D655A]'
+                        : 'cursor-not-allowed bg-[#E5E7EB] text-[#9CA3AF]'
                   }`}
                >
                   {isSaving ? '저장 중' : '저장'}

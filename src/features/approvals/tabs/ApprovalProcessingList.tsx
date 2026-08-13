@@ -2,8 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { Download } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Check, Download } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import StatusBadge from '@/features/submissions/components/StatusBadge';
 import { useApprovalList } from '../hooks/useApprovalList';
@@ -28,13 +27,19 @@ function formatSummary(approval: ApprovalSummary) {
    return '-';
 }
 
-// 매니저 "결재 처리" 탭 - 처리 대상 결재 목록(PROCESSING) 조회.
-// TODO: 구매 요청(PURCHASE) 상세 화면 디자인 나오면 해당 행도 클릭 가능하게 확장
+// 매니저 "결재 처리" 탭 - 처리 대상 결재 목록(PROCESSING) 조회
 export default function ApprovalProcessingList() {
    const router = useRouter();
    const { approvals, isLoading, refetch } = useApprovalList('PROCESSING');
-   const { isConfirmOpen, isSubmitting, openConfirm, closeConfirm, confirmDownload } =
-      useApprovalPdfDownload({ onAssigned: refetch });
+   const {
+      isConfirmOpen,
+      pendingRequestType,
+      isSubmitting,
+      openConfirm,
+      closeConfirm,
+      confirmDownload,
+   } = useApprovalPdfDownload({ onAssigned: refetch });
+   const isPendingConfirmForPurchase = pendingRequestType === 'PURCHASE';
 
    return (
       <>
@@ -66,33 +71,23 @@ export default function ApprovalProcessingList() {
                      </tr>
                   ) : (
                      approvals.map((approval, index) => {
-                        // 결재 상세는 아직 휴가 신청(LEAVE)만 지원 - 구매 요청(PURCHASE) 상세 화면은
-                        // 디자인 나오면 추가
-                        const isDetailAvailable = approval.requestType === 'LEAVE';
-                        const isDownloadable = approval.status === 'PENDING';
+                        const isActionable = approval.status === 'PENDING';
 
                         return (
                            <tr
                               key={approval.approvalId}
-                              onClick={
-                                 isDetailAvailable
-                                    ? () => router.push(`/approvals/${approval.approvalId}`)
-                                    : undefined
-                              }
-                              className={cn(
-                                 'border-b border-[#F3F4F6] last:border-b-0',
-                                 isDetailAvailable && 'cursor-pointer hover:bg-[#F9FAFB]',
-                              )}
+                              onClick={() => router.push(`/approvals/${approval.approvalId}`)}
+                              className="cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]"
                            >
-                              <td className="px-8 py-4 text-center text-gray-500">{index + 1}</td>
-                              <td className="px-6 py-4 text-center font-medium text-gray-900">
+                              <td className="px-8 py-3 text-center text-gray-500">{index + 1}</td>
+                              <td className="px-6 py-3 text-center font-medium text-gray-900">
                                  {approval.title}
                               </td>
-                              <td className="px-6 py-4 text-gray-700">
+                              <td className="px-6 py-3 text-gray-700">
                                  {formatRequesterLabel(approval)}
                               </td>
-                              <td className="px-6 py-4 text-gray-700">{formatSummary(approval)}</td>
-                              <td className="px-6 py-4">
+                              <td className="px-6 py-3 text-gray-700">{formatSummary(approval)}</td>
+                              <td className="px-6 py-3">
                                  <div className="flex items-center justify-center">
                                     <StatusBadge tone={APPROVAL_STATUS_TONES[approval.status]}>
                                        {APPROVAL_STATUS_LABELS[approval.status]}
@@ -103,18 +98,27 @@ export default function ApprovalProcessingList() {
                                  {format(new Date(approval.requestedAt), 'yyyy-MM-dd')}
                               </td>
                               <td className="px-6 py-4">
-                                 {isDownloadable && (
+                                 {isActionable && (
                                     <div className="flex items-center justify-center">
                                        <button
                                           type="button"
                                           onClick={(event) => {
                                              event.stopPropagation();
-                                             openConfirm(approval.approvalId);
+                                             openConfirm(approval.approvalId, approval.requestType);
                                           }}
                                           className="flex cursor-pointer items-center gap-1 rounded-sm bg-brand-green px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#4D655A]"
                                        >
-                                          <Download size={12} />
-                                          PDF 다운로드
+                                          {approval.requestType === 'LEAVE' ? (
+                                             <>
+                                                <Download size={12} />
+                                                PDF 다운로드
+                                             </>
+                                          ) : (
+                                             <>
+                                                <Check size={12} />
+                                                확인
+                                             </>
+                                          )}
                                        </button>
                                     </div>
                                  )}
@@ -129,8 +133,16 @@ export default function ApprovalProcessingList() {
 
          <ConfirmModal
             open={isConfirmOpen}
-            title="PDF를 다운로드 받으시겠습니까?"
-            description="PDF 서류를 다운로드 받으면 해당 결재의 담당자로 배정되고, 결재 서류의 상태가 '확인중'으로 변경됩니다."
+            title={
+               isPendingConfirmForPurchase
+                  ? '구매 요청을 확인하시겠습니까?'
+                  : 'PDF를 다운로드 받으시겠습니까?'
+            }
+            description={
+               isPendingConfirmForPurchase
+                  ? "확인하시면 해당 결재의 담당자로 배정되고, 결재 서류의 상태가 '확인중'으로 변경됩니다."
+                  : "PDF 서류를 다운로드 받으면 해당 결재의 담당자로 배정되고, 결재 서류의 상태가 '확인중'으로 변경됩니다."
+            }
             confirmLabel={isSubmitting ? '처리 중...' : '확인'}
             onConfirm={confirmDownload}
             onClose={closeConfirm}

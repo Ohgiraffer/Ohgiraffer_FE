@@ -56,6 +56,33 @@ export function createLeaveApproval(body: CreateLeaveApprovalRequest) {
    });
 }
 
+export interface CreatePurchaseApprovalRequest {
+   budgetCategoryId: number;
+   itemName: string;
+   amount: number;
+   reason: string;
+}
+
+export interface CreatePurchaseApprovalResponse {
+   approvalId: number;
+   requestType: 'PURCHASE';
+   status: 'PENDING';
+   title: string;
+   requestedAt: string;
+}
+
+// 강사의 구매 예산 신청 결재 생성 - 문서상 approverId가 필수라고 되어있었지만 실제 백엔드 스펙
+// (live OpenAPI: /v3/api-docs의 CreatePurchaseApprovalRequest)엔 그런 필드가 없다. 담당자는
+// 휴가 신청과 마찬가지로 신청 시점에 지정하지 않고, 결재 처리 화면에서 매니저가 확인 처리할 때
+// 배정되는 것으로 보임. 활성 전자서명이 없으면 404(APPROVAL_004), 예산 카테고리가 없으면
+// 404(APPROVAL_006)
+export function createPurchaseApproval(body: CreatePurchaseApprovalRequest) {
+   return apiFetch<CreatePurchaseApprovalResponse>('/approvals/purchases', {
+      method: 'POST',
+      body: JSON.stringify(body),
+   });
+}
+
 export interface ApprovalDetail {
    approvalId: number;
    requestType: ApprovalRequestType;
