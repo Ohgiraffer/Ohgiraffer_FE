@@ -235,7 +235,7 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
                </div>
                {targetScope === 'TEAM' && (
                   <p className="mt-1.5 text-xs text-gray-400">
-                     팀 대표 1인이 제출하면 해당 팀 전체가 제출완료로 처리됩니다
+                     팀원 누구나 제출할 수 있고, 한 명이 제출하면 해당 팀 전체가 제출완료로 처리됩니다
                   </p>
                )}
             </div>

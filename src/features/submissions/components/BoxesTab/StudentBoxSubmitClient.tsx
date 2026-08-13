@@ -271,7 +271,7 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
             <div className="rounded-sm border border-[#E5E7EB] bg-white p-6">
                <h1 className="text-lg font-bold text-gray-900">{detail.projectName}</h1>
                <p className="mt-1 text-xs text-gray-400">
-                  {detail.targetScope === 'TEAM' ? '팀 대표 제출' : '개인 제출'} · 항목 {items.length}개
+                  {detail.targetScope === 'TEAM' ? '팀 제출' : '개인 제출'} · 항목 {items.length}개
                </p>
 
                <div className="mt-4">
