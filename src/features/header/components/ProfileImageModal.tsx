@@ -7,9 +7,9 @@ import { deleteProfileImage, uploadProfileImage } from '@/services/auth.service'
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 
-// 화면 시안 기준 5MB. 백엔드 에러 문구엔 100MB, 이전 정책 문서엔 50MB로 각각 다르게 적혀있어
-// 실제 제한값이 무엇인지 백엔드 확인이 필요하다 (일단 시안에 맞춰 5MB로 클라이언트 검증한다).
-const MAX_FILE_SIZE = 5 * 1024 * 1024;
+// 실제 배포된 API 문서 기준 백엔드 제한은 413(USER_004) 50MB - 아바타 사진치고 너무 커서
+// 업로드 지연·저장공간 낭비를 막기 위해 프론트에서 10MB로 더 낮게 검증한다.
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png'];
 
 function revokeIfBlobUrl(url: string | null) {
@@ -69,7 +69,7 @@ export default function ProfileImageModal({
       }
       if (selected.size > MAX_FILE_SIZE) {
          resetToCurrentImage();
-         setFileError('파일 용량은 5MB를 초과할 수 없습니다.');
+         setFileError('파일 용량은 10MB를 초과할 수 없습니다.');
          return;
       }
 
@@ -195,7 +195,7 @@ export default function ProfileImageModal({
             >
                <Upload size={20} className="text-gray-400" />
                클릭하여 이미지 업로드
-               <span className="text-xs text-gray-400">JPG, PNG · 최대 5MB</span>
+               <span className="text-xs text-gray-400">JPG, PNG · 최대 10MB</span>
             </button>
             <input
                ref={fileInputRef}
