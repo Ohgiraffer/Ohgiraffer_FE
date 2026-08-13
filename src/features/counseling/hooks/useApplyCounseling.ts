@@ -119,6 +119,9 @@ export function useApplyCounseling() {
    const selectDate = (date: Date) => {
       setSelectedDate(date);
       setSelectedTime(null);
+      // 이전 날짜의 시간 목록을 남겨두면, 새 날짜 조회가 실패했을 때(catch에서 availableTimes를
+      // 안 건드림) 화면에 이전 날짜의 시간이 마치 새 날짜 것처럼 계속 보일 수 있다
+      setAvailableTimes([]);
       setIsLoadingTimes(true);
    };
 
@@ -140,10 +143,13 @@ export function useApplyCounseling() {
    };
 
    // 409(이미 예약됨)로 거절되면, 화면에 남아있는 목록이 이미 낡은 값이므로 다시 조회해서
-   // 방금 신청 시도한 시간이 예약됨으로 바뀐 걸 보여준다
+   // 방금 신청 시도한 시간이 예약됨으로 바뀐 걸 보여준다. 방금 시도했던 시간 선택도 같이 풀어줘야
+   // 한다 - 안 그러면 이미 예약된(다시 눌러도 disabled인) 시간이 여전히 "선택됨" 상태로 남아서,
+   // 사용자가 그대로 다시 [신청하기]를 눌러 같은 409를 반복해서 받는 혼란스러운 루프가 생긴다
    const refetchAvailableTimes = async () => {
       if (selectedCounselorId === null || !selectedDate) return;
       setIsLoadingTimes(true);
+      setSelectedTime(null);
       try {
          const times = await getAvailableTimes(
             selectedCounselorId,

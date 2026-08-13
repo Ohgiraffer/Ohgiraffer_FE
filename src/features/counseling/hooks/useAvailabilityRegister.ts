@@ -99,6 +99,11 @@ export function useAvailabilityRegister() {
 
    const selectDate = (date: Date) => {
       setSelectedDate(date);
+      // 이전 날짜의 slots/originalOpenTimes를 그대로 두면, 새 날짜 조회가 끝나기 전(로딩 중)에
+      // canSave가 여전히 "이전 날짜 기준으로 바뀐 값"을 참조하게 된다 - 그 틈에 저장을 누르면
+      // 실제로는 새로 고른 날짜에 이전 날짜의 시간 선택을 저장해버리는 사고로 이어질 수 있다
+      setSlots([]);
+      setOriginalOpenTimes(new Set());
       setIsLoadingTimes(true);
    };
 

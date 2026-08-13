@@ -21,15 +21,24 @@ export default function CounselorNoteSection({ detail, onSaved }: Props) {
    const hasNote = Boolean(detail.counselorNote);
    const [isEditing, setIsEditing] = useState(!hasNote);
    const [draft, setDraft] = useState(detail.counselorNote ?? '');
+   // 편집을 시작한 시점의 값 - 여기서 실질적으로 바뀐 게 있을 때만(공백만 고친 건 제외) 저장 버튼을
+   // 활성화한다. 처음 작성하는 경우(hasNote가 false)는 이 값도 빈 문자열이라 뭐라도 입력하는 순간
+   // 바로 "바뀜"으로 잡혀서 별도 분기가 필요 없다
+   const [initialDraft, setInitialDraft] = useState(detail.counselorNote ?? '');
    const [isSaving, setIsSaving] = useState(false);
 
    const startEdit = () => {
-      setDraft(detail.counselorNote ?? '');
+      const value = detail.counselorNote ?? '';
+      setDraft(value);
+      setInitialDraft(value);
       setIsEditing(true);
    };
 
+   const hasChanges = draft.trim() !== initialDraft.trim();
+   const canSave = !isSaving && draft.trim().length > 0 && hasChanges;
+
    const handleSave = async () => {
-      if (isSaving || !draft.trim()) return;
+      if (!canSave) return;
       setIsSaving(true);
       try {
          const result = await saveCounselorNote(detail.consultationId, {
@@ -93,11 +102,11 @@ export default function CounselorNoteSection({ detail, onSaved }: Props) {
                <button
                   type="button"
                   onClick={handleSave}
-                  disabled={isSaving || !draft.trim()}
+                  disabled={!canSave}
                   className={`rounded-sm px-5 py-2.5 text-sm font-semibold transition-colors ${
-                     isSaving || !draft.trim()
-                        ? 'cursor-not-allowed bg-[#E5E7EB] text-[#9CA3AF]'
-                        : 'cursor-pointer bg-brand-green text-white hover:bg-[#4D655A]'
+                     canSave
+                        ? 'cursor-pointer bg-brand-green text-white hover:bg-[#4D655A]'
+                        : 'cursor-not-allowed bg-[#E5E7EB] text-[#9CA3AF]'
                   }`}
                >
                   {isSaving ? '저장 중' : '저장'}
