@@ -5,7 +5,6 @@ import {
    deleteNotification,
    deleteNotifications,
    getNotifications,
-   getUnreadNotificationCount,
    markNotificationAsRead,
 } from '@/services/notification.service';
 import { updateAlarmSetting } from '@/services/user.service';
@@ -14,9 +13,8 @@ import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import { mapNotificationDto } from '../mapNotification';
 import type { NotificationItem } from '../types';
+import { useNotificationSse } from './useNotificationSse';
 
-// 실시간 구독(SSE) 대신 이 주기로 안읽음 개수만 가볍게 확인하다가, 값이 바뀌었을 때만 전체 목록을 다시 불러온다
-const UNREAD_COUNT_POLL_INTERVAL_MS = 20000;
 // 한 번에 이보다 많은 새 알림이 도착하면 토스트를 하나씩 띄우지 않고 요약 하나로 묶는다
 const TOAST_INDIVIDUAL_LIMIT = 3;
 
@@ -58,7 +56,7 @@ export function useNotifications() {
          .finally(() => setIsUpdatingNotificationSetting(false));
    };
 
-   // 폴링 콜백/비동기 콜백이 항상 최신 값을 보도록 ref로도 들고 있는다(클로저가 호출 시점 값에 고정되는 것 방지)
+   // SSE 이벤트 콜백이 항상 최신 값을 보도록 ref로도 들고 있는다(클로저가 호출 시점 값에 고정되는 것 방지)
    const notificationsEnabledRef = useRef(notificationsEnabled);
    useEffect(() => {
       notificationsEnabledRef.current = notificationsEnabled;
@@ -116,27 +114,11 @@ export function useNotifications() {
 
    const rawUnreadCount = notifications.filter((notification) => !notification.isRead).length;
    // 알림이 꺼져 있으면 배지(헤더 아이콘 + 패널 제목 옆 숫자) 자체를 노출하지 않는다.
-   // 목록 조회/폴링은 꺼져 있어도 그대로 돌아가므로, 패널을 직접 열면 실제 미읽음 항목은 여전히 보인다
+   // 목록 조회는 꺼져 있어도 그대로 돌아가므로, 패널을 직접 열면 실제 미읽음 항목은 여전히 보인다
    const unreadCount = notificationsEnabled ? rawUnreadCount : 0;
-   // 폴링 콜백이 매번 최신 미읽음 개수와 비교해야 하는데, setInterval 클로저가 마운트 시점 값에
-   // 고정되지 않도록 ref로 최신값(항상 실제 값 기준)을 따로 들고 있는다
-   const rawUnreadCountRef = useRef(rawUnreadCount);
-   useEffect(() => {
-      rawUnreadCountRef.current = rawUnreadCount;
-   }, [rawUnreadCount]);
 
-   useEffect(() => {
-      const interval = setInterval(() => {
-         getUnreadNotificationCount()
-            .then(({ unreadCount: serverUnreadCount }) => {
-               if (serverUnreadCount !== rawUnreadCountRef.current) loadNotifications();
-            })
-            .catch(() => {
-               // 배지 갱신용 폴링이라 실패해도 조용히 무시(다음 주기에 다시 시도)
-            });
-      }, UNREAD_COUNT_POLL_INTERVAL_MS);
-      return () => clearInterval(interval);
-   }, [loadNotifications]);
+   // 폴링 대신 SSE로 실시간 이벤트를 받아, 이벤트가 오면 그때마다 목록을 다시 불러온다
+   useNotificationSse(loadNotifications, true);
 
    const isAllSelected = notifications.length > 0 && selectedIds.length === notifications.length;
 
