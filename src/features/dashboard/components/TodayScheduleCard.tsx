@@ -14,7 +14,12 @@ interface ScheduleItem {
    type: EventType;
 }
 
-export default function TodayScheduleCard() {
+interface TodayScheduleCardProps {
+   // 캘린더에서 일정을 새로 등록하면 부모가 이 값을 바꿔 재조회를 트리거한다
+   refreshKey?: number;
+}
+
+export default function TodayScheduleCard({ refreshKey = 0 }: TodayScheduleCardProps) {
    const [showModal, setShowModal] = useState(false);
    const [items, setItems] = useState<ScheduleItem[]>([]);
    const [isLoading, setIsLoading] = useState(true);
@@ -39,6 +44,7 @@ export default function TodayScheduleCard() {
                   type: event.type,
                }));
             setItems(todaySchedule);
+            setHasError(false);
          })
          .catch(() => {
             if (isMounted) setHasError(true);
@@ -49,7 +55,7 @@ export default function TodayScheduleCard() {
       return () => {
          isMounted = false;
       };
-   }, [retryKey]);
+   }, [retryKey, refreshKey]);
 
    return (
       <div className="h-full rounded-xs border border-gray-200 bg-white p-6 lg:p-6">

@@ -110,6 +110,20 @@ export function deleteNoticeAttachment(noticeId: number, noticeAttachmentId: num
    });
 }
 
+// 이미 저장된 공지에 새 첨부파일을 바로 추가(수정 화면 전용) - uploadNoticeAttachments와 달리
+// noticeId가 있고, 호출 즉시 DB에 반영된다(등록 API에 다시 실어 보낼 필요 없음).
+// 작성자 본인만 가능, 개수 제한(5개, 기존 첨부 포함)을 넘기면 400(NOTICE_008 - 메시지에 현재
+// 개수가 포함되어 내려옴). 응답은 새로 추가된 첨부파일만 담긴 배열(NoticeDetail.attachments와
+// 동일한 형태 - fileKey가 아니라 noticeAttachmentId/downloadUrl을 바로 가짐)
+export function addNoticeAttachments(noticeId: number, files: File[]) {
+   const formData = new FormData();
+   files.forEach((file) => formData.append('files', file));
+   return apiFetch<NoticeAttachment[]>(`/notices/${noticeId}/attachments`, {
+      method: 'POST',
+      body: formData,
+   });
+}
+
 export interface UploadNoticeImageResponse {
    // 상대 경로로 내려옴 - API_BASE_URL을 붙여서 <img src>에 써야 함. 만료되지 않음
    imageUrl: string;

@@ -32,6 +32,9 @@ export default function NoticeDetailClient({ noticeId }: Props) {
    const numericNoticeId = parseNoticeId(noticeId);
    // AI 일정 추출 노란 박스는 운영진 전용 - 훈련생에게는 박스 자체가 보이면 안 됨
    const canUseAiScheduleExtraction = role === 'INSTRUCTOR' || role === 'MANAGER';
+   // 공지 수정/삭제도 운영진 전용 - 훈련생에게는 버튼 자체가 보이면 안 됨(작성자 본인이 아니어도
+   // 운영진이면 서버가 403으로 막아주지만, 애초에 훈련생 화면엔 버튼을 안 보여주는 게 맞음)
+   const canManageNotice = role === 'INSTRUCTOR' || role === 'MANAGER';
 
    const [notice, setNotice] = useState<NoticeDetail | null>(null);
    const [isLoading, setIsLoading] = useState(true);
@@ -217,23 +220,25 @@ export default function NoticeDetailClient({ noticeId }: Props) {
                            {notice.categoryName}
                         </span>
                      </div>
-                     <div className="flex items-center text-sm">
-                        <Link
-                           href={`/notices/${noticeId}/edit`}
-                           className="flex cursor-pointer items-center gap-1 rounded-xs px-2 py-1 text-[#6B7280] hover:bg-[#E5E7EB]"
-                        >
-                           <Pencil size={14} />
-                           수정
-                        </Link>
-                        <button
-                           type="button"
-                           onClick={() => setIsDeleteConfirmOpen(true)}
-                           className="flex cursor-pointer items-center gap-1 rounded-xs px-2 py-1 text-brand-maroon hover:bg-[#E5E7EB]"
-                        >
-                           <Trash2 size={14} />
-                           삭제
-                        </button>
-                     </div>
+                     {canManageNotice && (
+                        <div className="flex items-center text-sm">
+                           <Link
+                              href={`/notices/${noticeId}/edit`}
+                              className="flex cursor-pointer items-center gap-1 rounded-xs px-2 py-1 text-[#6B7280] hover:bg-[#E5E7EB]"
+                           >
+                              <Pencil size={14} />
+                              수정
+                           </Link>
+                           <button
+                              type="button"
+                              onClick={() => setIsDeleteConfirmOpen(true)}
+                              className="flex cursor-pointer items-center gap-1 rounded-xs px-2 py-1 text-brand-maroon hover:bg-[#E5E7EB]"
+                           >
+                              <Trash2 size={14} />
+                              삭제
+                           </button>
+                        </div>
+                     )}
                   </div>
 
                   <h1 className="mt-3 text-2xl font-bold text-gray-900">{notice.title}</h1>
@@ -289,9 +294,9 @@ export default function NoticeDetailClient({ noticeId }: Props) {
                      type="button"
                      disabled={aiSchedule.isExtracting}
                      onClick={aiSchedule.runExtraction}
-                     className="cursor-pointer rounded-sm bg-brand-green px-4 py-2 text-sm text-white hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-gray-300"
+                     className="cursor-pointer rounded-sm bg-brand-green px-4 py-2 text-sm text-white hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-[#E5E7EB] disabled:text-[#9CA3AF]"
                   >
-                     {aiSchedule.isExtracting ? '추출 중...' : '등록하기'}
+                     {aiSchedule.isExtracting ? '추출 중' : '등록하기'}
                   </button>
                </div>
             )}

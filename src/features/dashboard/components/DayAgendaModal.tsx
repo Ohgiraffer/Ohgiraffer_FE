@@ -59,8 +59,7 @@ export default function DayAgendaModal({ date, events, onClose, onDelete }: DayA
             <ul className="mb-4 flex flex-col gap-2">
                {events.map((event) => {
                   const colors = EVENT_TYPE_COLORS[event.type];
-                  const timeLabel = event.allDay ? '종일' : formatTimeRange(event.startTime, event.endTime);
-                  const metaText = [event.registrant, timeLabel].filter(Boolean).join(' · ');
+                  const metaText = event.allDay ? '종일' : formatTimeRange(event.startTime, event.endTime);
                   return (
                      <li
                         key={event.id}

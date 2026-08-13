@@ -60,7 +60,7 @@ export function useAiScheduleExtraction(noticeId: number, onRegistered: () => vo
       try {
          const result = await extractNoticeSchedules(noticeId);
          if (result.length === 0) {
-            toast.info('공지사항에서 추출된 일정이 없습니다.');
+            toast.warning('공지사항에서 추출된 일정이 없습니다.');
             return;
          }
          setCandidates(result.map(toEditableCandidate));
@@ -113,8 +113,8 @@ export function useAiScheduleExtraction(noticeId: number, onRegistered: () => vo
             endTime: c.endTime || null,
             location: c.location.trim() || null,
          }));
-         const result = await registerNoticeCalendarEvents(noticeId, schedules);
-         toast.success(`${result.registeredCount}건을 캘린더에 등록했습니다.`);
+         await registerNoticeCalendarEvents(noticeId, schedules);
+         toast.success('일정이 성공적으로 캘린더에 등록되었습니다.');
          setIsModalOpen(false);
          onRegistered();
       } catch (err) {

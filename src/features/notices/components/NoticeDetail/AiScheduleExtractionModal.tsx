@@ -65,7 +65,7 @@ export default function AiScheduleExtractionModal({
       <Modal
          onClose={onClose}
          ariaLabel="AI 추출 일정"
-         panelClassName="w-full max-w-2xl"
+         panelClassName="w-full max-w-xl"
          closeOnBackdropClick={false}
       >
          <div className="flex items-center justify-between">
@@ -83,11 +83,11 @@ export default function AiScheduleExtractionModal({
             </button>
          </div>
 
-         <p className="mt-3 rounded-xs border border-[#F3DFA0] bg-[#FFF9EC] px-4 py-2.5 text-sm text-gray-700">
+         <p className="mt-2 rounded-xs border border-[#F3DFA0] bg-[#FFF9EC] px-4 py-2.5 text-sm text-gray-700">
             ⚠ 공지 수정·삭제 시 캘린더에 자동 반영되지 않습니다
          </p>
 
-         <div className="mt-4 flex items-center gap-3">
+         <div className="mt-3 flex items-center gap-3">
             <button
                type="button"
                onClick={onPrev}
@@ -98,12 +98,12 @@ export default function AiScheduleExtractionModal({
                <ChevronLeft size={20} />
             </button>
 
-            <div className="min-w-0 flex-1 rounded-sm border border-[#E5E7EB] p-5">
+            <div className="min-w-0 flex-1 rounded-sm border border-[#E5E7EB] px-5 py-4">
                <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-400">
                      {currentIndex + 1} / {total}
                   </span>
-                  <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+                  <label className="flex cursor-pointer items-center gap-1 text-[13px] text-gray-700">
                      <input
                         type="checkbox"
                         checked={candidate.included}
@@ -114,33 +114,34 @@ export default function AiScheduleExtractionModal({
                   </label>
                </div>
 
-               <div className="mt-4">
-                  <label htmlFor={titleId} className="text-sm font-semibold text-gray-900">
-                     일정명 <span className="font-bold text-brand-gold">*</span>
+               <div className="mt-3">
+                  <label htmlFor={titleId} className="text-[14px] font-semibold text-gray-900">
+                     일정명 <span className="font-bold text-[16px] text-brand-gold">*</span>
                   </label>
                   <input
                      id={titleId}
                      type="text"
                      value={candidate.title}
                      onChange={(e) => onUpdate(currentIndex, 'title', e.target.value)}
-                     className="mt-2 w-full rounded-xs border border-[#E5E7EB] px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
+                     className="mt-1 w-full rounded-xs border border-[#E5E7EB] px-4 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
                   />
                </div>
 
-               <div className="mt-4">
-                  <label htmlFor={eventTypeId} className="text-sm font-semibold text-gray-900">
-                     유형 <span className="font-bold text-brand-gold">*</span>
+               <div className="mt-3">
+                  <label htmlFor={eventTypeId} className="text-[14px] font-semibold text-gray-900">
+                     유형 <span className="font-bold text-[16px] text-brand-gold">*</span>
                   </label>
                   <Select
                      value={candidate.eventType}
                      onValueChange={(value) =>
-                        value && onUpdate(currentIndex, 'eventType', value as typeof candidate.eventType)
+                        value &&
+                        onUpdate(currentIndex, 'eventType', value as typeof candidate.eventType)
                      }
                   >
                      <SelectTrigger
                         id={eventTypeId}
                         aria-describedby={showTypeWarning ? eventTypeWarningId : undefined}
-                        className={`mt-2 h-10 w-full rounded-xs bg-white ${
+                        className={`mt-1 h-10 w-full rounded-xs bg-white ${
                            showTypeWarning ? 'border-brand-red' : 'border-[#E5E7EB]'
                         }`}
                      >
@@ -174,61 +175,69 @@ export default function AiScheduleExtractionModal({
                   )}
                </div>
 
-               <div className="mt-4 grid grid-cols-2 gap-4">
+               <div className="mt-3 grid grid-cols-2 gap-3">
                   <div>
-                     <label htmlFor={startDateId} className="text-sm font-semibold text-gray-900">
-                        시작일 <span className="font-bold text-brand-gold">*</span>
+                     <label
+                        htmlFor={startDateId}
+                        className="text-[14px] font-semibold text-gray-900"
+                     >
+                        시작일 <span className="font-bold text-[16px] text-brand-gold">*</span>
                      </label>
                      <DatePicker
                         id={startDateId}
                         value={candidate.startDate}
                         onChange={(value) => onUpdate(currentIndex, 'startDate', value)}
-                        className="mt-2"
+                        className="mt-1"
                      />
                   </div>
                   <div>
-                     <label htmlFor={startTimeId} className="text-sm font-semibold text-gray-900">
-                        시작 시각 <span className="text-gray-400">(선택)</span>
+                     <label
+                        htmlFor={startTimeId}
+                        className="text-[14px] font-semibold text-gray-900"
+                     >
+                        시작 시각{' '}
+                        <span className="text-[13px] font-medium text-gray-400">(선택)</span>
                      </label>
                      <input
                         id={startTimeId}
                         type="time"
                         value={candidate.startTime}
                         onChange={(e) => onUpdate(currentIndex, 'startTime', e.target.value)}
-                        className="mt-2 w-full rounded-xs border border-[#E5E7EB] px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
+                        className="mt-1 w-full rounded-xs border border-[#E5E7EB] px-4 h-10.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
                      />
                   </div>
                </div>
 
-               <div className="mt-4 grid grid-cols-2 gap-4">
+               <div className="mt-3 grid grid-cols-2 gap-3">
                   <div>
-                     <label htmlFor={endDateId} className="text-sm font-semibold text-gray-900">
-                        종료일 <span className="font-bold text-brand-gold">*</span>
+                     <label htmlFor={endDateId} className="text-[14px] font-semibold text-gray-900">
+                        종료일 <span className="font-bold text-[16px] text-brand-gold">*</span>
                      </label>
                      <DatePicker
                         id={endDateId}
                         value={candidate.endDate}
                         onChange={(value) => onUpdate(currentIndex, 'endDate', value)}
-                        className="mt-2"
+                        className="mt-1"
                      />
                   </div>
                   <div>
-                     <label htmlFor={endTimeId} className="text-sm font-semibold text-gray-900">
-                        종료 시각 <span className="text-gray-400">(선택)</span>
+                     <label htmlFor={endTimeId} className="text-[14px] font-semibold text-gray-900">
+                        종료 시각{' '}
+                        <span className="text-[13px] font-medium text-gray-400">(선택)</span>
                      </label>
                      <input
                         id={endTimeId}
                         type="time"
                         value={candidate.endTime}
                         onChange={(e) => onUpdate(currentIndex, 'endTime', e.target.value)}
-                        className="mt-2 w-full rounded-xs border border-[#E5E7EB] px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
+                        className="mt-1 w-full rounded-xs border border-[#E5E7EB] px-4 h-10.5 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
                      />
                   </div>
                </div>
 
-               <div className="mt-4">
-                  <label htmlFor={locationId} className="text-sm font-semibold text-gray-900">
-                     장소 <span className="text-gray-400">(선택)</span>
+               <div className="mt-3">
+                  <label htmlFor={locationId} className="text-[14px] font-semibold text-gray-900">
+                     장소 <span className="text-[13px] font-medium text-[#9CA3AF]">(선택)</span>
                   </label>
                   <input
                      id={locationId}
@@ -236,7 +245,7 @@ export default function AiScheduleExtractionModal({
                      value={candidate.location}
                      onChange={(e) => onUpdate(currentIndex, 'location', e.target.value)}
                      placeholder="장소를 입력해주세요"
-                     className="mt-2 w-full rounded-xs border border-[#E5E7EB] px-4 py-2.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-green"
+                     className="mt-1 w-full rounded-xs border border-[#E5E7EB] px-4 py-2.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-green"
                   />
                </div>
             </div>
@@ -252,7 +261,7 @@ export default function AiScheduleExtractionModal({
             </button>
          </div>
 
-         <p className="mt-4 text-center text-sm text-gray-500">
+         <p className="mt-2 text-center text-sm text-gray-500">
             {selectedCount}개 선택됨 · 유형 미선택 후보는 제외됩니다
          </p>
 
@@ -260,7 +269,7 @@ export default function AiScheduleExtractionModal({
             type="button"
             disabled={selectedCount === 0 || isSubmitting}
             onClick={onSubmit}
-            className={`mt-3 w-full cursor-pointer rounded-xs py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed ${
+            className={`mt-2 w-full cursor-pointer rounded-xs py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed ${
                selectedCount === 0 || isSubmitting
                   ? 'bg-[#E5E7EB] text-[#9CA3AF]'
                   : 'bg-brand-green text-white hover:bg-[#4D655A]'
