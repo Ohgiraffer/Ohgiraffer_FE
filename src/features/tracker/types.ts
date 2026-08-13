@@ -64,6 +64,7 @@ export const RISK_WARNING_MESSAGES: Record<'CAUTION' | 'WARNING' | 'EXPULSION_RI
 export interface TraineeSummary {
    traineeId: number;
    name: string;
+   email: string | null;
    teamName: string | null;
    attendanceRate: number;
    lateCount: number;

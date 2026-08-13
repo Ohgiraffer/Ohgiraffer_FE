@@ -254,21 +254,20 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
             <table className="w-full table-fixed text-left text-sm">
                <thead>
                   <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
-                     <th className="w-[18%] px-6 py-3 font-medium">이름</th>
-                     <th className="w-[10%] px-3 py-3 font-medium">팀</th>
-                     <th className="w-[18%] px-3 py-3 font-medium text-center">출석율</th>
+                     <th className="w-[24%] px-6 py-3 font-medium">이름</th>
+                     <th className="w-[20%] px-3 py-3 font-medium text-center">출석율</th>
                      <th className="w-[10%] px-3 py-3 text-center font-medium">지각</th>
                      <th className="w-[10%] px-3 py-3 text-center font-medium">조퇴</th>
                      <th className="w-[10%] px-3 py-3 text-center font-medium">외출</th>
                      <th className="w-[10%] px-3 py-3 text-center font-medium">결석</th>
-                     <th className="w-[10%] px-3 py-3 text-center font-medium">상태</th>
+                     <th className="w-[12%] px-3 py-3 text-center font-medium">상태</th>
                      <th className="w-[4%] px-3 py-3" />
                   </tr>
                </thead>
                <tbody>
                   {pagedTrainees.length === 0 ? (
                      <tr>
-                        <td colSpan={9} className="px-6 py-10 text-center text-gray-400">
+                        <td colSpan={8} className="px-6 py-10 text-center text-gray-400">
                            조건에 맞는 훈련생이 없습니다.
                         </td>
                      </tr>
@@ -279,11 +278,15 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
                            onClick={() => router.push(`/tracker/${trainee.traineeId}`)}
                            className="cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]"
                         >
-                           <td className="px-6 py-4 font-medium text-gray-900">{trainee.name}</td>
-                           <td className="px-3 py-4 text-gray-700">{trainee.teamName ?? '-'}</td>
+                           <td className="px-6 py-4 font-medium text-gray-900">
+                              {trainee.name}
+                              {trainee.email && (
+                                 <p className="mt-0.5 text-xs font-normal text-gray-400">{trainee.email}</p>
+                              )}
+                           </td>
                            <td className="px-3 py-4">
                               <div className="flex items-center justify-center gap-2">
-                                 <div className="h-1.5 w-full shrink-0 overflow-hidden rounded-full bg-gray-100">
+                                 <div className="h-1.5 w-40 shrink-0 overflow-hidden rounded-full bg-gray-100">
                                     <div
                                        className="h-full rounded-full bg-brand-sage"
                                        style={{ width: `${trainee.attendanceRate}%` }}

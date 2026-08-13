@@ -130,7 +130,7 @@ export default function AttendanceDetailTab({
                   <thead>
                      <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
                         <th className="w-[35%] px-6 py-3 font-medium">날짜</th>
-                        <th className="w-[30%] px-3 py-3 font-medium">상태</th>
+                        <th className="w-[30%] px-3 py-3 text-center font-medium">상태</th>
                         <th className="w-[35%] px-3 py-3 text-center font-medium">시간</th>
                      </tr>
                   </thead>
@@ -145,7 +145,7 @@ export default function AttendanceDetailTab({
                         sortedRecords.map((record) => (
                            <tr key={record.date} className="border-b border-[#F3F4F6] last:border-b-0">
                               <td className="px-6 py-4 text-gray-700">{record.date.slice(5).replace('-', '/')}</td>
-                              <td className="px-3 py-4">
+                              <td className="px-3 py-4 text-center">
                                  <span
                                     className={`font-semibold ${STATUS_TEXT_CLASSES[ATTENDANCE_DAY_STATUS_COLOR_GROUP[record.status]]}`}
                                  >

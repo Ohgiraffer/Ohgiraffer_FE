@@ -48,6 +48,7 @@ export function useManagerTrackerData() {
                   return {
                      traineeId: item.userId,
                      name: item.name,
+                     email: matched?.email ?? null,
                      teamName: matched?.teamName ?? null,
                      attendanceRate: item.attendanceRate,
                      lateCount: item.lateCount,
