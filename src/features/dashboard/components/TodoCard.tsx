@@ -64,8 +64,9 @@ export default function TodoCard() {
       };
    }, [retryKey]);
 
-   // 0건인 항목은 굳이 보여줄 필요가 없어 목록에서 뺀다
-   const visibleTodos = todos.filter((todo) => todo.count > 0);
+   // 0건인 항목은 굳이 보여줄 필요가 없어 목록에서 뺀다. EVALUATION은 화면에서 안 쓰기로
+   // 했는데 백엔드는 여전히 내려줄 수 있어(문서상 sourceDomain enum에 남아 있음) role 불문 완전히 숨긴다
+   const visibleTodos = todos.filter((todo) => todo.sourceDomain !== 'EVALUATION' && todo.count > 0);
 
    return (
       <div className="h-full rounded-xs border border-gray-200 bg-white p-6 lg:p-6">
