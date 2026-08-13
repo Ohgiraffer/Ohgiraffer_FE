@@ -57,3 +57,11 @@ export function createCalendarEvent(payload: CreateCalendarEventPayload) {
       body: JSON.stringify(payload),
    });
 }
+
+// 여러 건을 지울 때는 이 API를 건마다 호출한다 - 한 건이 실패해도 나머지는 지워지므로
+// 호출부에서 Promise.allSettled로 건별 성공/실패를 구분해야 한다
+export function deleteCalendarEvent(calendarEventId: number) {
+   return apiFetch<void>(`/calendar-events/${calendarEventId}`, {
+      method: 'DELETE',
+   });
+}

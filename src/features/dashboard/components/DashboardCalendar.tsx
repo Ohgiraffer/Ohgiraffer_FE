@@ -18,7 +18,7 @@ import CreateEventModal from './CreateEventModal';
 import DayAgendaModal from './DayAgendaModal';
 import { EVENT_TYPE_COLORS, type CalendarEvent, type EventType } from '../types';
 import { isEventInDay, mapCalendarEvent } from '../calendarEventUtils';
-import { getCalendarEvents } from '@/services/calendarEvent.service';
+import { deleteCalendarEvent, getCalendarEvents } from '@/services/calendarEvent.service';
 import type { Holiday } from '@/services/holiday.service';
 
 export type { CalendarEvent, EventType } from '../types';
@@ -212,8 +212,18 @@ export default function DashboardCalendar({
       onEventCreated?.();
    };
 
-   const handleDelete = (ids: string[]) => {
-      setEvents((prev) => prev.filter((event) => !ids.includes(event.id)));
+   // 건마다 서버에 삭제를 요청하고, 실제로 성공한 건만 로컬에서 지운다(한 건이 실패해도
+   // 나머지는 지워지므로 로컬 상태가 서버와 어긋나지 않게 성공한 id만 반영한다)
+   const handleDelete = async (ids: string[]) => {
+      const results = await Promise.allSettled(ids.map((id) => deleteCalendarEvent(Number(id))));
+      const deletedIds = ids.filter((_, index) => results[index].status === 'fulfilled');
+      if (deletedIds.length > 0) {
+         setEvents((prev) => prev.filter((event) => !deletedIds.includes(event.id)));
+      }
+      const failedCount = results.filter((result) => result.status === 'rejected').length;
+      if (failedCount > 0) {
+         toast.error(`${failedCount}건 삭제에 실패했습니다.`);
+      }
    };
 
    // 시작일만 비교하면 이전 날짜에 시작해 이 날짜까지 걸쳐 있는 일정이 빠지므로 겹침으로 판정한다

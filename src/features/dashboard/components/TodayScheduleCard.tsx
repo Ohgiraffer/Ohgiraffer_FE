@@ -44,6 +44,7 @@ export default function TodayScheduleCard({ refreshKey = 0 }: TodayScheduleCardP
                   type: event.type,
                }));
             setItems(todaySchedule);
+            setHasError(false);
          })
          .catch(() => {
             if (isMounted) setHasError(true);

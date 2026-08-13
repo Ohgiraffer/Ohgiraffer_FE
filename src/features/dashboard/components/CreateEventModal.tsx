@@ -58,10 +58,18 @@ export default function CreateEventModal({ defaultDate, onClose, onCreated }: Cr
    const [isSubmitting, setIsSubmitting] = useState(false);
 
    const isDateRangeInvalid = endDate < startDate;
+   const startTimeValue = startHour && startMinute ? `${startHour}:${startMinute}` : undefined;
+   const endTimeValue = endHour && endMinute ? `${endHour}:${endMinute}` : undefined;
+   // 종료일이 시작일과 같은 날이면 종료 시각이 시작 시각보다 빠르거나 같을 수 없다(서버가 COMMON_001로 거부함)
+   const isTimeRangeInvalid =
+      startDate === endDate && !!startTimeValue && !!endTimeValue && endTimeValue <= startTimeValue;
    // 운영진이 "개인"을 선택하면 훈련생의 개인 일정 등록과 동일하게 알림 동의가 필요 없다
    const needsNotifyConsent = isStaff && type !== '개인';
    const canSubmit =
-      title.trim().length > 0 && !isDateRangeInvalid && (!needsNotifyConsent || notifyConsent);
+      title.trim().length > 0 &&
+      !isDateRangeInvalid &&
+      !isTimeRangeInvalid &&
+      (!needsNotifyConsent || notifyConsent);
 
    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -72,9 +80,9 @@ export default function CreateEventModal({ defaultDate, onClose, onCreated }: Cr
             title: title.trim(),
             eventType: isStaff ? EVENT_TYPE_TO_API[type] : undefined,
             startDate,
-            startTime: startHour && startMinute ? `${startHour}:${startMinute}` : undefined,
+            startTime: startTimeValue,
             endDate,
-            endTime: endHour && endMinute ? `${endHour}:${endMinute}` : undefined,
+            endTime: endTimeValue,
             location: place.trim() || undefined,
             notifyTrainees: needsNotifyConsent ? notifyConsent : undefined,
          });
@@ -242,6 +250,9 @@ export default function CreateEventModal({ defaultDate, onClose, onCreated }: Cr
                         </SelectContent>
                      </Select>
                   </div>
+                  {isTimeRangeInvalid && (
+                     <p className="mt-1 text-xs text-brand-red">종료 시각은 시작 시각보다 빠를 수 없습니다</p>
+                  )}
                </div>
             </div>
 
