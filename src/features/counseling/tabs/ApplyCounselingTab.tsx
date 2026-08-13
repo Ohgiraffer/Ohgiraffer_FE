@@ -147,6 +147,7 @@ export default function ApplyCounselingTab() {
                   : undefined
             }
             confirmLabel={isSubmitting ? '신청 중' : '확인'}
+            busy={isSubmitting}
             onConfirm={confirmSubmit}
             onClose={closeConfirm}
          />
