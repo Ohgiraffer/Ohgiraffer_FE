@@ -17,6 +17,7 @@ export default function LeaveRequestForm() {
       confirmSubmit,
       cancelSubmit,
       remainingLeaveDays,
+      hasLeaveDaysError,
    } = useLeaveRequestForm();
 
    return (
@@ -26,7 +27,11 @@ export default function LeaveRequestForm() {
          <div className="mt-2 rounded-xs border border-[#F3DFA0] bg-[#FFF9EC] px-4 py-3 text-sm text-gray-700">
             잔여 휴가:{' '}
             <span className="font-bold">
-               {remainingLeaveDays === null ? '불러오는 중...' : `${remainingLeaveDays}일`}
+               {hasLeaveDaysError
+                  ? '불러오지 못했습니다'
+                  : remainingLeaveDays === null
+                    ? '불러오는 중...'
+                    : `${remainingLeaveDays}일`}
             </span>
          </div>
 

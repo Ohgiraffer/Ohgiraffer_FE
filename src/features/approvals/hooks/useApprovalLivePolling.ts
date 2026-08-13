@@ -46,9 +46,12 @@ export function useApprovalLivePolling(
       }
 
       let isActive = true;
+      // 느린 네트워크에서 이전 요청이 5초 안에 안 끝나면 다음 interval이 겹쳐서 나갈 수 있다 -
+      // 응답이 역전되면(늦게 보낸 요청이 먼저 도착) 오래된 상태가 최신 상태를 덮어쓰므로 막는다
+      let isFetching = false;
 
       const pollOnce = async () => {
-         if (!isActive || document.visibilityState !== 'visible') return;
+         if (!isActive || isFetching || document.visibilityState !== 'visible') return;
 
          attemptsInPhaseRef.current += 1;
          if (attemptsInPhaseRef.current > MAX_ATTEMPTS_PER_PHASE) {
@@ -56,6 +59,7 @@ export function useApprovalLivePolling(
             return;
          }
 
+         isFetching = true;
          try {
             const data = await getApprovalDetail(approvalId);
             if (!isActive) return;
@@ -67,6 +71,8 @@ export function useApprovalLivePolling(
             if (consecutiveFailuresRef.current >= MAX_CONSECUTIVE_FAILURES) {
                stop();
             }
+         } finally {
+            isFetching = false;
          }
       };
 

@@ -89,14 +89,16 @@ export function useBudgetManagement() {
                err,
                '예산 현황을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
             );
-         } finally {
-            if (isMounted) setIsLoading(false);
          }
       }
 
-      // 서로 독립적인 조회라 병렬로 실행한다(하나가 느려도 다른 하나를 막지 않음)
-      loadSettings();
-      loadSummary();
+      // loadSettings가 loadSummary(sync+summary 순차 호출이라 상대적으로 느림)보다 먼저 끝나버리면
+      // isConnected가 아직 false인 채로 화면이 그려져서 GoogleSheetSync가 "연결됨" 카드로 시작하지
+      // 못한다(initialConnection은 마운트 시점의 초기값으로만 쓰여서 나중에 isConnected가 true로
+      // 바뀌어도 반영 안 됨) - 두 조회가 모두 끝난 뒤에만 로딩을 해제해서 이 레이스를 없앤다
+      Promise.allSettled([loadSettings(), loadSummary()]).then(() => {
+         if (isMounted) setIsLoading(false);
+      });
 
       return () => {
          isMounted = false;
@@ -105,7 +107,10 @@ export function useBudgetManagement() {
 
    // 설정 저장(최초 동기화) 후 실제 집계된 요약값을 다시 조회해서 화면에 반영한다.
    // 이 함수가 끝날 때까지 GoogleSheetSync의 "저장 중..." 상태가 유지되므로, 대시보드가 비어있는
-   // 채로 "연결됨" 카드로 먼저 바뀌는 어색한 순간이 생기지 않는다
+   // 채로 "연결됨" 카드로 먼저 바뀌는 어색한 순간이 생기지 않는다.
+   // 저장 자체의 성공/실패와 그 이후 요약 재조회의 성공/실패는 서로 다른 문제라 분리한다 - 저장은
+   // 이미 서버에 반영됐는데 요약 재조회만 실패했다고 "저장 실패"로 안내하면(그리고 연결 상태도
+   // 계속 미연동으로 남으면) 실제 서버 상태와 화면이 어긋난다
    const handleSaveMapping = async (result: GoogleSheetSaveResult) => {
       await saveBudgetSheetSettings({
          spreadsheetUrl: result.spreadsheetUrl,
@@ -117,10 +122,20 @@ export function useBudgetManagement() {
             remainingAmount: result.columnMapping.remainingAmount.columnName,
          },
       });
-      const freshSummary = await getBudgetSummary();
-      setSummary(freshSummary);
+      // 여기까지 왔으면 저장은 이미 성공한 것 - GoogleSheetSync가 던지는 예외로 취급되지 않도록
+      // 연결 상태는 이 시점에 바로 반영한다
       setIsConnected(true);
       setSpreadsheetUrl(result.spreadsheetUrl);
+
+      try {
+         const freshSummary = await getBudgetSummary();
+         setSummary(freshSummary);
+      } catch (err) {
+         notifyUnlessNotConnected(
+            err,
+            '설정은 저장됐지만 최신 예산 현황을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+         );
+      }
    };
 
    return { summary, isLoading, isConnected, spreadsheetUrl, handleSaveMapping };

@@ -23,8 +23,11 @@ export function useLeaveRequestForm() {
    // 더블클릭으로 인한 중복 제출 방지 - state는 비동기라 클릭 시점에 바로 막아줄 동기 가드가 필요
    const isSubmittingRef = useRef(false);
 
-   // 이 페이지는 휴가 신청만 다루므로 잔여 병결(remainingSickDays)은 조회는 하되 화면에는 쓰지 않는다
+   // 이 페이지는 휴가 신청만 다루므로 잔여 병결(remainingSickDays)은 조회는 하되 화면에는 쓰지 않는다.
+   // remainingLeaveDays가 null인 게 "로딩 중"과 "조회 실패" 둘 다를 가리키면 실패했을 때도 화면이
+   // 계속 "불러오는 중..."으로 보여서, 실패 여부를 별도 state로 구분한다
    const [remainingLeaveDays, setRemainingLeaveDays] = useState<number | null>(null);
+   const [hasLeaveDaysError, setHasLeaveDaysError] = useState(false);
 
    useEffect(() => {
       let isMounted = true;
@@ -35,6 +38,7 @@ export function useLeaveRequestForm() {
          })
          .catch((err) => {
             if (!isMounted) return;
+            setHasLeaveDaysError(true);
             toast.error(
                err instanceof ApiError
                   ? err.message
@@ -108,5 +112,6 @@ export function useLeaveRequestForm() {
       confirmSubmit,
       cancelSubmit,
       remainingLeaveDays,
+      hasLeaveDaysError,
    };
 }
