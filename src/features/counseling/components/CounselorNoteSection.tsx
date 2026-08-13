@@ -77,7 +77,11 @@ export default function CounselorNoteSection({ detail, onSaved }: Props) {
                onChange={(event) => setDraft(event.target.value)}
                placeholder="상담 후 24시간까지 상담 기록 작성이 가능합니다."
                rows={6}
-               className="mt-2 w-full resize-none rounded-xs border border-[#E5E7EB] p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green"
+               disabled={isSaving}
+               // 저장 요청이 나간 뒤에도 입력이 가능하면, 응답이 오는 사이 사용자가 추가로 고친
+               // 내용이 저장 성공 후 setIsEditing(false)로 화면이 읽기 전용으로 바뀌면서
+               // 조용히 버려진다(서버엔 클릭 시점의 값만 반영됨) - 저장 중엔 입력을 잠근다
+               className="mt-2 w-full resize-none rounded-xs border border-[#E5E7EB] p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-green disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400"
             />
          ) : (
             <p className="mt-2 rounded-xs border border-[#E5E7EB] bg-[#F9FAFB] p-3 text-sm whitespace-pre-line text-gray-700">

@@ -43,6 +43,18 @@ export function useApplyCounseling() {
    // 더블클릭으로 인한 중복 신청 방지 - state는 비동기라 클릭 시점에 바로 막아줄 동기 가드가 필요
    const isSubmittingRef = useRef(false);
 
+   // refetchAvailableTimes는 useEffect 밖에서 수동으로 호출되는 비동기 함수라, 일반 조회 effect와
+   // 달리 "그 사이에 선택이 바뀌었는지"를 스스로 판단할 방법이 없다(effect의 cleanup·isMounted
+   // 패턴이 안 통함) - 항상 최신 선택값을 담아두는 ref를 별도로 두고, 응답이 왔을 때 그 시점의
+   // 선택과 비교해서 이미 낡은 응답이면 버린다
+   const latestSelectionRef = useRef({ counselorId: selectedCounselorId, dateKey: '' });
+   useEffect(() => {
+      latestSelectionRef.current = {
+         counselorId: selectedCounselorId,
+         dateKey: selectedDate ? format(selectedDate, DATE_KEY_FORMAT) : '',
+      };
+   }, [selectedCounselorId, selectedDate]);
+
    // 상담 가능 운영진 목록 최초 조회 - 첫 번째 운영진을 기본 선택해둔다
    useEffect(() => {
       let isMounted = true;
@@ -148,18 +160,25 @@ export function useApplyCounseling() {
    // 사용자가 그대로 다시 [신청하기]를 눌러 같은 409를 반복해서 받는 혼란스러운 루프가 생긴다
    const refetchAvailableTimes = async () => {
       if (selectedCounselorId === null || !selectedDate) return;
+      const requestCounselorId = selectedCounselorId;
+      const requestDateKey = format(selectedDate, DATE_KEY_FORMAT);
+      const isStillCurrent = () =>
+         latestSelectionRef.current.counselorId === requestCounselorId &&
+         latestSelectionRef.current.dateKey === requestDateKey;
+
       setIsLoadingTimes(true);
       setSelectedTime(null);
       try {
-         const times = await getAvailableTimes(
-            selectedCounselorId,
-            format(selectedDate, DATE_KEY_FORMAT),
-         );
+         const times = await getAvailableTimes(requestCounselorId, requestDateKey);
+         // 응답을 기다리는 사이 사용자가 다른 날짜/운영진을 선택했으면 이미 낡은 응답이다 - 그
+         // 사이 새로 시작된 조회(effect)의 결과를 덮어쓰면 안 되므로 버린다
+         if (!isStillCurrent()) return;
          setAvailableTimes(times);
       } catch (err) {
+         if (!isStillCurrent()) return;
          toast.error(getApiErrorMessage(err, '가능한 시간을 불러오지 못했습니다.'));
       } finally {
-         setIsLoadingTimes(false);
+         if (isStillCurrent()) setIsLoadingTimes(false);
       }
    };
 
