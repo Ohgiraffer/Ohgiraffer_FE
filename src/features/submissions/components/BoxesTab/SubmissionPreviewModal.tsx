@@ -65,11 +65,14 @@ export default function SubmissionPreviewModal({
             ) : errorMessage || !preview ? (
                <p className="px-6 text-center text-sm text-gray-400">{errorMessage}</p>
             ) : preview.contentType === 'application/pdf' ? (
+               // sandbox=""(전체 잠금)는 크롬 내장 PDF 뷰어까지 막아 "Chrome에서 차단한 페이지"로
+               // 표시된다. previewUrl은 항상 S3 등 다른 origin이라 allow-same-origin을 줘도
+               // 우리 앱 origin 권한이 넘어가지 않고, allow-scripts는 여전히 안 줘서 스크립트 실행은 막힌다
                <iframe
                   src={preview.previewUrl}
                   className="h-full w-full"
                   title={preview.originalFileName}
-                  sandbox=""
+                  sandbox="allow-same-origin"
                />
             ) : preview.contentType.startsWith('video/') ? (
                <video src={preview.previewUrl} controls className="max-h-full max-w-full" />
