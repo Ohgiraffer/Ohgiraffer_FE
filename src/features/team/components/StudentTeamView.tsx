@@ -137,7 +137,15 @@ export default function StudentTeamView() {
                                        key={member.teamMemberId}
                                        className="flex items-center gap-2 rounded-xs border border-gray-100 bg-[#F9FAFB] px-2.5 py-2"
                                     >
-                                       <ChatAvatar name={member.userName} imageUrl={member.profileImgUrl} size="sm" />
+                                       <ChatAvatar
+                                       name={member.userName}
+                                       imageUrl={member.profileImgUrl}
+                                       size="sm"
+                                       sizeClassName="h-8.5 w-8.5"
+                                       bgClassName="bg-white"
+                                       iconSize={16}
+                                       borderClassName="border border-gray-200"
+                                    />
                                        <span className="truncate text-sm text-gray-700">
                                           {member.userName || '이름 없음'}
                                        </span>
