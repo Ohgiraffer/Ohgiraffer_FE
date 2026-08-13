@@ -55,6 +55,8 @@ export interface SubmissionItemValue {
 export interface SubmissionEntry {
    targetId: number;
    targetName: string;
+   // 개인 제출자의 이메일. 팀 제출이면 null
+   targetEmail: string | null;
    submissionId: number | null;
    submitted: boolean;
    mine: boolean;
