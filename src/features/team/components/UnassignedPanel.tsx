@@ -91,7 +91,15 @@ export default function UnassignedPanel({
                      className="flex cursor-grab items-center justify-between gap-2 rounded-xs border border-gray-100 bg-[#F9FAFB] px-2.5 py-2 active:cursor-grabbing"
                   >
                      <div className="flex min-w-0 items-center gap-2">
-                        <ChatAvatar name={student.name} imageUrl={student.profileImgUrl} size="sm" />
+                        <ChatAvatar
+                           name={student.name}
+                           imageUrl={student.profileImgUrl}
+                           size="sm"
+                           sizeClassName="h-8.5 w-8.5"
+                           bgClassName="bg-white"
+                           iconSize={16}
+                           borderClassName="border border-gray-200"
+                        />
                         <span className="truncate text-sm text-gray-700">{student.name || '이름 없음'}</span>
                      </div>
                      <MemberActionMenu
