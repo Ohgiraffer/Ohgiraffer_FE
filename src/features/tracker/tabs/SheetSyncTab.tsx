@@ -62,9 +62,12 @@ export default function SheetSyncTab() {
    }, [history, dateFilter]);
 
    const totalPages = Math.max(1, Math.ceil(filteredHistory.length / PAGE_SIZE));
+   // 서버가 5일 지난 이력을 자정마다 자동 삭제해 목록이 줄어들 수 있어, currentPage가
+   // 이미 지난 페이지를 가리키고 있으면 범위 안으로 되돌린다
+   const safePage = Math.min(currentPage, totalPages);
    const pagedHistory = filteredHistory.slice(
-      (currentPage - 1) * PAGE_SIZE,
-      currentPage * PAGE_SIZE,
+      (safePage - 1) * PAGE_SIZE,
+      safePage * PAGE_SIZE,
    );
 
    if (isLoading) {
@@ -231,7 +234,7 @@ export default function SheetSyncTab() {
                   </div>
                   {filteredHistory.length > 0 && (
                      <div className="mt-4">
-                        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+                        <Pagination currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} />
                      </div>
                   )}
                </div>

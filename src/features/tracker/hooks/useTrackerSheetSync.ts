@@ -41,6 +41,13 @@ export function useTrackerSheetSync() {
       getAttendanceSheetLink()
          .then((link) => {
             if (!isMounted) return;
+            // email 매핑이 필수가 되기 전에 등록된 연동은 이 필드가 비어 있을 수 있다 - 이름만으로는
+            // 학생을 특정할 수 없어 동기화를 그대로 돌리면 안 되므로, 연결된 것으로 취급하지 않고
+            // 다시 매핑하도록 유도한다(백엔드에 기존 데이터를 채워주는 마이그레이션이 없는 상태)
+            if (!link.columnMapping.email) {
+               setIsConnected(false);
+               return;
+            }
             setIsConnected(true);
             setSpreadsheetUrl(link.sheetUrl);
          })
