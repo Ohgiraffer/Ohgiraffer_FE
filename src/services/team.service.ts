@@ -40,10 +40,10 @@ export function getTeams(periodId: number) {
    return apiFetch<{ teams: Team[] }>(`/teams?periodId=${periodId}`).then((res) => res.teams);
 }
 
-export function getUnassignedStudents() {
-   return apiFetch<{ students: UnassignedStudent[] }>('/teams/unassigned-students').then(
-      (res) => res.students,
-   );
+export function getUnassignedStudents(periodId: number) {
+   return apiFetch<{ students: UnassignedStudent[] }>(
+      `/teams/unassigned-students?periodId=${periodId}`,
+   ).then((res) => res.students);
 }
 
 // 팀 추가/이름 변경/팀원 배정·이동·제외를 화면에서 초안으로만 들고 있다가, 저장 버튼을

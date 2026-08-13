@@ -7,6 +7,7 @@ import { toast } from '@/lib/toast';
 import ChatAvatar from '@/features/chat/components/ChatAvatar';
 import { formatTeamPeriod } from '../formatTeamDate';
 import MemberActionMenu from './MemberActionMenu';
+import TeamWorkspaceLink from './TeamWorkspaceLink';
 import { TEAM_MEMBER_DRAG_TYPE, type DraftTeam } from '../types';
 
 export interface TeamCardMember {
@@ -183,7 +184,15 @@ export default function TeamCard({
                   className="flex cursor-grab items-center justify-between rounded-xs border border-gray-100 bg-[#F9FAFB] px-2.5 py-2 active:cursor-grabbing"
                >
                   <div className="flex min-w-0 items-center gap-2">
-                     <ChatAvatar name={member.name} imageUrl={member.profileImgUrl} size="sm" />
+                     <ChatAvatar
+                        name={member.name}
+                        imageUrl={member.profileImgUrl}
+                        size="sm"
+                        sizeClassName="h-8.5 w-8.5"
+                        bgClassName="bg-white"
+                        iconSize={16}
+                        borderClassName="border border-gray-200"
+                     />
                      <span className="truncate text-sm text-gray-700">{displayName}</span>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
@@ -215,6 +224,8 @@ export default function TeamCard({
          >
             여기에 드래그
          </div>
+
+         <TeamWorkspaceLink teamId={team.teamId} />
       </div>
    );
 }

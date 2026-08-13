@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
    Calendar,
    dateFnsLocalizer,
@@ -16,13 +16,19 @@ import { toast } from '@/lib/toast';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import CreateEventModal from './CreateEventModal';
 import DayAgendaModal from './DayAgendaModal';
-import { CURRENT_USER, EVENT_TYPE_COLORS, type CalendarEvent, type EventType } from '../types';
+import { EVENT_TYPE_COLORS, type CalendarEvent, type EventType } from '../types';
 import { isEventInDay, mapCalendarEvent } from '../calendarEventUtils';
-import { getCalendarEvents } from '@/services/calendarEvent.service';
+import { deleteCalendarEvent, getCalendarEvents } from '@/services/calendarEvent.service';
 import type { Holiday } from '@/services/holiday.service';
 
-export type { CalendarEvent, EventType, UserRole } from '../types';
-export { CURRENT_USER, EVENT_TYPE_COLORS } from '../types';
+export type { CalendarEvent, EventType } from '../types';
+export { EVENT_TYPE_COLORS } from '../types';
+
+// 마운트/월 이동 시 조회와 일정 등록 후 새로고침에서 동일하게 쓰는 조회+매핑 로직
+async function fetchMappedEvents(year: number, month: number) {
+   const items = await getCalendarEvents(year, month);
+   return items.map(mapCalendarEvent).filter((event): event is CalendarEvent => event !== null);
+}
 
 const locales = { ko };
 
@@ -75,9 +81,14 @@ function CalendarToolbar({ label, onNavigate }: ToolbarProps<CalendarEvent, obje
 
 interface DashboardCalendarProps {
    holidays?: Holiday[];
+   // 일정 등록 성공 시 대시보드의 다른 카드(오늘 일정 등)도 함께 갱신하도록 알려준다
+   onEventCreated?: () => void;
 }
 
-export default function DashboardCalendar({ holidays: initialHolidays = [] }: DashboardCalendarProps) {
+export default function DashboardCalendar({
+   holidays: initialHolidays = [],
+   onEventCreated,
+}: DashboardCalendarProps) {
    const [events, setEvents] = useState<CalendarEvent[]>([]);
    const [createDate, setCreateDate] = useState<Date | null>(null);
    const [viewDate, setViewDate] = useState<Date | null>(null);
@@ -92,25 +103,24 @@ export default function DashboardCalendar({ holidays: initialHolidays = [] }: Da
    // API의 month는 1~12 (Date.getMonth()는 0부터라 +1)
    const currentMonth = currentDate.getMonth() + 1;
 
-   // 화면에 보이는 달이 바뀔 때마다(최초 진입 포함) 그 달의 일정을 다시 불러온다. 이번 세션에
-   // 로컬로만 등록/삭제한 일정(서버 저장 API가 없는 임시 등록 흐름)은 달을 이동하면 함께 리셋된다
-   useEffect(() => {
-      let isMounted = true;
-      getCalendarEvents(currentYear, currentMonth)
-         .then((items) => {
-            if (!isMounted) return;
-            const mapped = items
-               .map(mapCalendarEvent)
-               .filter((event): event is CalendarEvent => event !== null);
-            setEvents(mapped);
+   // 월 이동 중 등록으로 재조회가 겹치면(초기 조회가 나중에 끝나는 경우) 오래된 응답이 최신
+   // 상태를 덮어쓸 수 있다 - 매 요청에 순번을 매겨 가장 마지막에 시작한 요청의 응답만 반영한다
+   const latestRequestIdRef = useRef(0);
+   const applyFetchedEvents = useCallback((year: number, month: number) => {
+      const requestId = ++latestRequestIdRef.current;
+      fetchMappedEvents(year, month)
+         .then((mapped) => {
+            if (latestRequestIdRef.current === requestId) setEvents(mapped);
          })
          .catch(() => {
-            if (isMounted) toast.error('일정을 불러오지 못했습니다.');
+            if (latestRequestIdRef.current === requestId) toast.error('일정을 불러오지 못했습니다.');
          });
-      return () => {
-         isMounted = false;
-      };
-   }, [currentYear, currentMonth]);
+   }, []);
+
+   // 화면에 보이는 달이 바뀔 때마다(최초 진입 포함) 그 달의 일정을 다시 불러온다
+   useEffect(() => {
+      applyFetchedEvents(currentYear, currentMonth);
+   }, [currentYear, currentMonth, applyFetchedEvents]);
 
    useEffect(() => {
       if (currentYear in holidaysByYear) return;
@@ -198,18 +208,24 @@ export default function DashboardCalendar({ holidays: initialHolidays = [] }: Da
       return Wrapper;
    }, []);
 
-   const handleCreate = (event: Omit<CalendarEvent, 'id' | 'registrant'>) => {
-      // 서버에 저장하는 API가 아직 없어 화면에서만 보이는 임시 등록(달을 이동하면 사라짐).
-      // 내가 방금 등록한 항목이라 editable은 항상 true
-      setEvents((prev) => [
-         ...prev,
-         { ...event, id: crypto.randomUUID(), registrant: CURRENT_USER.name, editable: true },
-      ]);
+   const handleEventCreated = () => {
       setCreateDate(null);
+      applyFetchedEvents(currentYear, currentMonth);
+      onEventCreated?.();
    };
 
-   const handleDelete = (ids: string[]) => {
-      setEvents((prev) => prev.filter((event) => !ids.includes(event.id)));
+   // 건마다 서버에 삭제를 요청하고, 실제로 성공한 건만 로컬에서 지운다(한 건이 실패해도
+   // 나머지는 지워지므로 로컬 상태가 서버와 어긋나지 않게 성공한 id만 반영한다)
+   const handleDelete = async (ids: string[]) => {
+      const results = await Promise.allSettled(ids.map((id) => deleteCalendarEvent(Number(id))));
+      const deletedIds = ids.filter((_, index) => results[index].status === 'fulfilled');
+      if (deletedIds.length > 0) {
+         setEvents((prev) => prev.filter((event) => !deletedIds.includes(event.id)));
+      }
+      const failedCount = results.filter((result) => result.status === 'rejected').length;
+      if (failedCount > 0) {
+         toast.error(`${failedCount}건 삭제에 실패했습니다.`);
+      }
    };
 
    // 시작일만 비교하면 이전 날짜에 시작해 이 날짜까지 걸쳐 있는 일정이 빠지므로 겹침으로 판정한다
@@ -245,7 +261,7 @@ export default function DashboardCalendar({ holidays: initialHolidays = [] }: Da
             <CreateEventModal
                defaultDate={createDate}
                onClose={() => setCreateDate(null)}
-               onCreate={handleCreate}
+               onCreated={handleEventCreated}
             />
          )}
 

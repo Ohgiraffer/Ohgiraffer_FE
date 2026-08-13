@@ -1,15 +1,7 @@
 import { apiFetch } from '@/lib/http';
 
-// SUBMISSION은 훈련생 role에만 내려옴(운영진에게는 오지 않음).
-// EVALUATION은 반대로 운영진(강사·매니저)에게만 내려옴 - 평가 관리는 훈련생 화면 자체가 없는 기능이라
-// 훈련생에게는 이 항목을 아예 숨긴다(TodoCard.tsx)
-export type TodoSourceDomain =
-   | 'APPROVAL'
-   | 'NOTICE'
-   | 'CONSULTATION'
-   | 'ATTENDANCE'
-   | 'SUBMISSION'
-   | 'EVALUATION';
+// SUBMISSION은 훈련생 role에만 내려옴(운영진에게는 오지 않음)
+export type TodoSourceDomain = 'APPROVAL' | 'NOTICE' | 'CONSULTATION' | 'ATTENDANCE' | 'SUBMISSION';
 
 export interface TodoItem {
    // 문서화된 값 외에 role별로 다른 도메인이 내려올 수 있어(훈련생/강사에서 확인됨) 문자열로 둔다.

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { ko } from 'date-fns/locale';
 import { Megaphone, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getNoticeSummary, type NoticeSummaryItem } from '@/services/notice.service';
@@ -78,7 +79,7 @@ export default function NoticeCard() {
                            <span className="truncate">{notice.title}</span>
                         </span>
                         <span className="shrink-0 text-xs text-gray-400">
-                           {format(new Date(notice.createdAt), 'MM.dd')}
+                           {format(new Date(notice.createdAt), 'M월 d일', { locale: ko })}
                         </span>
                      </Link>
                   </li>
