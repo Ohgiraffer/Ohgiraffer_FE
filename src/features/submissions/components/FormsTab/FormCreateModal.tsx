@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X } from 'lucide-react';
+import { TriangleAlert, X } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { DatePicker } from '@/components/ui/date-picker';
 import { toast } from '@/lib/toast';
@@ -100,6 +100,14 @@ export default function FormCreateModal({ onClose, onCreated }: FormCreateModalP
             </label>
             <DatePicker value={dueAt} onChange={setDueAt} className="mt-2" />
             <p className="mt-1.5 text-xs text-gray-400">마감일이 지나면 자동으로 응답이 마감됩니다</p>
+         </div>
+
+         <div className="mt-4 flex items-start gap-2 rounded-xs bg-[#FFF9EC] px-4 py-3 text-xs text-gray-700">
+            <TriangleAlert size={14} className="mt-0.5 shrink-0 text-[#B08A2E]" />
+            <div>
+               <p>생성된 폼은 Google Forms에서 문항을 구성합니다.</p>
+               <p>주민등록번호, 계좌번호, 비밀번호 등 민감한 개인정보를 수집하는 문항은 넣지 마세요.</p>
+            </div>
          </div>
 
          <div className="mt-6 flex justify-end gap-2">

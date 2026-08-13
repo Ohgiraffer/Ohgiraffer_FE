@@ -1,12 +1,13 @@
 'use client';
 
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
+import { setUnsavedChangesChecker } from '@/lib/navigationGuard';
 import { createSubmissionBox, updateSubmissionBox } from '@/services/submissionBox.service';
 import { toDateInputValue } from '../../formatSubmissionDate';
 import type {
@@ -114,6 +115,108 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
    );
    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
    const isSubmittingRef = useRef(false);
+
+   // 항목 배열에서 비교에 필요한 필드만 뽑아 순서에 안정적인 스냅샷 문자열로 만든다(draftId는
+   // 세션마다 랜덤이라 비교 대상에서 뺀다)
+   const toItemsSnapshot = (list: ItemDraft[]) =>
+      JSON.stringify(
+         list.map((item) => ({
+            submissionBoxItemId: item.submissionBoxItemId,
+            name: item.name,
+            type: item.type,
+            hint: item.hint,
+            required: item.required,
+         })),
+      );
+
+   // 최초 값(신규면 빈 값, 수정이면 editTarget) 대비 변경 여부 - 팀 관리(ManagerTeamBoard)와
+   // 동일한 방식으로 이탈 방지에 사용한다. state로 두는 이유는 렌더 중에 ref.current를 읽으면 안
+   // 되기 때문 - 초기값은 이 컴포넌트의 최초 렌더에서 한 번만 계산되면 되므로 lazy state로 충분하다
+   const [initialSnapshot] = useState({
+      projectName,
+      targetScope,
+      startAt,
+      dueAt,
+      latePolicy,
+      itemsSnapshot: toItemsSnapshot(items),
+   });
+   const itemsSnapshot = toItemsSnapshot(items);
+   const isDirty =
+      projectName !== initialSnapshot.projectName ||
+      targetScope !== initialSnapshot.targetScope ||
+      startAt !== initialSnapshot.startAt ||
+      dueAt !== initialSnapshot.dueAt ||
+      latePolicy !== initialSnapshot.latePolicy ||
+      itemsSnapshot !== initialSnapshot.itemsSnapshot;
+
+   // 사이드바 등 앱 내 이동은 navigationGuard로, 새로고침/탭 닫기는 beforeunload로 막는다(팀 관리와 동일)
+   useEffect(() => {
+      setUnsavedChangesChecker(() => isDirty);
+      return () => setUnsavedChangesChecker(null);
+   }, [isDirty]);
+
+   useEffect(() => {
+      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+         if (!isDirty) return;
+         e.preventDefault();
+         e.returnValue = '';
+      };
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+   }, [isDirty]);
+
+   // 저장 안 한 변경사항이 있는 채로 나가려는 시도(취소 버튼, 브라우저 뒤로가기)를 공통으로 가드한다.
+   // dirty가 아니면 바로 실행하고, dirty면 실행을 보류해뒀다가 확인 모달에서 승인해야 실행한다
+   const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
+   const pendingActionRef = useRef<(() => void) | null>(null);
+
+   const guardedAction = (fn: () => void) => {
+      if (!isDirty) {
+         fn();
+         return;
+      }
+      pendingActionRef.current = fn;
+      setIsLeaveConfirmOpen(true);
+   };
+
+   const handleConfirmLeave = () => {
+      setIsLeaveConfirmOpen(false);
+      const fn = pendingActionRef.current;
+      pendingActionRef.current = null;
+      fn?.();
+   };
+
+   const handleCancelLeave = () => {
+      setIsLeaveConfirmOpen(false);
+      pendingActionRef.current = null;
+   };
+
+   // 브라우저 뒤로가기 대응: dirty 상태로 들어가는 시점에 같은 주소로 더미 히스토리를 하나 쌓아둔다.
+   // 뒤로가기를 누르면 popstate가 뜨는데, 그때 다시 더미를 쌓아 실제 이동을 취소하고 확인을 받는다
+   const guardPushedRef = useRef(false);
+
+   useEffect(() => {
+      if (isDirty && !guardPushedRef.current) {
+         window.history.pushState(null, '', window.location.href);
+         guardPushedRef.current = true;
+      } else if (!isDirty) {
+         guardPushedRef.current = false;
+      }
+   }, [isDirty]);
+
+   useEffect(() => {
+      const handlePopState = () => {
+         if (!isDirty) return;
+         window.history.pushState(null, '', window.location.href);
+         guardedAction(() => {
+            guardPushedRef.current = false;
+            window.history.go(-2);
+         });
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => window.removeEventListener('popstate', handlePopState);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [isDirty]);
 
    const canSubmit =
       projectName.trim().length > 0 &&
@@ -377,7 +480,7 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
          <div className="mt-6 flex justify-end gap-2">
             <button
                type="button"
-               onClick={onCancel}
+               onClick={() => guardedAction(onCancel)}
                className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
                취소
@@ -403,6 +506,16 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
             confirmLabel="확인"
             onConfirm={handleConfirmSave}
             onClose={() => setIsConfirmOpen(false)}
+         />
+
+         <ConfirmModal
+            open={isLeaveConfirmOpen}
+            title="저장하지 않은 변경사항이 있습니다"
+            description="지금 나가면 변경사항이 저장되지 않습니다. 그래도 나가시겠습니까?"
+            confirmLabel="나가기"
+            variant="danger"
+            onConfirm={handleConfirmLeave}
+            onClose={handleCancelLeave}
          />
       </div>
    );

@@ -202,7 +202,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                </div>
 
                <div className="mt-6 rounded-xs border border-[#E5E7EB] bg-white">
-                  <div className="flex items-center justify-between p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-5">
                      <div className="flex items-center gap-3">
                         <span className="text-sm font-bold text-gray-900">
                            {detail.submittedCount}/{detail.targetCount}{' '}
@@ -214,11 +214,11 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                            className="w-40"
                         />
                      </div>
-                     <div className="flex items-center gap-2">
+                     <div className="flex flex-wrap items-center gap-2">
                         <SearchInput
                            onSearch={handleSearch}
                            placeholder={detail.targetScope === 'TEAM' ? '팀명 검색' : '이름 검색'}
-                           className="w-64"
+                           className="w-full sm:w-64"
                         />
                         <Select
                            value={statusFilter}
