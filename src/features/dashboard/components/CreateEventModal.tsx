@@ -13,25 +13,37 @@ import {
    SelectValue,
 } from '@/components/ui/shadcn/select';
 import { DatePicker } from '@/components/ui/date-picker';
-import { CURRENT_USER, type CalendarEvent, type EventType } from './DashboardCalendar';
+import { useAuth } from '@/components/auth/AuthContext';
+import { ApiError } from '@/lib/http';
+import { toast } from '@/lib/toast';
+import { createCalendarEvent, type CalendarEventApiType } from '@/services/calendarEvent.service';
+import { type EventType } from './DashboardCalendar';
 
 interface CreateEventModalProps {
    defaultDate: Date;
    onClose: () => void;
-   onCreate: (event: Omit<CalendarEvent, 'id' | 'registrant'>) => void;
+   onCreated: () => void;
 }
 
 const MANAGER_EVENT_TYPES: EventType[] = ['수업/발표', '행사', '개인'];
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 const MINUTES = ['00', '10', '20', '30', '40', '50'];
 
+// 수업/발표는 화면에서 하나로 묶어 보여주되 API로는 항상 CLASS로 전송한다
+const EVENT_TYPE_TO_API: Record<EventType, CalendarEventApiType> = {
+   '수업/발표': 'CLASS',
+   행사: 'EVENT',
+   개인: 'PERSONAL',
+};
+
 function toDateInputValue(date: Date) {
    const offset = date.getTimezoneOffset();
    return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10);
 }
 
-export default function CreateEventModal({ defaultDate, onClose, onCreate }: CreateEventModalProps) {
-   const isManager = CURRENT_USER.role === '매니저';
+export default function CreateEventModal({ defaultDate, onClose, onCreated }: CreateEventModalProps) {
+   const { role } = useAuth();
+   const isStaff = role === 'MANAGER' || role === 'INSTRUCTOR';
 
    const [title, setTitle] = useState('');
    const [type, setType] = useState<EventType>('수업/발표');
@@ -43,23 +55,45 @@ export default function CreateEventModal({ defaultDate, onClose, onCreate }: Cre
    const [endMinute, setEndMinute] = useState('');
    const [place, setPlace] = useState('');
    const [notifyConsent, setNotifyConsent] = useState(false);
+   const [isSubmitting, setIsSubmitting] = useState(false);
 
    const isDateRangeInvalid = endDate < startDate;
+   const startTimeValue = startHour && startMinute ? `${startHour}:${startMinute}` : undefined;
+   const endTimeValue = endHour && endMinute ? `${endHour}:${endMinute}` : undefined;
+   // 종료일이 시작일과 같은 날이면 종료 시각이 시작 시각보다 빠르거나 같을 수 없다(서버가 COMMON_001로 거부함)
+   const isTimeRangeInvalid =
+      startDate === endDate && !!startTimeValue && !!endTimeValue && endTimeValue <= startTimeValue;
+   // 운영진이 "개인"을 선택하면 훈련생의 개인 일정 등록과 동일하게 알림 동의가 필요 없다
+   const needsNotifyConsent = isStaff && type !== '개인';
    const canSubmit =
-      title.trim().length > 0 && !isDateRangeInvalid && (!isManager || notifyConsent);
+      title.trim().length > 0 &&
+      !isDateRangeInvalid &&
+      !isTimeRangeInvalid &&
+      (!needsNotifyConsent || notifyConsent);
 
-   const handleSubmit = (e: React.FormEvent) => {
+   const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!canSubmit) return;
-      onCreate({
-         title: title.trim(),
-         type: isManager ? type : '개인',
-         start: new Date(startDate),
-         end: new Date(endDate),
-         startTime: startHour && startMinute ? `${startHour}:${startMinute}` : undefined,
-         endTime: endHour && endMinute ? `${endHour}:${endMinute}` : undefined,
-         place: place.trim() || undefined,
-      });
+      if (!canSubmit || isSubmitting) return;
+      setIsSubmitting(true);
+      try {
+         await createCalendarEvent({
+            title: title.trim(),
+            eventType: isStaff ? EVENT_TYPE_TO_API[type] : undefined,
+            startDate,
+            startTime: startTimeValue,
+            endDate,
+            endTime: endTimeValue,
+            location: place.trim() || undefined,
+            notifyTrainees: needsNotifyConsent ? notifyConsent : undefined,
+         });
+         onCreated();
+      } catch (err) {
+         toast.error(
+            err instanceof ApiError ? err.message : '일정 등록에 실패했습니다. 잠시 후 다시 시도해주세요.',
+         );
+      } finally {
+         setIsSubmitting(false);
+      }
    };
 
    const modalTitle = `${format(defaultDate, 'M월 d일', { locale: ko })} 일정 등록`;
@@ -90,7 +124,7 @@ export default function CreateEventModal({ defaultDate, onClose, onCreate }: Cre
 
             <div>
                <label className="mb-1.5 block text-sm font-medium text-gray-700">유형</label>
-               {isManager ? (
+               {isStaff ? (
                   <Select value={type} onValueChange={(value) => setType(value as EventType)}>
                      <SelectTrigger className="h-10 w-full rounded-sm">
                         <SelectValue />
@@ -216,6 +250,9 @@ export default function CreateEventModal({ defaultDate, onClose, onCreate }: Cre
                         </SelectContent>
                      </Select>
                   </div>
+                  {isTimeRangeInvalid && (
+                     <p className="mt-1 text-xs text-brand-red">종료 시각은 시작 시각보다 빠를 수 없습니다</p>
+                  )}
                </div>
             </div>
 
@@ -231,7 +268,7 @@ export default function CreateEventModal({ defaultDate, onClose, onCreate }: Cre
                />
             </div>
 
-            {isManager && (
+            {needsNotifyConsent && (
                <label className="flex cursor-pointer items-start gap-2 rounded-sm border border-brand-gold/40 bg-brand-cream/40 p-3 text-xs text-gray-700">
                   <input
                      type="checkbox"
@@ -253,10 +290,10 @@ export default function CreateEventModal({ defaultDate, onClose, onCreate }: Cre
                </button>
                <Button
                   type="submit"
-                  disabled={!canSubmit}
+                  disabled={!canSubmit || isSubmitting}
                   className="h-10 flex-1 rounded-sm bg-brand-green hover:bg-[#4D655A] disabled:bg-gray-200 disabled:text-gray-400"
                >
-                  등록
+                  {isSubmitting ? '등록 중...' : '등록'}
                </Button>
             </div>
          </form>
