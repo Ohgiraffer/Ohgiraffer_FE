@@ -31,6 +31,16 @@ export function getStudentAttendanceSummary(userId: number) {
    return apiFetch<AttendanceSummaryResponse>(`/attendance/summary/${userId}`);
 }
 
+export interface LeaveSickCountResponse {
+   remainingLeaveDays: number;
+   remainingSickDays: number;
+}
+
+// 훈련생 본인의 잔여 휴가/병결 일수 조회 - 부캠 시작 전/종료 후면 둘 다 0
+export function getLeaveSickCount() {
+   return apiFetch<LeaveSickCountResponse>('/attendance/leave-sick/count');
+}
+
 // 출결 기록이 없는 날은 status/checkInTime/checkOutTime이 전부 null로 내려옴
 export type AttendanceMonthlyDayStatus = 'NORMAL' | 'IRREGULAR' | 'ABSENT';
 
@@ -96,12 +106,13 @@ export interface AttendanceDashboardSummary {
    // 메인 대시보드의 "오늘 출석한 사람 수" - 구글 시트 동기화 데이터가 반영된다. 아직 한 번도
    // 동기화하지 않았으면 null로 내려올 수 있음
    attendedTodayCount: number | null;
-   managedStudents: number;
+   // 아래 인원 통계들도 attendedTodayCount와 같은 이유로(구글 시트 동기화 전) null로 내려올 수 있음
+   managedStudents: number | null;
    atRiskStudents: number;
    dropoutStudents: number;
-   cautionStudents: number;
-   warningStudents: number;
-   riskStudents: number;
+   cautionStudents: number | null;
+   warningStudents: number | null;
+   riskStudents: number | null;
 }
 
 // 운영진용 훈련생 전체 출결 통계

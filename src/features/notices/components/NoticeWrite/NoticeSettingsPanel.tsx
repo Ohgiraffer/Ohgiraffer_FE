@@ -25,10 +25,14 @@ type Props = {
    onRequiredChange: (value: boolean) => void;
    visibility: NoticeVisibility;
    onVisibilityChange: (value: NoticeVisibility) => void;
+   // 수정 모드에서는 새 첨부파일을 등록에 연결하는 API가 아직 없어(수정 API에 첨부 필드 자체가
+   // 없음) 파일 추가 입력 자체를 숨긴다 - 기존 첨부파일 삭제만 지원
+   isEditMode: boolean;
    // 수정 모드에서 이미 서버에 저장돼있는 첨부파일 - 삭제 시 실제 삭제 API가 호출됨
    existingAttachments: NoticeAttachment[];
    onRemoveExisting: (noticeAttachmentId: number) => void;
-   // 이번 작성/수정 중에 새로 업로드해서 등록 요청에 실어 보낼 첨부파일(이미 업로드 완료된 상태)
+   // 이번 작성 중에 새로 업로드해서 등록 요청에 실어 보낼 첨부파일(이미 업로드 완료된 상태) -
+   // 작성 모드에서만 쓰임
    pendingAttachments: UploadedNoticeAttachment[];
    isUploadingFiles: boolean;
    onFilesAdd: (files: File[]) => void;
@@ -46,6 +50,7 @@ export default function NoticeSettingsPanel({
    onRequiredChange,
    visibility,
    onVisibilityChange,
+   isEditMode,
    existingAttachments,
    onRemoveExisting,
    pendingAttachments,
@@ -134,28 +139,37 @@ export default function NoticeSettingsPanel({
          <div className="mt-4 flex min-h-0 flex-1 flex-col">
             <div className="shrink-0">
                <span className="text-[15px] font-semibold text-gray-900">파일 첨부</span>
-               <div className="relative mt-2">
-                  <input
-                     id="notice-file-input"
-                     type="file"
-                     multiple
-                     disabled={isUploadingFiles}
-                     onChange={(event) => {
-                        const selected = Array.from(event.target.files ?? []);
-                        if (selected.length > 0) onFilesAdd(selected);
-                        // 같은 파일을 다시 선택해도 onChange가 또 발생하도록 초기화
-                        event.target.value = '';
-                     }}
-                     className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
-                  />
-                  <div className="flex h-10 items-center gap-2 rounded-xs border border-[#E5E7EB] px-3 text-sm text-gray-400 peer-hover:bg-gray-50">
-                     <Upload size={16} className="shrink-0 text-gray-400" />
-                     {isUploadingFiles ? '업로드 중...' : '파일 선택'}
-                  </div>
-               </div>
-               <p className="mt-1.5 text-xs text-gray-400">
-                  최대 5개 · 파일당 최대 10MB · PDF, DOCX, XLS, HWP, JPG, PNG
-               </p>
+               {isEditMode ? (
+                  <p className="mt-2 text-xs text-gray-400">
+                     수정 화면에서는 기존 첨부파일 삭제만 가능합니다. 새 파일을 추가하려면 공지를
+                     다시 작성해주세요.
+                  </p>
+               ) : (
+                  <>
+                     <div className="relative mt-2">
+                        <input
+                           id="notice-file-input"
+                           type="file"
+                           multiple
+                           disabled={isUploadingFiles}
+                           onChange={(event) => {
+                              const selected = Array.from(event.target.files ?? []);
+                              if (selected.length > 0) onFilesAdd(selected);
+                              // 같은 파일을 다시 선택해도 onChange가 또 발생하도록 초기화
+                              event.target.value = '';
+                           }}
+                           className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+                        />
+                        <div className="flex h-10 items-center gap-2 rounded-xs border border-[#E5E7EB] px-3 text-sm text-gray-400 peer-hover:bg-gray-50">
+                           <Upload size={16} className="shrink-0 text-gray-400" />
+                           {isUploadingFiles ? '업로드 중...' : '파일 선택'}
+                        </div>
+                     </div>
+                     <p className="mt-1.5 text-xs text-gray-400">
+                        최대 5개 · 파일당 최대 10MB · PDF, DOCX, XLS, HWP, JPG, PNG
+                     </p>
+                  </>
+               )}
             </div>
 
             {/* 파일이 쌓여 패널 높이를 넘어가면 이 목록만 내부 스크롤되고, 위쪽 필드들은 항상 고정 노출됨 */}

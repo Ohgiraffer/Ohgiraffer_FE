@@ -6,7 +6,7 @@ import ChatRoomList from './ChatRoomList/ChatRoomList';
 import ChatConversation from './ChatConversation/ChatConversation';
 import NewChatModal from './ChatRoomList/NewChatModal';
 import ThreadPanel from './ChatConversation/ThreadPanel';
-import { useScrollLock } from '@/hooks/useScrollLock';
+import SidePanelShell from '@/components/ui/SidePanelShell';
 import { createChannel, type ChatChannel } from '@/services/chat.service';
 import { ApiError } from '@/lib/http';
 import { getChatErrorMessage } from '../chatErrors';
@@ -14,11 +14,8 @@ import { toast } from '@/lib/toast';
 import type { ChatMessage } from '../types';
 
 interface ChatPanelProps {
+   open: boolean;
    onClose: () => void;
-   // 닫힘 애니메이션이 재생되는 동안 true
-   isClosing: boolean;
-   // 닫힘 애니메이션이 끝난 뒤 실제로 언마운트해도 된다는 신호
-   onClosed: () => void;
    // 헤더 배지(ChatButton)와 값이 갈라지지 않도록, 채널 목록/안읽음 수는 부모가 한 번만 조회해 내려준다
    channels: ChatChannel[];
    isLoadingChannels: boolean;
@@ -28,9 +25,8 @@ interface ChatPanelProps {
 }
 
 export default function ChatPanel({
+   open,
    onClose,
-   isClosing,
-   onClosed,
    channels,
    isLoadingChannels,
    reloadChannels,
@@ -46,10 +42,6 @@ export default function ChatPanel({
    // 스레드에서 루트 메시지를 수정/삭제하면 여기에 최신 메시지를 담아 ChatConversation에도 반영시킨다.
    // 방을 바꾸면(handleSelectRoom/handleBack) 다른 방의 낡은 patch가 새 방에 잘못 적용되지 않도록 비운다
    const [rootPatch, setRootPatch] = useState<ChatMessage | null>(null);
-
-   // 패널이 떠 있는 동안(닫힘 애니메이션 재생 중까지) 배경 페이지 스크롤을 잠가서,
-   // 채팅 목록 스크롤바와 페이지 스크롤바가 나란히 붙어 보이는 이중 스크롤을 없앰
-   useScrollLock();
 
    const handleSelectRoom = (room: ChatChannel) => {
       setThreadRoot(null);
@@ -119,76 +111,69 @@ export default function ChatPanel({
    };
 
    return (
-      <div className="fixed inset-x-0 top-14 bottom-0 z-60">
-         <div
-            className={`absolute inset-0 bg-black/40 transition-opacity duration-250 ease-out ${
-               isClosing ? 'opacity-0' : 'opacity-100'
-            }`}
-            onClick={onClose}
-         />
-         <div
-            onAnimationEnd={() => {
-               if (isClosing) onClosed();
-            }}
-            className={`absolute top-0 right-0 bottom-0 flex w-105 flex-col bg-white ${
-               isClosing ? 'animate-slide-out-right' : 'animate-slide-in-right'
-            }`}
-         >
-            {activeRoom ? (
-               <ChatConversation
-                  key={activeRoom.channelId}
+      <SidePanelShell
+         open={open}
+         onClose={onClose}
+         labelledBy="chat-panel-title"
+         overlayExtra={
+            activeRoom &&
+            threadRoot && (
+               <ThreadPanel
+                  key={threadRoot.id}
                   room={activeRoom}
-                  replyCounts={replyCounts}
+                  rootMessage={threadRoot}
+                  onClose={() => setThreadRoot(null)}
                   onReplySent={handleReplySent}
-                  onOpenThread={setThreadRoot}
-                  onBack={handleBack}
-                  incomingMessagePatch={rootPatch}
-                  onMessagesRead={handleMessagesRead}
-                  onReplyCountsLoaded={handleReplyCountsLoaded}
+                  onRootMessageChange={setRootPatch}
                />
-            ) : (
-               <>
-                  <div className="flex items-center justify-between p-5 pb-4">
-                     <span className="flex items-center gap-2">
-                        <h2 className="text-xl font-bold text-gray-900">채팅</h2>
-                        {totalUnreadCount > 0 && (
-                           <span className="flex h-5 min-w-5 items-center justify-center rounded-xs bg-brand-green px-1 text-[11px] font-medium text-white">
-                              {totalUnreadCount}
-                           </span>
-                        )}
-                     </span>
-                     <button
-                        type="button"
-                        onClick={() => setIsNewChatOpen(true)}
-                        className="flex cursor-pointer items-center gap-1 rounded-xs border border-brand-green bg-white px-3 py-1.5 text-xs font-medium text-brand-green hover:bg-gray-50"
-                     >
-                        <Plus size={14} />새 채팅
-                     </button>
-                  </div>
-
-                  <ChatRoomList
-                     channels={channels}
-                     isLoading={isLoadingChannels}
-                     onSelectRoom={handleSelectRoom}
-                  />
-               </>
-            )}
-
-            {isNewChatOpen && (
-               <NewChatModal onClose={() => setIsNewChatOpen(false)} onCreate={handleCreateRoom} />
-            )}
-         </div>
-
-         {activeRoom && threadRoot && (
-            <ThreadPanel
-               key={threadRoot.id}
+            )
+         }
+      >
+         {activeRoom ? (
+            <ChatConversation
+               key={activeRoom.channelId}
                room={activeRoom}
-               rootMessage={threadRoot}
-               onClose={() => setThreadRoot(null)}
+               replyCounts={replyCounts}
                onReplySent={handleReplySent}
-               onRootMessageChange={setRootPatch}
+               onOpenThread={setThreadRoot}
+               onBack={handleBack}
+               incomingMessagePatch={rootPatch}
+               onMessagesRead={handleMessagesRead}
+               onReplyCountsLoaded={handleReplyCountsLoaded}
             />
+         ) : (
+            <>
+               <div className="flex items-center justify-between p-5 pb-4">
+                  <span className="flex items-center gap-2">
+                     <h2 id="chat-panel-title" className="text-xl font-bold text-gray-900">
+                        채팅
+                     </h2>
+                     {totalUnreadCount > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-xs bg-brand-green px-1 text-[11px] font-medium text-white">
+                           {totalUnreadCount}
+                        </span>
+                     )}
+                  </span>
+                  <button
+                     type="button"
+                     onClick={() => setIsNewChatOpen(true)}
+                     className="flex cursor-pointer items-center gap-1 rounded-xs border border-brand-green bg-white px-3 py-1.5 text-xs font-medium text-brand-green hover:bg-gray-50"
+                  >
+                     <Plus size={14} />새 채팅
+                  </button>
+               </div>
+
+               <ChatRoomList
+                  channels={channels}
+                  isLoading={isLoadingChannels}
+                  onSelectRoom={handleSelectRoom}
+               />
+            </>
          )}
-      </div>
+
+         {isNewChatOpen && (
+            <NewChatModal onClose={() => setIsNewChatOpen(false)} onCreate={handleCreateRoom} />
+         )}
+      </SidePanelShell>
    );
 }

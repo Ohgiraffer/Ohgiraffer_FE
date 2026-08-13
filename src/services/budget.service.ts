@@ -26,6 +26,19 @@ export function saveBudgetSheetSettings(body: SaveBudgetSheetSettingsRequest) {
    });
 }
 
+export interface BudgetSheetSettings {
+   spreadsheetUrl: string;
+   sheetName: string;
+   columnMapping: BudgetSheetColumnMapping;
+   lastSyncedAt: string | null;
+}
+
+// 저장된 예산 시트 설정 조회 - 예산 관리 탭 진입 시 GoogleSheetSync에 "연결됨" 상태로 프리필하는
+// 용도. 저장된 설정이 없으면 404(COMMON_006) - 아직 연동 전인 정상 상태로 취급한다
+export function getBudgetSheetSettings() {
+   return apiFetch<BudgetSheetSettings>('/budgets/sheets/settings');
+}
+
 export interface SyncBudgetSheetResponse {
    syncedCount: number;
    syncedAt: string;
