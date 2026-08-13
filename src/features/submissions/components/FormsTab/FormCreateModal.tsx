@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TriangleAlert, X } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { DatePicker } from '@/components/ui/date-picker';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
+import { setUnsavedChangesChecker } from '@/lib/navigationGuard';
 import { createSurveyForm } from '@/services/surveyForm.service';
 
 interface FormCreateModalProps {
@@ -18,6 +19,15 @@ export default function FormCreateModal({ onClose, onCreated }: FormCreateModalP
    const [dueAt, setDueAt] = useState('');
    const [titleError, setTitleError] = useState('');
    const [isSubmitting, setIsSubmitting] = useState(false);
+
+   const isDirty = title.trim().length > 0 || dueAt.length > 0;
+
+   // 이 모달이 열려 있는 동안은 제출함 생성(BoxCreateForm)과 같은 전역 체커를 공유한다 -
+   // SubmissionsPageClient의 탭 전환 가드(hasUnsavedChanges)가 이 값을 그대로 참조한다
+   useEffect(() => {
+      setUnsavedChangesChecker(() => isDirty);
+      return () => setUnsavedChangesChecker(null);
+   }, [isDirty]);
 
    const canSubmit = title.trim().length > 0 && dueAt.length > 0 && !isSubmitting;
 

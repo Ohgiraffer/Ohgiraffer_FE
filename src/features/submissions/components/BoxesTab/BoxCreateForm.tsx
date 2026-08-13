@@ -194,6 +194,9 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
    // 브라우저 뒤로가기 대응: dirty 상태로 들어가는 시점에 같은 주소로 더미 히스토리를 하나 쌓아둔다.
    // 뒤로가기를 누르면 popstate가 뜨는데, 그때 다시 더미를 쌓아 실제 이동을 취소하고 확인을 받는다
    const guardPushedRef = useRef(false);
+   // 승인 후 go(-2)가 발생시키는 popstate까지 다시 가로채면 뒤로가기가 영원히 막히므로,
+   // 승인된 이동 한 번은 그대로 통과시키기 위한 플래그
+   const isLeavingRef = useRef(false);
 
    useEffect(() => {
       if (isDirty && !guardPushedRef.current) {
@@ -206,9 +209,11 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
 
    useEffect(() => {
       const handlePopState = () => {
+         if (isLeavingRef.current) return;
          if (!isDirty) return;
          window.history.pushState(null, '', window.location.href);
          guardedAction(() => {
+            isLeavingRef.current = true;
             guardPushedRef.current = false;
             window.history.go(-2);
          });
