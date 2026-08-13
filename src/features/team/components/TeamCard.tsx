@@ -7,6 +7,7 @@ import { toast } from '@/lib/toast';
 import ChatAvatar from '@/features/chat/components/ChatAvatar';
 import { formatTeamPeriod } from '../formatTeamDate';
 import MemberActionMenu from './MemberActionMenu';
+import TeamWorkspaceLink from './TeamWorkspaceLink';
 import { TEAM_MEMBER_DRAG_TYPE, type DraftTeam } from '../types';
 
 export interface TeamCardMember {
@@ -215,6 +216,8 @@ export default function TeamCard({
          >
             여기에 드래그
          </div>
+
+         <TeamWorkspaceLink teamId={team.teamId} />
       </div>
    );
 }

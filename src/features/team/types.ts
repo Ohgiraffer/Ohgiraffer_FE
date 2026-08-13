@@ -53,7 +53,7 @@ export interface TeamConfigurationTeamInput {
    // 기존 팀이면 실제 teamId, 새로 추가한 팀이면 null
    teamId: number | null;
    name: string;
-   memberUserIds: number[];
+   userIds: number[];
 }
 
 export interface TeamConfigurationRequest {

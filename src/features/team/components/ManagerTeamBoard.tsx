@@ -97,7 +97,7 @@ export default function ManagerTeamBoard() {
       let isMounted = true;
       // isLoading/hasError는 이 effect가 아니라, activePeriodId/reloadKey를 바꾸는
       // 이벤트 핸들러 쪽(switchPeriod/reloadTeams)에서 미리 세팅한다
-      Promise.all([getTeams(activePeriodId), getUnassignedStudents()])
+      Promise.all([getTeams(activePeriodId), getUnassignedStudents(activePeriodId)])
          .then(([teamsResult, unassignedResult]) => {
             if (!isMounted) return;
             setServerTeams(teamsResult);
@@ -410,7 +410,7 @@ export default function ManagerTeamBoard() {
          const teamsPayload: TeamConfigurationTeamInput[] = draftTeams.map((t) => ({
             teamId: t.teamId < 0 ? null : t.teamId,
             name: t.name,
-            memberUserIds: (membersByTeamId.byTeam.get(t.teamId) ?? []).map((m) => m.userId),
+            userIds: (membersByTeamId.byTeam.get(t.teamId) ?? []).map((m) => m.userId),
          }));
 
          const payload: TeamConfigurationRequest = {
