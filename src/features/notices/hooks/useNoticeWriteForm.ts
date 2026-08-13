@@ -159,9 +159,7 @@ export function useNoticeWriteForm(noticeId?: number, initialNotice?: NoticeDeta
 
       const invalidFile = findInvalidAttachmentFile(newFiles);
       if (invalidFile) {
-         toast.error(
-            `${invalidFile.name}`,
-         );
+         toast.error(`${invalidFile.name}: ${getAttachmentFileError(invalidFile)}`);
          return;
       }
 

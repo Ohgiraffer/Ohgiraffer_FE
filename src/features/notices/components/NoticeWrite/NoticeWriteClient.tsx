@@ -180,7 +180,7 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
             const attachmentsOk = await form.commitAttachmentChanges();
             setIsConfirmOpen(false);
             if (!attachmentsOk) {
-               toast.success('공지사항 내용은 수정했습니다. 첨부파일은 다시 저장해주세요.');
+               toast.warning('공지사항 내용은 수정했습니다. 첨부파일은 다시 저장해주세요.');
                return;
             }
 
