@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
    Calendar,
    dateFnsLocalizer,
@@ -103,20 +103,24 @@ export default function DashboardCalendar({
    // API의 month는 1~12 (Date.getMonth()는 0부터라 +1)
    const currentMonth = currentDate.getMonth() + 1;
 
-   // 화면에 보이는 달이 바뀔 때마다(최초 진입 포함) 그 달의 일정을 다시 불러온다
-   useEffect(() => {
-      let isMounted = true;
-      fetchMappedEvents(currentYear, currentMonth)
+   // 월 이동 중 등록으로 재조회가 겹치면(초기 조회가 나중에 끝나는 경우) 오래된 응답이 최신
+   // 상태를 덮어쓸 수 있다 - 매 요청에 순번을 매겨 가장 마지막에 시작한 요청의 응답만 반영한다
+   const latestRequestIdRef = useRef(0);
+   const applyFetchedEvents = useCallback((year: number, month: number) => {
+      const requestId = ++latestRequestIdRef.current;
+      fetchMappedEvents(year, month)
          .then((mapped) => {
-            if (isMounted) setEvents(mapped);
+            if (latestRequestIdRef.current === requestId) setEvents(mapped);
          })
          .catch(() => {
-            if (isMounted) toast.error('일정을 불러오지 못했습니다.');
+            if (latestRequestIdRef.current === requestId) toast.error('일정을 불러오지 못했습니다.');
          });
-      return () => {
-         isMounted = false;
-      };
-   }, [currentYear, currentMonth]);
+   }, []);
+
+   // 화면에 보이는 달이 바뀔 때마다(최초 진입 포함) 그 달의 일정을 다시 불러온다
+   useEffect(() => {
+      applyFetchedEvents(currentYear, currentMonth);
+   }, [currentYear, currentMonth, applyFetchedEvents]);
 
    useEffect(() => {
       if (currentYear in holidaysByYear) return;
@@ -206,9 +210,7 @@ export default function DashboardCalendar({
 
    const handleEventCreated = () => {
       setCreateDate(null);
-      fetchMappedEvents(currentYear, currentMonth)
-         .then(setEvents)
-         .catch(() => toast.error('일정을 불러오지 못했습니다.'));
+      applyFetchedEvents(currentYear, currentMonth);
       onEventCreated?.();
    };
 
