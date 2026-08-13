@@ -59,10 +59,10 @@ export const RISK_WARNING_MESSAGES: Record<'CAUTION' | 'WARNING' | 'EXPULSION_RI
    EXPULSION_RISK: '출석률 미달로 제적 위험 단계입니다. 즉시 확인이 필요합니다.',
 };
 
-// 훈련생 관리 목록(현황 탭) 한 행 - /attendance/list는 이름만 내려주므로, 훈련생 식별자·소속 팀은
-// /user/list(getUserList)에서 이름으로 매칭해 채운다. 매칭에 실패하면 null(행 클릭 비활성화)
+// 훈련생 관리 목록(현황 탭) 한 행 - /attendance/list가 userId를 내려주고, 소속 팀만
+// /user/list(getUserList)에서 같은 userId로 매칭해 채운다
 export interface TraineeSummary {
-   traineeId: number | null;
+   traineeId: number;
    name: string;
    teamName: string | null;
    attendanceRate: number;

@@ -84,6 +84,7 @@ export function getStudentLeaveSickCount(userId: number) {
 }
 
 export interface AttendanceListItem {
+   userId: number;
    name: string;
    attendanceRate: number;
    lateCount: number;
@@ -93,7 +94,8 @@ export interface AttendanceListItem {
    status: AttendanceRiskLevel;
 }
 
-// 운영진용 훈련생 전체 출결 목록 조회 - 이름만 내려오고 훈련생 식별자/소속 팀은 포함하지 않음
+// 운영진용 훈련생 전체 출결 목록 조회 - userId가 내려와서 다른 목록(예: /user/list)과 안전하게
+// 이어붙일 수 있다(소속 팀은 여전히 포함하지 않음)
 export function getAttendanceList() {
    return apiFetch<AttendanceListItem[]>('/attendance/list');
 }
@@ -134,6 +136,8 @@ export function getPresentAbsentCount(periodId?: number) {
 
 export interface AttendanceSheetColumnMapping {
    name: string;
+   // 학생을 식별하는 칼럼 - 이름은 중복될 수 있어 실제 매칭은 이메일 기준으로 한다
+   email: string;
    trainingStatus: string;
    attendanceStatus: string;
    checkIn: string;
@@ -189,7 +193,7 @@ export function syncAttendanceSheet() {
    return apiFetch<AttendanceSheetSyncResult>('/attendance/sheet-sync', { method: 'POST' });
 }
 
-export type AttendanceSheetSyncLogResult = 'SUCCESS' | 'PARTIAL';
+export type AttendanceSheetSyncLogResult = 'SUCCESS' | 'PARTIAL' | 'FAIL';
 
 export interface AttendanceSheetSyncLogEntry {
    syncLogId: number;

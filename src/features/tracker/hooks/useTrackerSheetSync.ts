@@ -9,9 +9,11 @@ import {
    type AttendanceSheetColumnMapping,
 } from '@/services/attendance.service';
 
-// 출결 시트에서 매핑해야 하는 컬럼 8개 - 키는 /attendance/sheet-link의 columnMapping 필드명과 동일
+// 출결 시트에서 매핑해야 하는 컬럼 9개 - 키는 /attendance/sheet-link의 columnMapping 필드명과 동일
 export const ATTENDANCE_SHEET_COLUMNS: GoogleSheetColumnField[] = [
    { key: 'name', label: '이름' },
+   // 학생을 식별하는 칼럼이라 필수 - 이름은 중복될 수 있어 실제 매칭 기준은 이메일이다
+   { key: 'email', label: '이메일' },
    { key: 'trainingStatus', label: '훈련 상태' },
    { key: 'attendanceStatus', label: '출석 상태' },
    { key: 'checkIn', label: '입실 시간' },

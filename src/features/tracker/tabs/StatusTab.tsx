@@ -276,14 +276,8 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
                      pagedTrainees.map((trainee, index) => (
                         <tr
                            key={`${trainee.name}-${index}`}
-                           onClick={() => {
-                              if (trainee.traineeId != null) router.push(`/tracker/${trainee.traineeId}`);
-                           }}
-                           className={
-                              trainee.traineeId != null
-                                 ? 'cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]'
-                                 : 'border-b border-[#F3F4F6] last:border-b-0'
-                           }
+                           onClick={() => router.push(`/tracker/${trainee.traineeId}`)}
+                           className="cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]"
                         >
                            <td className="px-6 py-4 font-medium text-gray-900">{trainee.name}</td>
                            <td className="px-3 py-4 text-gray-700">{trainee.teamName ?? '-'}</td>
@@ -308,7 +302,7 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
                               </StatusBadge>
                            </td>
                            <td className="px-3 py-4 text-right text-gray-300">
-                              {trainee.traineeId != null && <ChevronRight size={16} />}
+                              <ChevronRight size={16} />
                            </td>
                         </tr>
                      ))

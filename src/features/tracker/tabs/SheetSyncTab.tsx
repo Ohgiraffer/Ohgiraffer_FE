@@ -8,10 +8,15 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/shadcn/
 import { ATTENDANCE_SHEET_COLUMNS, useTrackerSheetSync } from '../hooks/useTrackerSheetSync';
 import { useTrackerSyncHistory, type TrackerSyncHistoryEntry } from '../hooks/useTrackerSyncHistory';
 
-const RESULT_BADGE: Record<TrackerSyncHistoryEntry['result'], { tone: 'success' | 'gold'; label: string }> = {
+const RESULT_BADGE: Partial<
+   Record<TrackerSyncHistoryEntry['result'], { tone: 'success' | 'gold' | 'danger'; label: string }>
+> = {
    SUCCESS: { tone: 'success', label: '성공' },
    PARTIAL: { tone: 'gold', label: '부분 성공' },
+   FAIL: { tone: 'danger', label: '실패' },
 };
+// 문서에 없는 값이 오거나 result가 비어있는 경우를 위한 방어용 기본값 - 몰라도 화면이 죽으면 안 된다
+const DEFAULT_RESULT_BADGE = { tone: 'muted' as const, label: '알 수 없음' };
 
 // apiFetch 응답은 런타임 날짜 검증이 없어, 잘못된 문자열이 오면 parseISO가 Invalid Date를
 // 반환하고 format이 RangeError를 던져 전체 이력 테이블 렌더링이 중단될 수 있다
@@ -74,7 +79,7 @@ export default function SheetSyncTab() {
                <div>
                   <p className="text-sm font-bold text-gray-900">동기화 이력</p>
                   <p className="mt-1 text-xs text-gray-400">
-                     &quot;부분 성공&quot; 라벨을 클릭하면 실패한 행을 확인할 수 있습니다.
+                     &quot;부분 성공&quot;/&quot;실패&quot; 라벨을 클릭하면 실패한 행을 확인할 수 있습니다.
                   </p>
                   <div className="mt-3 overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
                      <table className="w-full table-fixed text-left text-sm">
@@ -116,11 +121,14 @@ export default function SheetSyncTab() {
                                     <td className="px-6 py-4 text-gray-700 text-center">{entry.successCount}건</td>
                                     <td className="px-6 py-4">
                                        <div className="flex items-center justify-center">
-                                          {entry.result === 'PARTIAL' ? (
+                                          {entry.result !== 'SUCCESS' ? (
                                              <Popover>
                                                 <PopoverTrigger className="cursor-pointer">
-                                                   <StatusBadge tone={RESULT_BADGE.PARTIAL.tone}>
-                                                      {RESULT_BADGE.PARTIAL.label} · {entry.failedRows.length}건
+                                                   <StatusBadge
+                                                      tone={(RESULT_BADGE[entry.result] ?? DEFAULT_RESULT_BADGE).tone}
+                                                   >
+                                                      {(RESULT_BADGE[entry.result] ?? DEFAULT_RESULT_BADGE).label} ·{' '}
+                                                      {entry.failedRows.length}건
                                                    </StatusBadge>
                                                 </PopoverTrigger>
                                                 <PopoverContent align="end" className="w-fit min-w-0 max-w-64 rounded-xs!">
@@ -140,8 +148,8 @@ export default function SheetSyncTab() {
                                                 </PopoverContent>
                                              </Popover>
                                           ) : (
-                                             <StatusBadge tone={RESULT_BADGE[entry.result].tone}>
-                                                {RESULT_BADGE[entry.result].label}
+                                             <StatusBadge tone={(RESULT_BADGE.SUCCESS ?? DEFAULT_RESULT_BADGE).tone}>
+                                                {(RESULT_BADGE.SUCCESS ?? DEFAULT_RESULT_BADGE).label}
                                              </StatusBadge>
                                           )}
                                        </div>
