@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { format, isToday } from 'date-fns';
 import { ChevronRight, ListChecks } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
+import type { UserRole } from '@/services/auth.service';
 import { getTodoSummary, type TodoItem, type TodoSourceDomain } from '@/services/todo.service';
 
 const DOMAIN_META: Record<TodoSourceDomain, { href: string; badgeClassName: string }> = {
@@ -13,18 +14,23 @@ const DOMAIN_META: Record<TodoSourceDomain, { href: string; badgeClassName: stri
    CONSULTATION: { href: '/counseling', badgeClassName: 'bg-brand-green' },
    ATTENDANCE: { href: '/tracker', badgeClassName: 'bg-brand-red/60' },
    SUBMISSION: { href: '/submissions', badgeClassName: 'bg-brand-sage' },
-   EVALUATION: { href: '/evaluations', badgeClassName: 'bg-gray-500' },
 };
 // 문서에 없는 sourceDomain이 내려올 때(훈련생/강사에서 확인됨) 링크가 깨지지 않도록 두는 기본값
 const DEFAULT_DOMAIN_META = { href: '/', badgeClassName: 'bg-gray-400' };
 
-// 훈련생에게는 의미 없는 항목(평가 관리는 운영진 전용 기능) - 훈련생 화면에서만 숨긴다
-const STUDENT_HIDDEN_DOMAINS = new Set<TodoSourceDomain>(['EVALUATION']);
-
-// 서버가 내려주는 문구 대신 훈련생 화면에서 더 명확하게 바꿔 보여주는 라벨
-const STUDENT_LABEL_OVERRIDES: Partial<Record<TodoSourceDomain, string>> = {
-   APPROVAL: '휴가 처리 중',
-   SUBMISSION: '미제출 제출물',
+// 서버가 내려주는 문구 대신 화면에서 더 명확하게 바꿔 보여주는 라벨 - APPROVAL은 role마다
+// 실제로 처리하는 결재 종류가 달라서(훈련생: 휴가, 강사: 예산, 매니저: 결재 처리 전반) role별로 다르게 둔다
+const LABEL_OVERRIDES: Partial<Record<UserRole, Partial<Record<TodoSourceDomain, string>>>> = {
+   STUDENT: {
+      APPROVAL: '휴가 처리 대기',
+      SUBMISSION: '미제출 제출물',
+   },
+   INSTRUCTOR: {
+      APPROVAL: '예산 결재 대기',
+   },
+   MANAGER: {
+      APPROVAL: '결재 처리 대기',
+   },
 };
 
 // 오늘이면 시각(HH:mm), 오늘이 아니면 날짜(M/d)로 표시한다
@@ -35,7 +41,6 @@ function formatDueLabel(dueTimeIso: string) {
 
 export default function TodoCard() {
    const { role } = useAuth();
-   const isStudent = role === 'STUDENT';
 
    const [todos, setTodos] = useState<TodoItem[]>([]);
    const [isLoading, setIsLoading] = useState(true);
@@ -59,12 +64,8 @@ export default function TodoCard() {
       };
    }, [retryKey]);
 
-   // 0건인 항목은 굳이 보여줄 필요가 없어 목록에서 빼고, 훈련생 화면에서는 운영진 전용 항목도 뺀다
-   const visibleTodos = todos.filter((todo) => {
-      if (todo.count <= 0) return false;
-      if (isStudent && STUDENT_HIDDEN_DOMAINS.has(todo.sourceDomain as TodoSourceDomain)) return false;
-      return true;
-   });
+   // 0건인 항목은 굳이 보여줄 필요가 없어 목록에서 뺀다
+   const visibleTodos = todos.filter((todo) => todo.count > 0);
 
    return (
       <div className="h-full rounded-xs border border-gray-200 bg-white p-6 lg:p-6">
@@ -99,7 +100,7 @@ export default function TodoCard() {
                {visibleTodos.map((todo) => {
                   const domain = todo.sourceDomain as TodoSourceDomain;
                   const meta = DOMAIN_META[domain] ?? DEFAULT_DOMAIN_META;
-                  const label = (isStudent && STUDENT_LABEL_OVERRIDES[domain]) || todo.type;
+                  const label = (role && LABEL_OVERRIDES[role]?.[domain]) || todo.type;
                   // 상담 예정이 1건뿐이면(훈련생은 본인 일정이라 최대 1건, 운영진도 1건일 때) 건수보다
                   // 그 상담이 언제인지가 더 유용하다 - 오늘이면 시각, 아니면 날짜로 보여준다
                   const showDueDateOrTime = domain === 'CONSULTATION' && todo.count === 1;
