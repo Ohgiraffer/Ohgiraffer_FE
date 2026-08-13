@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Download } from 'lucide-react';
+import { Check, ChevronLeft, Download } from 'lucide-react';
 import { differenceInCalendarDays, format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ApiError } from '@/lib/http';
@@ -19,6 +19,7 @@ import {
 } from '@/services/approval.service';
 import ApprovalStatusTimeline from './ApprovalStatusTimeline';
 import RejectReasonModal from './RejectReasonModal';
+import { useApprovalLivePolling } from '../hooks/useApprovalLivePolling';
 import { useApprovalPdfDownload } from '../hooks/useApprovalPdfDownload';
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_TONES } from '../types';
 
@@ -28,6 +29,10 @@ interface ApprovalDetailClientProps {
 
 function formatDate(iso: string) {
    return format(new Date(iso), 'yyyy-MM-dd');
+}
+
+function formatAmount(amount: number) {
+   return `₩${amount.toLocaleString('ko-KR')}`;
 }
 
 function InfoField({
@@ -47,8 +52,8 @@ function InfoField({
    );
 }
 
-// 결재 이력 상세 - 훈련생의 휴가 신청 결재만 다룸. 강사/매니저의 구매 요청 결재 상세는
-// 화면 디자인 나오면 requestType 분기로 추가할 예정
+// 결재 이력/처리 상세 - 신청자 본인 화면(훈련생 휴가 신청 / 강사 구매 요청)과 처리자(매니저) 화면
+// 모두 requestType(LEAVE/PURCHASE)으로 분기해서 보여준다
 export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClientProps) {
    const { role } = useAuth();
    const router = useRouter();
@@ -68,11 +73,13 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
 
    const {
       isConfirmOpen: isDownloadConfirmOpen,
+      pendingRequestType: downloadPendingRequestType,
       isSubmitting: isDownloadSubmitting,
       openConfirm: openDownloadConfirm,
       closeConfirm: closeDownloadConfirm,
       confirmDownload,
    } = useApprovalPdfDownload({ onAssigned: silentRefetch });
+   const isDownloadConfirmForPurchase = downloadPendingRequestType === 'PURCHASE';
    const [isApproveConfirmOpen, setIsApproveConfirmOpen] = useState(false);
    const [isApproveSubmitting, setIsApproveSubmitting] = useState(false);
    const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
@@ -112,6 +119,16 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
       setHasError(false);
       setRetryKey((key) => key + 1);
    };
+
+   // 신청자 본인 화면에서만 - 담당자가 처리하는 동안 이 화면을 보고 있어도 새로고침 없이 갱신되도록
+   // 조용히 짧은 간격으로 다시 조회한다. 처리하는 쪽(매니저)은 본인 액션 직후 silentRefetch로 이미
+   // 최신 상태를 받으므로 폴링이 따로 필요 없음
+   const { isPollingStopped } = useApprovalLivePolling(
+      numericApprovalId,
+      detail?.status,
+      !isProcessor && Boolean(detail) && !hasError,
+      setDetail,
+   );
 
    const handleApprove = async () => {
       if (isApproveSubmitting) return;
@@ -181,6 +198,12 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
             {isProcessor ? '결재 상세' : '결재 이력 상세'}
          </h1>
 
+         {!isProcessor && isPollingStopped && (
+            <p className="mt-3 rounded-xs border border-[#F3DFA0] bg-[#FFF9EC] px-4 py-2.5 text-sm text-gray-700">
+               실시간 갱신이 중단됐습니다. 최신 상태를 보려면 새로고침해주세요.
+            </p>
+         )}
+
          {isLoading ? (
             <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
          ) : hasError || !detail ? (
@@ -213,23 +236,39 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
                      <InfoField label="신청 유형" value={detail.title} />
                   )}
                   <InfoField label="신청일자" value={formatDate(detail.requestedAt)} />
-                  <InfoField
-                     label="휴가 시작일"
-                     value={detail.startDate ? formatDate(detail.startDate) : '-'}
-                  />
-                  <InfoField
-                     label="휴가 종료일"
-                     value={detail.endDate ? formatDate(detail.endDate) : '-'}
-                  />
-                  <InfoField
-                     label="총 휴가 일수"
-                     valueClassName="font-semibold"
-                     value={
-                        detail.startDate && detail.endDate
-                           ? `${differenceInCalendarDays(new Date(detail.endDate), new Date(detail.startDate)) + 1}일`
-                           : '-'
-                     }
-                  />
+
+                  {detail.requestType === 'PURCHASE' ? (
+                     <>
+                        <InfoField label="카테고리" value={detail.budgetCategoryName ?? '-'} />
+                        <InfoField label="사용 목적" value={detail.reason ?? '-'} />
+                        <InfoField
+                           label="요청 금액"
+                           valueClassName="font-semibold"
+                           value={detail.amount != null ? formatAmount(detail.amount) : '-'}
+                        />
+                     </>
+                  ) : (
+                     <>
+                        <InfoField
+                           label="휴가 시작일"
+                           value={detail.startDate ? formatDate(detail.startDate) : '-'}
+                        />
+                        <InfoField
+                           label="휴가 종료일"
+                           value={detail.endDate ? formatDate(detail.endDate) : '-'}
+                        />
+                        <InfoField
+                           label="총 휴가 일수"
+                           valueClassName="font-semibold"
+                           value={
+                              detail.startDate && detail.endDate
+                                 ? `${differenceInCalendarDays(new Date(detail.endDate), new Date(detail.startDate)) + 1}일`
+                                 : '-'
+                           }
+                        />
+                     </>
+                  )}
+
                   <div>
                      <p className="text-xs text-gray-400">처리 상태</p>
                      <div className="mt-1">
@@ -267,11 +306,20 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
                   <div className="mt-6 flex justify-end border-t border-[#F3F4F6] pt-6">
                      <button
                         type="button"
-                        onClick={() => openDownloadConfirm(numericApprovalId)}
+                        onClick={() => openDownloadConfirm(numericApprovalId, detail.requestType)}
                         className="flex cursor-pointer items-center gap-1.5 rounded-sm bg-brand-green px-4 py-2 text-sm font-semibold text-white hover:bg-[#4D655A]"
                      >
-                        <Download size={14} />
-                        PDF 다운로드
+                        {detail.requestType === 'LEAVE' ? (
+                           <>
+                              <Download size={14} />
+                              PDF 다운로드
+                           </>
+                        ) : (
+                           <>
+                              <Check size={14} />
+                              확인
+                           </>
+                        )}
                      </button>
                   </div>
                )}
@@ -299,8 +347,16 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
 
          <ConfirmModal
             open={isDownloadConfirmOpen}
-            title="PDF를 다운로드 받으시겠습니까?"
-            description="PDF 서류를 다운로드 받으면 해당 결재의 담당자로 배정되고, 결재 서류의 상태가 '확인중'으로 변경됩니다."
+            title={
+               isDownloadConfirmForPurchase
+                  ? '구매 요청을 확인하시겠습니까?'
+                  : 'PDF를 다운로드 받으시겠습니까?'
+            }
+            description={
+               isDownloadConfirmForPurchase
+                  ? "확인하시면 해당 결재의 담당자로 배정되고, 결재 서류의 상태가 '확인중'으로 변경됩니다."
+                  : "PDF 서류를 다운로드 받으면 해당 결재의 담당자로 배정되고, 결재 서류의 상태가 '확인중'으로 변경됩니다."
+            }
             confirmLabel={isDownloadSubmitting ? '처리 중...' : '확인'}
             onConfirm={confirmDownload}
             onClose={closeDownloadConfirm}

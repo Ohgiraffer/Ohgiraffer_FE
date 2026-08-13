@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import StatusBadge from '@/features/submissions/components/StatusBadge';
 import { useApprovalList } from '../hooks/useApprovalList';
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_TONES } from '../types';
@@ -37,40 +36,26 @@ export default function ApprovalHistoryList() {
                      </td>
                   </tr>
                ) : (
-                  approvals.map((approval, index) => {
-                     // 결재 이력 상세는 아직 휴가 신청(LEAVE)만 지원 - 구매 요청(PURCHASE) 상세 화면은
-                     // 디자인 나오면 추가
-                     const isDetailAvailable = approval.requestType === 'LEAVE';
-
-                     return (
-                        <tr
-                           key={approval.approvalId}
-                           onClick={
-                              isDetailAvailable
-                                 ? () =>
-                                      router.push(`/approvals/${approval.approvalId}?tab=history`)
-                                 : undefined
-                           }
-                           className={cn(
-                              'border-b border-[#F3F4F6] last:border-b-0',
-                              isDetailAvailable && 'cursor-pointer hover:bg-[#F9FAFB]',
-                           )}
-                        >
-                           <td className="px-6 py-4 text-gray-500">{index + 1}</td>
-                           <td className="px-6 py-4 font-medium text-gray-900">{approval.title}</td>
-                           <td className="px-6 py-4">
-                              <div className="flex items-center justify-center">
-                                 <StatusBadge tone={APPROVAL_STATUS_TONES[approval.status]}>
-                                    {APPROVAL_STATUS_LABELS[approval.status]}
-                                 </StatusBadge>
-                              </div>
-                           </td>
-                           <td className="px-6 py-4 text-center text-gray-500">
-                              {format(new Date(approval.requestedAt), 'yyyy-MM-dd')}
-                           </td>
-                        </tr>
-                     );
-                  })
+                  approvals.map((approval, index) => (
+                     <tr
+                        key={approval.approvalId}
+                        onClick={() => router.push(`/approvals/${approval.approvalId}?tab=history`)}
+                        className="cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]"
+                     >
+                        <td className="px-6 py-3 text-gray-500">{index + 1}</td>
+                        <td className="px-6 py-3 font-medium text-gray-900">{approval.title}</td>
+                        <td className="px-6 py-3">
+                           <div className="flex items-center justify-center">
+                              <StatusBadge tone={APPROVAL_STATUS_TONES[approval.status]}>
+                                 {APPROVAL_STATUS_LABELS[approval.status]}
+                              </StatusBadge>
+                           </div>
+                        </td>
+                        <td className="px-6 py-3 text-center text-gray-500">
+                           {format(new Date(approval.requestedAt), 'yyyy-MM-dd')}
+                        </td>
+                     </tr>
+                  ))
                )}
             </tbody>
          </table>
