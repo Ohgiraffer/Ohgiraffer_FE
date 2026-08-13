@@ -38,6 +38,12 @@ export function useNotificationSse(onEvent: () => void, enabled: boolean) {
                   `${API_BASE_URL}/notifications/subscribe?ticket=${encodeURIComponent(ticket)}`,
                );
                source = es;
+               // 연결(재연결 포함) 성공 시 한 번 동기화한다 - 새 연결은 이전 연결이 끊겨 있던 동안
+               // 서버가 놓친 이벤트를 재생해주지 않으므로, onmessage만 믿으면 다음 이벤트가 올 때까지
+               // 그 사이 놓친 변경사항을 알 수 없다
+               es.onopen = () => {
+                  onEventRef.current();
+               };
                es.onmessage = () => {
                   onEventRef.current();
                };
