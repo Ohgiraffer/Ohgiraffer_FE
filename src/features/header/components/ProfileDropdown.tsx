@@ -58,8 +58,20 @@ export default function ProfileDropdown() {
          setIsMenuOpen(false);
       };
 
+      // 메뉴가 열린 채로 뷰포트 폭이 바뀌면 right 값이 이전 뷰포트 기준으로 남아 트리거 버튼과
+      // 어긋난다 - 열려있는 동안은 리사이즈마다 트리거 좌표를 다시 읽어 위치를 맞춘다
+      const handleResize = () => {
+         if (!containerRef.current) return;
+         const rect = containerRef.current.getBoundingClientRect();
+         setMenuPosition({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
+      };
+
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      window.addEventListener('resize', handleResize);
+      return () => {
+         document.removeEventListener('mousedown', handleClickOutside);
+         window.removeEventListener('resize', handleResize);
+      };
    }, [isMenuOpen]);
 
    return (
