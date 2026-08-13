@@ -29,21 +29,11 @@ export type LeaveRequestFormData = {
 };
 
 // 강사 "결재 신청" 탭 - 구매 예산 신청 폼 데이터
-// TODO: 카테고리는 부트캠프마다 연동된 구글 시트의 "카테고리" 컬럼값을 동기화한 budget_category
-// 테이블 기준이라 고정 목록이 아님 - GET /budgets/summary 응답의 카테고리 목록으로 교체 예정
-// (그 전까지 임시로 하드코딩). "예비비"가 기타 역할을 겸해서 별도 "기타" 항목/직접입력 필드는 없앰
-export const PURCHASE_BUDGET_CATEGORIES = [
-   '장비',
-   '시설관리',
-   'AWS·소프트웨어',
-   '교재',
-   '예비비',
-] as const;
-
-export type PurchaseBudgetCategory = (typeof PURCHASE_BUDGET_CATEGORIES)[number];
-
+// 카테고리는 부트캠프마다 연동된 구글 시트의 "카테고리" 컬럼값을 동기화한 budget_category 테이블
+// 기준이라 고정 목록이 아니다 - GET /budgets/summary 응답의 카테고리 목록(categoryId/categoryName)을
+// 그대로 셀렉트박스에 씀. "예비비"가 기타 역할을 겸해서 별도 "기타" 항목/직접입력 필드는 없음
 export type PurchaseBudgetRequestFormData = {
-   category: PurchaseBudgetCategory | '';
+   category: number | '';
    itemName: string;
    purpose: string;
    amount: string;
