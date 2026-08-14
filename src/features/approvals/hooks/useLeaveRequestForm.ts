@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { format } from 'date-fns';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import {
@@ -100,12 +101,17 @@ export function useLeaveRequestForm() {
    const hasDateOrderError =
       Boolean(form.startDate) && Boolean(form.endDate) && form.startDate > form.endDate;
 
+   // 생년월일은 사용자가 직접 입력하는 값이라 "미래 날짜인지"만 프론트에서 막는다(완전한 날짜
+   // 형식인지는 DatePicker의 달력 유효성 검사에 맡김) - 나머지 검증(빈 값 등)은 서버가 처리
+   const hasFutureBirthDateError =
+      Boolean(form.birthDate) && form.birthDate > format(new Date(), 'yyyy-MM-dd');
+
    const isFilled = Boolean(form.birthDate && form.startDate && form.endDate && hasSignature);
 
    // "신청하기" 클릭 - 검증 통과 시 바로 제출하지 않고 확인 모달을 띄운다
    const submit = () => {
       if (!isFilled) return;
-      if (hasDateOrderError) {
+      if (hasDateOrderError || hasFutureBirthDateError) {
          setSubmitAttempted(true);
          return;
       }
@@ -149,6 +155,7 @@ export function useLeaveRequestForm() {
       setHasSignature,
       isFilled,
       dateOrderError: submitAttempted && hasDateOrderError,
+      birthDateError: submitAttempted && hasFutureBirthDateError,
       isConfirmOpen,
       submit,
       confirmSubmit,

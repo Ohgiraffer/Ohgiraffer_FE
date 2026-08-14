@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import { DatePicker } from '@/components/ui/date-picker';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import SignatureUpload from '../components/SignatureUpload';
@@ -12,6 +13,7 @@ export default function LeaveRequestForm() {
       setHasSignature,
       isFilled,
       dateOrderError,
+      birthDateError,
       isConfirmOpen,
       submit,
       confirmSubmit,
@@ -22,6 +24,10 @@ export default function LeaveRequestForm() {
       isLoadingProfile,
       hasProfileError,
    } = useLeaveRequestForm();
+
+   const idPrefix = useId();
+   const birthDateId = `${idPrefix}-birth-date`;
+   const phoneNumberId = `${idPrefix}-phone-number`;
 
    const phoneNumberDisplay = hasProfileError
       ? '불러오지 못했습니다'
@@ -46,20 +52,27 @@ export default function LeaveRequestForm() {
 
          <div className="mt-4 grid grid-cols-2 gap-6">
             <div>
-               <label className="text-[15px] font-semibold text-gray-900">
+               <label htmlFor={birthDateId} className="text-[15px] font-semibold text-gray-900">
                   생년월일 <span className="font-bold text-[16px] text-brand-gold">*</span>
                </label>
                <DatePicker
+                  id={birthDateId}
                   value={form.birthDate}
                   onChange={(value) => updateField('birthDate', value)}
                   className="mt-2"
                />
+               <p
+                  className={`mt-1 text-xs text-brand-red ${birthDateError ? 'visible' : 'invisible'}`}
+               >
+                  생년월일은 오늘보다 미래일 수 없습니다.
+               </p>
             </div>
             <div>
-               <label className="text-[15px] font-semibold text-gray-900">
+               <label htmlFor={phoneNumberId} className="text-[15px] font-semibold text-gray-900">
                   전화번호 <span className="font-bold text-[16px] text-brand-gold">*</span>
                </label>
                <input
+                  id={phoneNumberId}
                   type="text"
                   readOnly
                   disabled
