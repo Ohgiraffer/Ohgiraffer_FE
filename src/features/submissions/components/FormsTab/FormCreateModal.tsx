@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { TriangleAlert, X } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { DatePicker } from '@/components/ui/date-picker';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
+import { setUnsavedChangesChecker } from '@/lib/navigationGuard';
 import { createSurveyForm } from '@/services/surveyForm.service';
 
 interface FormCreateModalProps {
@@ -18,6 +19,15 @@ export default function FormCreateModal({ onClose, onCreated }: FormCreateModalP
    const [dueAt, setDueAt] = useState('');
    const [titleError, setTitleError] = useState('');
    const [isSubmitting, setIsSubmitting] = useState(false);
+
+   const isDirty = title.trim().length > 0 || dueAt.length > 0;
+
+   // 이 모달이 열려 있는 동안은 제출함 생성(BoxCreateForm)과 같은 전역 체커를 공유한다 -
+   // SubmissionsPageClient의 탭 전환 가드(hasUnsavedChanges)가 이 값을 그대로 참조한다
+   useEffect(() => {
+      setUnsavedChangesChecker(() => isDirty);
+      return () => setUnsavedChangesChecker(null);
+   }, [isDirty]);
 
    const canSubmit = title.trim().length > 0 && dueAt.length > 0 && !isSubmitting;
 
@@ -100,6 +110,14 @@ export default function FormCreateModal({ onClose, onCreated }: FormCreateModalP
             </label>
             <DatePicker value={dueAt} onChange={setDueAt} className="mt-2" />
             <p className="mt-1.5 text-xs text-gray-400">마감일이 지나면 자동으로 응답이 마감됩니다</p>
+         </div>
+
+         <div className="mt-4 flex items-start gap-2 rounded-xs bg-[#FFF9EC] px-4 py-3 text-xs text-gray-700">
+            <TriangleAlert size={14} className="mt-0.5 shrink-0 text-[#B08A2E]" />
+            <div>
+               <p>생성된 폼은 Google Forms에서 문항을 구성합니다.</p>
+               <p>주민등록번호, 계좌번호, 비밀번호 등 민감한 개인정보를 수집하는 문항은 넣지 마세요.</p>
+            </div>
          </div>
 
          <div className="mt-6 flex justify-end gap-2">

@@ -324,7 +324,7 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                </div>
 
                <div className="mt-6 rounded-xs border border-[#E5E7EB] bg-white">
-                  <div className="flex flex-col gap-3 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-5">
                      <div className="flex items-center gap-3">
                         <span className="shrink-0 text-sm font-bold whitespace-nowrap text-gray-900">
                            {responses?.respondedCount ?? 0}/{responses?.targetCount ?? 0} 응답완료
