@@ -18,6 +18,7 @@ const STATUS_LABELS: Record<SubmissionHistoryStatus, string> = {
    NOT_SUBMITTED: '미제출',
    RESPONDED: '응답완료',
    NOT_RESPONDED: '미응답',
+   RESPONSE_CHECK_FAILED: '확인 실패',
 };
 
 // Google Forms API 자체의 오류(호출 실패/한도 초과) - 훈련생의 제출·응답 상태와는 무관한 문제라

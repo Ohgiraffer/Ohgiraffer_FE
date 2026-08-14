@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { useAttendanceOverview } from '../../hooks/useAttendanceOverview';
 import { useStudentDirectory } from '../../hooks/useStudentDirectory';
-import { getTraineeStaticDetail } from '../../mockData';
 import AttendanceDetailTab from './AttendanceDetailTab';
 import ApprovalDetailTab from './ApprovalDetailTab';
 import TeamDetailTab from './TeamDetailTab';
@@ -26,8 +25,8 @@ interface TraineeDetailClientProps {
    traineeId: string;
 }
 
-// 훈련생 관리 상세 - 운영진이 목록에서 특정 훈련생을 눌렀을 때의 화면. 출결/결재/팀/제출 탭은
-// 각자의 API로 조회하고, 상담 탭만 대응하는 API가 아직 없어 목데이터를 그대로 쓴다
+// 훈련생 관리 상세 - 운영진이 목록에서 특정 훈련생을 눌렀을 때의 화면. 출결/결재/팀/상담/제출
+// 탭 모두 각자의 API로 조회한다
 export default function TraineeDetailClient({ traineeId }: TraineeDetailClientProps) {
    const [activeTab, setActiveTab] = useState<TabKey>('attendance');
    const numericTraineeId = Number(traineeId);
@@ -50,7 +49,6 @@ export default function TraineeDetailClient({ traineeId }: TraineeDetailClientPr
    } = useAttendanceOverview(numericTraineeId);
 
    const student = students?.find((candidate) => candidate.userId === numericTraineeId) ?? null;
-   const staticDetail = getTraineeStaticDetail(numericTraineeId);
 
    const isLoading = isLoadingDirectory || isLoadingOverview;
    const hasError = directoryError || overviewError;
@@ -153,7 +151,7 @@ export default function TraineeDetailClient({ traineeId }: TraineeDetailClientPr
             )}
             {activeTab === 'approval' && <ApprovalDetailTab traineeId={numericTraineeId} />}
             {activeTab === 'team' && <TeamDetailTab traineeId={numericTraineeId} />}
-            {activeTab === 'consultation' && <ConsultationDetailTab consultations={staticDetail.consultations} />}
+            {activeTab === 'consultation' && <ConsultationDetailTab traineeId={numericTraineeId} />}
             {activeTab === 'submission' && <SubmissionDetailTab traineeId={numericTraineeId} />}
          </div>
       </div>
