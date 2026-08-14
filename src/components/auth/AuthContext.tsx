@@ -20,6 +20,11 @@ interface AuthContextValue {
    updateBootcampId: (bootcampId: number) => void;
    isAuthenticated: boolean;
    isInitializing: boolean;
+   // 최초 로그인 시 강제 비밀번호 변경이 필요한지 - /auth/refresh 응답엔 이 값이 없어서
+   // (백엔드 미지원) 새로고침/재방문 시에는 복구되지 않고 로그인 시점에만 정확하다는 한계가 있음
+   needResetPw: boolean;
+   // 비밀번호 재설정을 마쳤거나(또는 이미 완료된 계정이라는 걸 확인했을 때) 이 상태를 끈다
+   clearNeedResetPw: () => void;
    login: (email: string, password: string) => Promise<LoginResult>;
    logout: () => Promise<void>;
 }
@@ -40,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    const [status, setStatus] = useState<string | null>(null);
    const [bootcampId, setBootcampId] = useState<number | null>(null);
    const [me, setMe] = useState<Me | null>(null);
+   const [needResetPw, setNeedResetPw] = useState(false);
    const [isInitializing, setIsInitializing] = useState(true);
    const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -54,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setStatus(null);
             setBootcampId(null);
             setMe(null);
+            setNeedResetPw(false);
          }
       }
    }, []);
@@ -148,6 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
          setRole(data.role);
          setStatus(data.status);
          setBootcampId(data.bootcampId);
+         setNeedResetPw(data.need_reset_pw);
          setAccessTokenForNewSession(data.accessToken);
          const epochAtLogin = getSessionEpoch();
 
@@ -172,6 +180,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setBootcampId(id);
    }, []);
 
+   const clearNeedResetPw = useCallback(() => setNeedResetPw(false), []);
+
    return (
       <AuthContext.Provider
          value={{
@@ -184,6 +194,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             updateBootcampId,
             isAuthenticated: !!accessToken,
             isInitializing,
+            needResetPw,
+            clearNeedResetPw,
             login,
             logout,
          }}

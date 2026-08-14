@@ -142,6 +142,7 @@ export default function TraineeDetailClient({ traineeId }: TraineeDetailClientPr
          <div className="mt-5">
             {activeTab === 'attendance' && (
                <AttendanceDetailTab
+                  traineeId={numericTraineeId}
                   overview={overview}
                   currentDate={currentDate}
                   onMonthChange={setCurrentDate}

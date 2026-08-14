@@ -61,7 +61,9 @@ export default function TeamHistoryTimeline({ entries }: TeamHistoryTimelineProp
                         <div className="flex items-center justify-between mb-3">
                            <span className="flex items-center gap-1.5">
                               <ChatAvatar name={entry.userName} imageUrl={entry.profileImgUrl} size="sm" />
-                              <span className="text-sm font-bold text-gray-900">{entry.userName}</span>
+                              <span className="text-sm font-bold text-gray-900">
+                                 {entry.userName || '이름 없음'}
+                              </span>
                            </span>
                            <span className="text-xs text-gray-400">
                               {formatTeamDateDot(entry.changedAt)}

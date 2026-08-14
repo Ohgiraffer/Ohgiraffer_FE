@@ -16,7 +16,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                      <Header />
                      <div className="flex flex-1 overflow-hidden">
                         <Menubar />
-                        <main className="flex-1 overflow-y-auto bg-[#F7F8FA]">{children}</main>
+                        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#F7F8FA]">{children}</main>
                      </div>
                   </div>
                </SidePanelProvider>
