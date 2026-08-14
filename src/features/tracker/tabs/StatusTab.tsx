@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import {
    Select,
@@ -276,10 +277,16 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
                         <tr
                            key={`${trainee.name}-${index}`}
                            onClick={() => router.push(`/tracker/${trainee.traineeId}`)}
-                           className="cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]"
+                           className="group cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]"
                         >
                            <td className="px-6 py-4 font-medium text-gray-900">
-                              {trainee.name}
+                              <Link
+                                 href={`/tracker/${trainee.traineeId}`}
+                                 onClick={(e) => e.stopPropagation()}
+                                 className="group-hover:underline"
+                              >
+                                 {trainee.name}
+                              </Link>
                               {trainee.email && (
                                  <p className="mt-0.5 text-xs font-normal text-gray-400">{trainee.email}</p>
                               )}

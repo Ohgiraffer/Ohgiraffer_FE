@@ -13,6 +13,17 @@ export function useTraineeConsultations(traineeId: number) {
    const [error, setError] = useState(false);
    const [retryKey, setRetryKey] = useState(0);
 
+   // traineeId가 바뀌면 이전 훈련생의 목록을 먼저 비운다 - 안 그러면 새 요청이 끝날 때까지 이전
+   // 훈련생의 상담 이력이 새 상세 화면에 그대로 남는다. 이펙트 안에서 동기 setState를 하면 안 되므로,
+   // React가 권장하는 "prop 변경에 맞춰 렌더 중 상태 조정" 패턴을 쓴다(TeamWorkspaceLink와 동일)
+   const [trackedTraineeId, setTrackedTraineeId] = useState(traineeId);
+   if (traineeId !== trackedTraineeId) {
+      setTrackedTraineeId(traineeId);
+      setConsultations([]);
+      setIsLoading(true);
+      setError(false);
+   }
+
    useEffect(() => {
       let isMounted = true;
       getTraineeConsultationHistory(traineeId)
