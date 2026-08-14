@@ -10,9 +10,6 @@ type Props = {
    approverName: string | null;
    confirmedAt: string | null;
    processedAt: string | null;
-   // 확인 처리한 담당자 이름·시각은 결재를 처리하는 강사/매니저 화면에서만 보여주고, 결재를 올린
-   // 신청자 본인 화면에는 노출하지 않는다(기획 확정사항) - 기본값은 숨김
-   showCheckerCaption?: boolean;
 };
 
 // 아직 승인/반려가 결정되지 않은 상태에서 보여줄 마지막 단계 자리표시 라벨
@@ -37,7 +34,6 @@ export default function ApprovalStatusTimeline({
    approverName,
    confirmedAt,
    processedAt,
-   showCheckerCaption = false,
 }: Props) {
    const isChecked = status !== 'PENDING';
    const isFinal = status === 'APPROVED' || status === 'REJECTED' || status === 'COMPLETED';
@@ -50,7 +46,7 @@ export default function ApprovalStatusTimeline({
          label: '확인 중',
          done: isChecked,
          caption:
-            showCheckerCaption && isChecked && approverName && confirmedAt
+            isChecked && approverName && confirmedAt
                ? `${approverName} · ${formatStepDate(confirmedAt, true)}`
                : null,
          isRejectedFinal: false,

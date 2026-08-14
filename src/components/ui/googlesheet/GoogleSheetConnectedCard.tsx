@@ -34,7 +34,7 @@ export default function GoogleSheetConnectedCard({
             </div>
             <div className="flex shrink-0 items-center gap-2">
                {extra}
-               <span className="flex items-center gap-1.5 rounded-sm border border-[#C8D9CE] bg-[#E8F0EC] px-3 py-1 text-[12px] font-semibold text-brand-sage">
+               <span className="flex items-center gap-1.5 rounded-xs border border-[#C8D9CE] bg-[#E8F0EC] px-3 py-1 text-[12px] font-semibold text-brand-sage">
                   <span className="h-1.5 w-1.5 rounded-full bg-brand-sage" />
                   연결됨
                </span>

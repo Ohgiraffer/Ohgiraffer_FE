@@ -18,22 +18,22 @@ export default function DashboardGrid({ holidays }: DashboardGridProps) {
 
    return (
       <div className="dashboard-grid grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-[2fr_0.9fr_0.9fr]">
-         <div className="[grid-area:calendar]">
+         <div className="min-w-0 [grid-area:calendar]">
             <DashboardCalendar
                holidays={holidays}
                onEventCreated={() => setTodayRefreshKey((key) => key + 1)}
             />
          </div>
-         <div className="[grid-area:today]">
+         <div className="min-w-0 [grid-area:today]">
             <TodayScheduleCard refreshKey={todayRefreshKey} />
          </div>
-         <div className="[grid-area:attendance]">
+         <div className="min-w-0 [grid-area:attendance]">
             <AttendanceCard />
          </div>
-         <div className="[grid-area:notice]">
+         <div className="min-w-0 [grid-area:notice]">
             <NoticeCard />
          </div>
-         <div className="[grid-area:todo]">
+         <div className="min-w-0 [grid-area:todo]">
             <TodoCard />
          </div>
       </div>

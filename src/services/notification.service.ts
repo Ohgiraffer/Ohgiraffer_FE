@@ -49,13 +49,14 @@ export function deleteNotifications(notificationIds: number[]) {
    });
 }
 
-export interface UnreadNotificationCountResponse {
-   unreadCount: number;
+export interface NotificationTicketResponse {
+   ticket: string;
 }
 
-// 상단바 배지 전용 경량 엔드포인트 - 실시간 구독(SSE) 대신 이 값을 주기적으로 확인하는 폴링에 사용
-export function getUnreadNotificationCount() {
-   return apiFetch<UnreadNotificationCountResponse>('/notifications/unread-count');
+// SSE 구독 전용 1회용 티켓 발급(30초 만료) - 액세스 토큰을 EventSource URL에 직접 노출하지
+// 않기 위한 우회. 발급받은 ticket을 GET /notifications/subscribe?ticket=... 쿼리로 넘겨 연결한다
+export function getNotificationSubscribeTicket() {
+   return apiFetch<NotificationTicketResponse>('/notifications/subscribe/ticket', { method: 'POST' });
 }
 
 // 알림 생성(POST /notifications, 바디 있음)은 각 도메인이 서버 내부에서만 호출하는 API라 프론트에서는 쓰지 않는다

@@ -1,5 +1,6 @@
 'use client';
 
+import { useId } from 'react';
 import { DatePicker } from '@/components/ui/date-picker';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import SignatureUpload from '../components/SignatureUpload';
@@ -12,13 +13,27 @@ export default function LeaveRequestForm() {
       setHasSignature,
       isFilled,
       dateOrderError,
+      birthDateError,
       isConfirmOpen,
       submit,
       confirmSubmit,
       cancelSubmit,
       remainingLeaveDays,
       hasLeaveDaysError,
+      phoneNumber,
+      isLoadingProfile,
+      hasProfileError,
    } = useLeaveRequestForm();
+
+   const idPrefix = useId();
+   const birthDateId = `${idPrefix}-birth-date`;
+   const phoneNumberId = `${idPrefix}-phone-number`;
+
+   const phoneNumberDisplay = hasProfileError
+      ? '불러오지 못했습니다'
+      : isLoadingProfile
+        ? '불러오는 중...'
+        : (phoneNumber ?? '-');
 
    return (
       <div className="rounded-sm border border-[#E5E7EB] bg-white px-8 py-7">
@@ -36,6 +51,38 @@ export default function LeaveRequestForm() {
          </div>
 
          <div className="mt-4 grid grid-cols-2 gap-6">
+            <div>
+               <label htmlFor={birthDateId} className="text-[15px] font-semibold text-gray-900">
+                  생년월일 <span className="font-bold text-[16px] text-brand-gold">*</span>
+               </label>
+               <DatePicker
+                  id={birthDateId}
+                  value={form.birthDate}
+                  onChange={(value) => updateField('birthDate', value)}
+                  className="mt-2"
+               />
+               <p
+                  className={`mt-1 text-xs text-brand-red ${birthDateError ? 'visible' : 'invisible'}`}
+               >
+                  생년월일은 오늘보다 미래일 수 없습니다.
+               </p>
+            </div>
+            <div>
+               <label htmlFor={phoneNumberId} className="text-[15px] font-semibold text-gray-900">
+                  전화번호 <span className="font-bold text-[16px] text-brand-gold">*</span>
+               </label>
+               <input
+                  id={phoneNumberId}
+                  type="text"
+                  readOnly
+                  disabled
+                  value={phoneNumberDisplay}
+                  className="mt-2 w-full cursor-not-allowed rounded-xs border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2.5 text-sm text-gray-500"
+               />
+            </div>
+         </div>
+
+         <div className="mt-6 grid grid-cols-2 gap-6">
             <div>
                <label className="text-[15px] font-semibold text-gray-900">
                   휴가 시작일 <span className="font-bold text-[16px] text-brand-gold">*</span>

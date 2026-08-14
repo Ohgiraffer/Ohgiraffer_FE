@@ -91,7 +91,7 @@ export default function TodayScheduleCard({ refreshKey = 0 }: TodayScheduleCardP
                </button>
             </div>
          ) : items.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-400">오늘 등록된 일정이 없습니다</p>
+            <p className="break-keep py-6 text-center text-sm text-gray-400">오늘 등록된 일정이 없습니다</p>
          ) : (
             <ul>
                {items.map((item) => (

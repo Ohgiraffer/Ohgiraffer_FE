@@ -12,9 +12,8 @@ import {
 } from '@/services/attendance.service';
 import { mapRiskLevel, type TraineeSummary } from '../types';
 
-// /attendance/list는 훈련생 이름만 내려주고 식별자·소속 팀은 포함하지 않아서, 이미 사용 중인
-// /user/list(getUserList)에서 같은 이름의 훈련생을 찾아 userId·teamName을 채운다. 이름이 겹치면
-// 매칭이 틀릴 수 있지만 현재로선 두 목록을 이어줄 다른 식별자가 없다
+// /attendance/list는 소속 팀을 포함하지 않아서, 이미 사용 중인 /user/list(getUserList)에서
+// 같은 userId의 훈련생을 찾아 teamName을 채운다
 export function useManagerTrackerData() {
    const [stats, setStats] = useState<AttendanceDashboardSummary | null>(null);
    const [trainees, setTrainees] = useState<TraineeSummary[]>([]);
@@ -36,19 +35,20 @@ export function useManagerTrackerData() {
             setStats(summary);
             setPeriods(bootcampSettings.periods);
 
-            const studentsByName = new Map<string, UserListItem>();
+            const studentsById = new Map<number, UserListItem>();
             users
                .filter((user) => user.role === 'STUDENT')
                .forEach((user) => {
-                  if (user.name) studentsByName.set(user.name, user);
+                  studentsById.set(user.userId, user);
                });
 
             setTrainees(
                list.map((item) => {
-                  const matched = studentsByName.get(item.name);
+                  const matched = studentsById.get(item.userId);
                   return {
-                     traineeId: matched?.userId ?? null,
+                     traineeId: item.userId,
                      name: item.name,
+                     email: matched?.email ?? null,
                      teamName: matched?.teamName ?? null,
                      attendanceRate: item.attendanceRate,
                      lateCount: item.lateCount,

@@ -61,7 +61,7 @@ export default function NoticeCard() {
                </button>
             </div>
          ) : notices.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-400">표시할 공지사항이 없습니다</p>
+            <p className="break-keep py-6 text-center text-sm text-gray-400">표시할 공지사항이 없습니다</p>
          ) : (
             <ul className="flex flex-col gap-1">
                {notices.map((notice) => (

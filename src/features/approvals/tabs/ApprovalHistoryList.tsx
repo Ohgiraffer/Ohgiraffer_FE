@@ -16,22 +16,23 @@ export default function ApprovalHistoryList() {
          <table className="w-full table-fixed text-left text-sm">
             <thead>
                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
-                  <th className="w-[10%] px-6 py-3 font-medium">#</th>
-                  <th className="w-[50%] px-6 py-3 font-medium">결재 항목</th>
+                  <th className="w-[8%] px-8 py-3 text-center font-medium">#</th>
+                  <th className="w-[30%] px-15 py-3 font-medium">결재 항목</th>
+                  <th className="w-[20%] px-6 py-3 font-medium">담당자</th>
                   <th className="w-[20%] px-6 py-3 font-medium text-center">처리 상태</th>
-                  <th className="w-[20%] px-6 py-3 font-medium text-center">신청일자</th>
+                  <th className="w-[22%] px-6 py-3 font-medium text-center">신청일자</th>
                </tr>
             </thead>
             <tbody>
                {isLoading ? (
                   <tr>
-                     <td colSpan={4} className="px-6 py-10 text-center text-gray-400">
+                     <td colSpan={5} className="px-6 py-10 text-center text-gray-400">
                         불러오는 중...
                      </td>
                   </tr>
                ) : approvals.length === 0 ? (
                   <tr>
-                     <td colSpan={4} className="px-6 py-10 text-center text-gray-400">
+                     <td colSpan={5} className="px-6 py-10 text-center text-gray-400">
                         신청한 결재 내역이 없습니다.
                      </td>
                   </tr>
@@ -42,8 +43,9 @@ export default function ApprovalHistoryList() {
                         onClick={() => router.push(`/approvals/${approval.approvalId}?tab=history`)}
                         className="cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]"
                      >
-                        <td className="px-6 py-3 text-gray-500">{index + 1}</td>
-                        <td className="px-6 py-3 font-medium text-gray-900">{approval.title}</td>
+                        <td className="px-8 py-3 text-center text-gray-500">{index + 1}</td>
+                        <td className="px-15 py-3 font-medium text-gray-900">{approval.title}</td>
+                        <td className="px-6 py-3 text-gray-700">{approval.approverName ?? '—'}</td>
                         <td className="px-6 py-3">
                            <div className="flex items-center justify-center">
                               <StatusBadge tone={APPROVAL_STATUS_TONES[approval.status]}>

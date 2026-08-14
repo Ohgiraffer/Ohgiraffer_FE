@@ -59,11 +59,12 @@ export const RISK_WARNING_MESSAGES: Record<'CAUTION' | 'WARNING' | 'EXPULSION_RI
    EXPULSION_RISK: '출석률 미달로 제적 위험 단계입니다. 즉시 확인이 필요합니다.',
 };
 
-// 훈련생 관리 목록(현황 탭) 한 행 - /attendance/list는 이름만 내려주므로, 훈련생 식별자·소속 팀은
-// /user/list(getUserList)에서 이름으로 매칭해 채운다. 매칭에 실패하면 null(행 클릭 비활성화)
+// 훈련생 관리 목록(현황 탭) 한 행 - /attendance/list가 userId를 내려주고, 소속 팀만
+// /user/list(getUserList)에서 같은 userId로 매칭해 채운다
 export interface TraineeSummary {
-   traineeId: number | null;
+   traineeId: number;
    name: string;
+   email: string | null;
    teamName: string | null;
    attendanceRate: number;
    lateCount: number;
@@ -90,38 +91,3 @@ export interface StudentAttendanceOverview {
    periodRates: Array<{ periodNo: number; attendanceRate: number }>;
 }
 
-export interface TraineeApprovalHistoryEntry {
-   requestedAt: string;
-   type: string;
-   period: string;
-   approvedAt: string | null;
-}
-
-export interface TraineeTeamHistoryEntry {
-   teamName: string;
-   activePeriod: string;
-}
-
-export interface TraineeConsultationEntry {
-   consultedAt: string;
-   counselorName: string;
-   title: string;
-   status: '완료' | '예정';
-}
-
-export type TraineeSubmissionStatus = '제출완료' | '미제출';
-
-export interface TraineeSubmissionEntry {
-   boxName: string;
-   status: TraineeSubmissionStatus;
-   submittedAt: string | null;
-}
-
-// 훈련생 상세 페이지 중 출결 API로 다루지 않는 나머지 탭(결재/팀/상담/제출) - 대응하는 API가 아직
-// 없어 디자인 확인용 목데이터를 그대로 쓴다
-export interface TraineeStaticDetail {
-   approvals: TraineeApprovalHistoryEntry[];
-   teams: TraineeTeamHistoryEntry[];
-   consultations: TraineeConsultationEntry[];
-   submissions: TraineeSubmissionEntry[];
-}

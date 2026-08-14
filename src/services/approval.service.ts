@@ -33,6 +33,32 @@ export function getApprovals(scope: ApprovalScope) {
    return apiFetch<GetApprovalsResponse>(`/approvals?scope=${scope}`);
 }
 
+export interface ApprovalProfile {
+   // 훈련생이 입력/수정한 값 - 아직 저장한 적 없으면 null
+   birthDate: string | null;
+   // 사용자 기본 정보에 저장된 전화번호를 그대로 보여주기만 함(이 프로필 API로는 수정 불가)
+   phoneNumber: string | null;
+}
+
+// 훈련생 휴가 신청서 작성에 필요한 결재 프로필(생년월일/전화번호) 조회 - 신청 화면 진입 시 호출
+export function getApprovalProfile() {
+   return apiFetch<ApprovalProfile>('/users/me/approval-profile');
+}
+
+export interface UpdateApprovalProfileRequest {
+   birthDate: string;
+}
+
+// 훈련생의 생년월일 저장/수정 - 전화번호는 이 API로 수정되지 않음(사용자 기본 정보 값 그대로 유지).
+// 휴가 신청서 작성 후 실제 신청(createLeaveApproval) 전에 호출해서 최신 생년월일을 먼저 반영한다.
+// 비어있거나 미래 날짜면 400(COMMON_001)
+export function updateApprovalProfile(body: UpdateApprovalProfileRequest) {
+   return apiFetch<ApprovalProfile>('/users/me/approval-profile', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+   });
+}
+
 export interface CreateLeaveApprovalRequest {
    startDate: string;
    endDate: string;
@@ -151,4 +177,26 @@ export function rejectApproval(approvalId: number, rejectionReason: string) {
 // 구매 요청 결재는 다운로드 대상이 아니라 호출 시 400
 export function downloadApprovalPdf(approvalId: number) {
    return apiFetchBlob(`/approvals/${approvalId}/pdf`);
+}
+
+export type TraineeApprovalStatus = 'APPROVED' | 'COMPLETED';
+
+export interface TraineeApprovalHistoryEntry {
+   approvalId: number;
+   requestedDate: string;
+   typeName: string;
+   startDate: string;
+   endDate: string;
+   leaveDays: number;
+   // 화면 표시용으로 이미 포맷된 기간 문자열 (예: "2026-07-15 ~ 2026-07-15(1일)")
+   period: string;
+   approvedDate: string | null;
+   status: TraineeApprovalStatus;
+}
+
+// 운영진용 - 훈련생 관리 상세 페이지의 결재 탭. 현재는 승인 완료된 휴가 결재만 조회된다
+export function getTraineeApprovals(traineeId: number) {
+   return apiFetch<{ approvals: TraineeApprovalHistoryEntry[] }>(
+      `/trainees/${traineeId}/approvals`,
+   ).then((res) => res.approvals);
 }
