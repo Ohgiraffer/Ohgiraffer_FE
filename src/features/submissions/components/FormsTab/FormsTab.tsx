@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { toast } from '@/lib/toast';
@@ -29,7 +29,7 @@ export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps
    const [editTarget, setEditTarget] = useState<SurveyFormDetail | null>(null);
    const [deleteTarget, setDeleteTarget] = useState<SurveyFormListItem | null>(null);
    const [pendingEditUrl, setPendingEditUrl] = useState<string | null>(null);
-   const isDeletingRef = useRef(false);
+   const [isDeleting, setIsDeleting] = useState(false);
 
    useEffect(() => {
       let isMounted = true;
@@ -93,8 +93,8 @@ export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps
    };
 
    const handleDelete = async () => {
-      if (!deleteTarget || isDeletingRef.current) return;
-      isDeletingRef.current = true;
+      if (!deleteTarget || isDeleting) return;
+      setIsDeleting(true);
       try {
          await deleteSurveyForm(deleteTarget.surveyFormId);
          toast.success('설문/평가 폼을 삭제했습니다.');
@@ -116,7 +116,7 @@ export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps
             );
          }
       } finally {
-         isDeletingRef.current = false;
+         setIsDeleting(false);
       }
    };
 
@@ -178,6 +178,7 @@ export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps
             description="응답이 없는 폼만 삭제할 수 있으며, 삭제하면 복구할 수 없습니다."
             variant="danger"
             confirmLabel="삭제"
+            busy={isDeleting}
             onConfirm={handleDelete}
             onClose={() => setDeleteTarget(null)}
          />

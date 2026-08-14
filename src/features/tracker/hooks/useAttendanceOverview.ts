@@ -31,6 +31,22 @@ export function useAttendanceOverview(userId?: number) {
    const [todayStatus, setTodayStatus] = useState<AttendanceDayRecord['status']>(null);
    const [checkInTime, setCheckInTime] = useState<string | null>(null);
 
+   // userId가 바뀌면(훈련생 상세 페이지에서 다른 훈련생으로 이동) 이전 훈련생의 데이터를 먼저
+   // 비운다 - 안 그러면 새 요청이 끝날 때까지 이전 훈련생의 출결 정보가 그대로 남는다. 이펙트
+   // 안에서 동기 setState를 하면 안 되므로 렌더 중 상태 조정 패턴을 쓴다(TeamWorkspaceLink와 동일)
+   const [trackedUserId, setTrackedUserId] = useState(userId);
+   if (userId !== trackedUserId) {
+      setTrackedUserId(userId);
+      setOverview(null);
+      setIsLoadingOverview(true);
+      setOverviewError(false);
+      setRecords([]);
+      setIsLoadingRecords(true);
+      setRecordsError(false);
+      setTodayStatus(null);
+      setCheckInTime(null);
+   }
+
    useEffect(() => {
       let isMounted = true;
       Promise.all([

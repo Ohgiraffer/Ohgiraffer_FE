@@ -132,7 +132,7 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
    const filledCount = items.filter(isItemFilled).length;
    const canSubmit =
       items.length > 0 &&
-      items.every(isItemFilled) &&
+      items.every((item) => item.required === false || isItemFilled(item)) &&
       !isSubmitting &&
       (!detail || detail.acceptingSubmissions);
 
@@ -346,6 +346,11 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
                            <div className="flex items-center justify-between">
                               <span className="flex items-center gap-1.5 text-sm text-gray-700">
                                  {item.itemName}
+                                 {item.required ? (
+                                    <span className="font-bold text-brand-gold">*</span>
+                                 ) : (
+                                    <span className="text-xs font-normal text-gray-400">(선택)</span>
+                                 )}
                                  <span className="text-xs text-gray-400">
                                     {item.itemType === 'FILE' ? `파일 · ${item.allowedFileTypes}` : '외부 링크'}
                                  </span>
@@ -439,6 +444,7 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
                   : '제출 후 마감 전까지 제출물 수정이 가능합니다. 제출이 완료된 경우, 팀원 전체에게 알림이 발송됩니다.'
             }
             confirmLabel="제출"
+            busy={isSubmitting}
             onConfirm={handleConfirmSubmit}
             onClose={() => setIsConfirmOpen(false)}
          />

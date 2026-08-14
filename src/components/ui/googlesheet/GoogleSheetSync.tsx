@@ -92,7 +92,8 @@ export default function GoogleSheetSync({
       columns.every(
          (column) => column.required === false || columnMapping[column.key] !== undefined,
       ) &&
-      !isSaving;
+      !isSaving &&
+      !isVerifying;
 
    // 같은 이름의 컬럼이 여러 개면 선택 목록에서 구분할 수 있도록 표시해준다.
    // (API가 컬럼 이름 문자열만 내려줘서, 이름이 같으면 백엔드 입장에서도 여전히 구분이 안 된다는 한계는 남아있다)
@@ -303,7 +304,7 @@ export default function GoogleSheetSync({
                                     [column.key]: Number(value),
                                  }));
                               }}
-                              disabled={!connection}
+                              disabled={!connection || isVerifying}
                            >
                               <SelectTrigger
                                  id={fieldId}

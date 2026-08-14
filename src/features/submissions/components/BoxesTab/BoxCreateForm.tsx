@@ -114,7 +114,7 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
            ],
    );
    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-   const isSubmittingRef = useRef(false);
+   const [isSubmitting, setIsSubmitting] = useState(false);
 
    // 항목 배열에서 비교에 필요한 필드만 뽑아 순서에 안정적인 스냅샷 문자열로 만든다(draftId는
    // 세션마다 랜덤이라 비교 대상에서 뺀다)
@@ -260,8 +260,8 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
    };
 
    const handleConfirmSave = async () => {
-      if (isSubmittingRef.current) return;
-      isSubmittingRef.current = true;
+      if (isSubmitting) return;
+      setIsSubmitting(true);
 
       const body = {
          projectName: projectName.trim(),
@@ -295,7 +295,7 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
                : '요청 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
          );
       } finally {
-         isSubmittingRef.current = false;
+         setIsSubmitting(false);
       }
    };
 
@@ -451,21 +451,34 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
                      </div>
                      <div className={cn('mt-2 grid gap-3', ITEM_GRID_COLUMNS)}>
                         <span className="hidden sm:block" />
-                        <div className="min-w-0 sm:col-span-3">
-                           {item.type === 'FILE' ? (
+                        <div className="flex min-w-0 items-center gap-3 sm:col-span-3">
+                           <div className="min-w-0 flex-1">
+                              {item.type === 'FILE' ? (
+                                 <input
+                                    value={item.hint}
+                                    onChange={(e) =>
+                                       updateItem(item.draftId, { hint: e.target.value })
+                                    }
+                                    placeholder="허용 확장자 (예: pdf, pptx)"
+                                    className="h-9 w-full rounded-sm border border-[#E5E7EB] px-3 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-green"
+                                 />
+                              ) : (
+                                 <p className="text-xs text-gray-400">
+                                    → 훈련생이 URL을 직접 입력합니다
+                                 </p>
+                              )}
+                           </div>
+                           <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-gray-600">
                               <input
-                                 value={item.hint}
+                                 type="checkbox"
+                                 checked={item.required}
                                  onChange={(e) =>
-                                    updateItem(item.draftId, { hint: e.target.value })
+                                    updateItem(item.draftId, { required: e.target.checked })
                                  }
-                                 placeholder="허용 확장자 (예: pdf, pptx)"
-                                 className="h-9 w-full rounded-sm border border-[#E5E7EB] px-3 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-green"
+                                 className="h-3.5 w-3.5 cursor-pointer accent-brand-green"
                               />
-                           ) : (
-                              <p className="text-xs text-gray-400">
-                                 → 훈련생이 URL을 직접 입력합니다
-                              </p>
-                           )}
+                              필수 항목
+                           </label>
                         </div>
                      </div>
                   </div>
@@ -509,6 +522,7 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
                   : '제출함을 생성하시면 훈련생에게 즉시 노출됩니다.'
             }
             confirmLabel="확인"
+            busy={isSubmitting}
             onConfirm={handleConfirmSave}
             onClose={() => setIsConfirmOpen(false)}
          />

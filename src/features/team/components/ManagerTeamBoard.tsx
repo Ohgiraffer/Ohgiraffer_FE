@@ -108,6 +108,7 @@ export default function ManagerTeamBoard() {
                   name: t.name,
                   startDate: t.startDate,
                   endDate: t.endDate,
+                  dissolved: t.dissolved,
                })),
             );
             setDeletedTeamIds([]);
@@ -301,7 +302,13 @@ export default function ManagerTeamBoard() {
       const newId = nextDraftIdRef.current--;
       setDraftTeams((prev) => [
          ...prev,
-         { teamId: newId, name, startDate: activePeriod.startDate, endDate: activePeriod.endDate },
+         {
+            teamId: newId,
+            name,
+            startDate: activePeriod.startDate,
+            endDate: activePeriod.endDate,
+            dissolved: false,
+         },
       ]);
    };
 

@@ -25,7 +25,9 @@ interface CreateEventModalProps {
    onCreated: () => void;
 }
 
-const MANAGER_EVENT_TYPES: EventType[] = ['수업/발표', '행사', '개인'];
+// 운영진이 "개인"을 보내면 서버가 항상 거부한다(COMMON_001: 운영진은 개인 일정 유형을 등록할 수 없음) -
+// 그래서 선택지 자체에서 뺀다
+const MANAGER_EVENT_TYPES: EventType[] = ['수업/발표', '행사'];
 const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
 const MINUTES = ['00', '10', '20', '30', '40', '50'];
 
@@ -63,8 +65,8 @@ export default function CreateEventModal({ defaultDate, onClose, onCreated }: Cr
    // 종료일이 시작일과 같은 날이면 종료 시각이 시작 시각보다 빠르거나 같을 수 없다(서버가 COMMON_001로 거부함)
    const isTimeRangeInvalid =
       startDate === endDate && !!startTimeValue && !!endTimeValue && endTimeValue <= startTimeValue;
-   // 운영진이 "개인"을 선택하면 훈련생의 개인 일정 등록과 동일하게 알림 동의가 필요 없다
-   const needsNotifyConsent = isStaff && type !== '개인';
+   // 운영진은 "개인"을 선택할 수 없으므로(위 MANAGER_EVENT_TYPES 참고) 항상 알림 동의가 필요하다
+   const needsNotifyConsent = isStaff;
    const canSubmit =
       title.trim().length > 0 &&
       !isDateRangeInvalid &&

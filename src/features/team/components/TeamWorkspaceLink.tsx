@@ -8,24 +8,18 @@ interface TeamWorkspaceLinkProps {
    teamId: number;
 }
 
-// notionPageId만 내려오고 URL은 안 내려오므로 직접 조립한다. 대시(-)는 있어도 없어도 Notion이
-// 인식하지만, 없는 형태가 Notion이 실제로 공유 링크에 쓰는 정식 형태라 그에 맞춘다
-function buildNotionUrl(pageId: string) {
-   return `https://www.notion.so/${pageId.replace(/-/g, '')}`;
-}
-
 // 팀 카드 하단에 공통으로 쓰는 Notion 협업 문서 링크. teamId가 음수면(이번 세션에 추가했지만
 // 아직 저장 안 한 임시 팀) 서버에 실제로 존재하지 않으니 조회 자체를 하지 않는다
 export default function TeamWorkspaceLink({ teamId }: TeamWorkspaceLinkProps) {
-   const [notionPageId, setNotionPageId] = useState<string | null>(null);
+   const [workspaceUrl, setWorkspaceUrl] = useState<string | null>(null);
    const [isLoading, setIsLoading] = useState(teamId >= 0);
    // teamId가 바뀌면(현재 호출부는 항상 key={teamId}로 리마운트하지만, 재사용되는 인스턴스에서도
-   // 안전하도록) 렌더 중에 이전 팀의 notionPageId를 먼저 비운다 - 이펙트 안에서 동기 setState를
+   // 안전하도록) 렌더 중에 이전 팀의 workspaceUrl을 먼저 비운다 - 이펙트 안에서 동기 setState를
    // 하면 안 되므로, React가 권장하는 "prop 변경에 맞춰 렌더 중 상태 조정" 패턴을 쓴다
    const [trackedTeamId, setTrackedTeamId] = useState(teamId);
    if (teamId !== trackedTeamId) {
       setTrackedTeamId(teamId);
-      setNotionPageId(null);
+      setWorkspaceUrl(null);
       setIsLoading(teamId >= 0);
    }
 
@@ -34,7 +28,7 @@ export default function TeamWorkspaceLink({ teamId }: TeamWorkspaceLinkProps) {
       let isMounted = true;
       getTeamWorkspace(teamId)
          .then((data) => {
-            if (isMounted) setNotionPageId(data.notionPageId);
+            if (isMounted) setWorkspaceUrl(data.workspaceUrl);
          })
          .catch(() => {
             // 조회 실패는 조용히 "아직 없음"과 동일하게 취급 - 보조 정보라 에러를 따로 안 띄운다
@@ -65,7 +59,7 @@ export default function TeamWorkspaceLink({ teamId }: TeamWorkspaceLinkProps) {
       );
    }
 
-   if (!notionPageId) {
+   if (!workspaceUrl) {
       return (
          <div className="mt-3 flex items-center justify-between rounded-xs border border-dashed border-gray-200 px-2.5 py-2 text-xs text-gray-400">
             <span>Notion 페이지</span>
@@ -76,7 +70,7 @@ export default function TeamWorkspaceLink({ teamId }: TeamWorkspaceLinkProps) {
 
    return (
       <a
-         href={buildNotionUrl(notionPageId)}
+         href={workspaceUrl}
          target="_blank"
          rel="noopener noreferrer"
          className="mt-3 flex items-center justify-between rounded-xs border border-gray-200 px-2.5 py-2 text-xs text-gray-600 hover:bg-gray-50"

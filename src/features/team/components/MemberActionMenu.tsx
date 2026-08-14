@@ -33,7 +33,8 @@ export default function MemberActionMenu({
       return () => document.removeEventListener('mousedown', handleClickOutside);
    }, [isOpen]);
 
-   const otherTeams = teams.filter((team) => team.teamId !== currentTeamId);
+   // 해체된 팀은 새 팀원을 받을 수 없으므로 이동 대상에서 제외한다
+   const otherTeams = teams.filter((team) => team.teamId !== currentTeamId && !team.dissolved);
 
    const handleToggle = () => {
       if (teams.length === 0) {
