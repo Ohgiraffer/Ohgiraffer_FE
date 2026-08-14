@@ -6,17 +6,11 @@ import CounselingStatusBadge from './CounselingStatusBadge';
 
 type Props = {
    item: StaffConsultationSummary;
-   // 지정하면 점 대신 이 번호를 보여준다("전체 상담 이력"에서만 사용)
    index?: number;
-   // "전체 상담 이력"은 담당자가 나 하나가 아니라서 담당자 이름도 같이 보여준다
    showCounselorName?: boolean;
-   // 'divider': 위아래로 구분선만 있는 표 형태 행("전체 상담 이력")
-   // 'card': 항목마다 회색 배경의 개별 카드로 감싸는 형태("다가오는 상담")
    variant?: 'divider' | 'card';
 };
 
-// 운영진 "상담 이력 조회" - 다가오는 상담 / 전체 상담 이력에서 같이 쓰는 한 줄.
-// 클릭하면 해당 상담의 상세 페이지(/counseling/{id})로 이동한다
 export default function StaffConsultationRow({
    item,
    index,

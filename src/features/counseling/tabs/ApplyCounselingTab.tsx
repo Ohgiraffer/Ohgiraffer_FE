@@ -9,8 +9,8 @@ import CounselorList from '../components/CounselorList';
 import AvailableTimeSlots from '../components/AvailableTimeSlots';
 import { useApplyCounseling } from '../hooks/useApplyCounseling';
 
-// 훈련생 "상담 신청" 탭 - 운영진 선택 → 달력에서 상담 가능일 선택 → 가능 시간 선택 →
-// 주제·내용 입력 → 신청하기(확인 모달) → 신청
+// 훈련생 "상담 신청" 탭
+// 운영진 선택 → 달력에서 상담 가능일 선택 → 가능 시간 선택 → 주제·내용 입력 → 신청하기(확인 모달) → 신청
 export default function ApplyCounselingTab() {
    const {
       counselors,

@@ -8,9 +8,7 @@ type Props = {
    attachments: NoticeAttachment[];
 };
 
-// 상세 조회 페이지의 첨부파일 목록 - 파일명 옆에 용량을 같이 표시.
-// downloadUrl은 조회 시점으로부터 5분 후 만료되는 임시 주소라, 페이지에 머문 채 오래 있다가
-// 누르면 만료돼서 실패할 수 있다(새로고침하면 새 주소를 다시 받아옴)
+// 상세 조회 페이지 첨부파일 목록
 export default function NoticeAttachmentList({ attachments }: Props) {
    if (attachments.length === 0) return null;
 

@@ -4,19 +4,16 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import { getEvaluationSyncLogDetail, type EvaluationSyncLogSummary } from '@/services/evaluation.service';
+import { formatSyncedAt } from '../formatSyncedAt';
 import AiSyncSummaryCard from './AiSyncSummaryCard';
 
 interface SyncLogDetailClientProps {
    syncLogId: string;
 }
 
-// 이력 상세 - "이력" 탭 목록에서 항목을 선택하면 오는 화면. 목록 API와 응답 형식이 완전히 같아서
-// (changedCount/diffSummary만 있고 addedCount/updatedCount/skipped는 없음) AiSyncSummaryCard가
-// 그 세부 섹션을 자동으로 숨긴 채로 렌더링한다
 export default function SyncLogDetailClient({ syncLogId }: SyncLogDetailClientProps) {
    const router = useRouter();
    const numericSyncLogId = Number(syncLogId);
@@ -35,7 +32,7 @@ export default function SyncLogDetailClient({ syncLogId }: SyncLogDetailClientPr
          })
          .catch((err) => {
             if (!isMounted) return;
-            // 없는 이력 식별자 - 목록으로 되돌린다
+            
             if (err instanceof ApiError && err.code === 'EVALUATION_004') {
                toast.error(err.message);
                router.replace('/evaluations?tab=history');
@@ -93,7 +90,7 @@ export default function SyncLogDetailClient({ syncLogId }: SyncLogDetailClientPr
                </div>
             ) : (
                <AiSyncSummaryCard
-                  subtitle={`${format(parseISO(detail.syncedAt), 'yyyy.MM.dd HH:mm')} · ${
+                  subtitle={`${formatSyncedAt(detail.syncedAt)} · ${
                      detail.executedByName ?? '알 수 없음'
                   }`}
                   changedCount={detail.changedCount}

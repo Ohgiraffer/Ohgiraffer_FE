@@ -46,16 +46,11 @@ function CalendarDayButton({ className, modifiers, ...props }: ComponentProps<ty
 type Props = {
    selectedDate: Date | null;
    onSelectDate: (date: Date) => void;
-   // 이미 가능 시간이 저장된 날짜 - 옅은 색("설정됨")으로 표시
    configuredDates: Set<string>;
-   // 과거 날짜는 선택할 수 없음(기본 true)
    disablePast?: boolean;
-   // 보고 있는 달이 바뀔 때마다 알려줌(월 단위로 데이터를 다시 조회해야 하는 화면용) - 최초 마운트 시에도 한 번 호출됨
    onMonthChange?: (month: Date) => void;
 };
 
-// 상담 관리에서 공용으로 쓰는 인라인 달력 - react-day-picker(shadcn Calendar) 기반.
-// 팝오버 없이 화면에 바로 펼쳐두고, 날짜별 상태(설정됨/선택됨)를 커스텀 스타일로 보여준다
 export default function CounselingCalendar({
    selectedDate,
    onSelectDate,
@@ -67,11 +62,8 @@ export default function CounselingCalendar({
    const today = new Date();
    today.setHours(0, 0, 0, 0);
 
-   // 보고 있는 달이 바뀔 때마다(최초 마운트 포함) 상위에 알려서, 월 단위로 데이터를 다시 조회해야 하는
-   // 화면(훈련생 상담 신청 등)이 반응할 수 있게 한다
    useEffect(() => {
       onMonthChange?.(viewMonth);
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- onMonthChange는 매 렌더 새 참조라도 viewMonth가 바뀔 때만 알리면 된다
    }, [viewMonth]);
 
    return (

@@ -11,6 +11,7 @@ export interface Me {
    joinDate: string;
    status: string;
    notificationOn: boolean;
+   bootcampId: number | null;
 }
 
 export function getMe() {
@@ -39,7 +40,7 @@ export interface RegisterUsersPayload {
    rows: RegisterUserRow[];
 }
 
-// 관리자 설정 > 사용자 및 권한 관리 > "+ 사용자 등록"(직접 입력 탭) - 성공 시 응답 본문 없음
+// 관리자 설정 > 사용자 및 권한 관리 > "+ 사용자 등록"(직접 입력 탭)
 export function registerUsers(body: RegisterUsersPayload) {
    return apiFetch<void>('/user/register', {
       method: 'POST',
@@ -86,8 +87,7 @@ export interface ExtractUsersFromFileResult {
    rows: ExtractedUserRow[];
 }
 
-// 관리자 설정 > 사용자 및 권한 관리 > "+ 사용자 등록" > 파일 업로드 탭 - 첨부한 CSV/엑셀에서 사용자 행을
-// 추출하고 행별로 검증한다(이름/이메일/전화번호/역할 인식, 이메일 중복 등)
+// 관리자 설정 > 사용자 및 권한 관리 > "+ 사용자 등록" > 파일 업로드 탭
 export function extractUsersFromFile(file: File) {
    const formData = new FormData();
    formData.append('file', file);
@@ -101,12 +101,10 @@ export type UserStatus = 'ACTIVE' | 'COMPLETED' | 'WITHDRAWN' | 'EXPELLED';
 
 export interface UpdateUserStatusPayload {
    userId: number;
-   // 이 API는 자퇴(WITHDRAWN)/제적(EXPELLED) 처리 전용 - ACTIVE/COMPLETED로는 변경 불가(400 USER_006)
    status: UserStatus;
 }
 
-// 관리자 설정 > 사용자 및 권한 관리 - 훈련생 자퇴/제적 처리. 이미 자퇴·제적됐거나(409 USER_007)
-// 수료 완료된(409 USER_005) 사용자는 거절됨. 성공 시 응답 본문 없음
+// 관리자 설정 > 사용자 및 권한 관리 - 훈련생 자퇴/제적 처리
 export function updateUserStatus(body: UpdateUserStatusPayload) {
    return apiFetch<void>('/user/status', {
       method: 'PATCH',

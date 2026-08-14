@@ -11,12 +11,9 @@ interface ModalProps {
    ariaLabel: string;
    panelClassName?: string;
    children: React.ReactNode;
-   // 임시저장 없이 입력값이 날아갈 수 있는 등록/작성 폼은 false로 넘겨 오조작으로 인한 입력 유실을 막는다
    closeOnBackdropClick?: boolean;
 }
 
-// 모달 공통 접근성(Escape 닫기, 포커스 트랩/복원, role=dialog)을 한곳에서 처리한다.
-// 실제 내용은 각 모달이 채운다.
 export default function Modal({
    onClose,
    ariaLabel,
@@ -25,6 +22,10 @@ export default function Modal({
    closeOnBackdropClick = true,
 }: ModalProps) {
    const panelRef = useRef<HTMLDivElement>(null);
+   const onCloseRef = useRef(onClose);
+   useEffect(() => {
+      onCloseRef.current = onClose;
+   });
 
    useEffect(() => {
       const previouslyFocused = document.activeElement as HTMLElement | null;
@@ -34,7 +35,7 @@ export default function Modal({
 
       const handleKeyDown = (e: KeyboardEvent) => {
          if (e.key === 'Escape') {
-            onClose();
+            onCloseRef.current();
             return;
          }
          if (e.key !== 'Tab' || !panel) return;
@@ -58,8 +59,6 @@ export default function Modal({
          document.removeEventListener('keydown', handleKeyDown);
          previouslyFocused?.focus();
       };
-      // onClose가 리렌더마다 새로 생성돼도 최초 마운트 시점의 클로저로 충분히 동작한다 (setState 함수 자체는 항상 동일)
-      // eslint-disable-next-line react-hooks/exhaustive-deps
    }, []);
 
    return (

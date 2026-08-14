@@ -10,8 +10,6 @@ type AvatarProps = {
    profileImgUrl?: string | null;
 };
 
-// 공간 예약의 PersonAvatar와 동일한 방식: 사진이 있으면 그대로, 없거나 로드에 실패하면 User 아이콘으로 대체.
-// (도메인이 달라 컴포넌트를 직접 재사용하지 않고 동일한 패턴만 가져옴)
 function CounselorAvatar({ name, profileImgUrl }: AvatarProps) {
    const [failedUrl, setFailedUrl] = useState<string | null>(null);
    const showImage = Boolean(profileImgUrl) && profileImgUrl !== failedUrl;
@@ -19,7 +17,6 @@ function CounselorAvatar({ name, profileImgUrl }: AvatarProps) {
    return (
       <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-100 text-gray-500">
          {showImage ? (
-            // eslint-disable-next-line @next/next/no-img-element -- 동적 S3 URL이라 next/image 설정 없이 바로 사용
             <img
                src={profileImgUrl ?? undefined}
                alt=""
@@ -39,7 +36,7 @@ type Props = {
    onSelect: (counselorId: number) => void;
 };
 
-// 훈련생 "상담 신청" 상단 - 상담 가능한 운영진을 칩으로 나열해서 한 명을 고른다
+// 상담 가능 운영진 목록
 export default function CounselorList({ counselors, selectedCounselorId, onSelect }: Props) {
    return (
       <div className="flex flex-wrap gap-2">

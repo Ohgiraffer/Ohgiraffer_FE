@@ -30,8 +30,6 @@ type Props = {
    onClose: () => void;
 };
 
-// 공지에서 AI로 추출한 일정 후보를 확인·수정하고 캘린더에 등록할 후보를 고르는 모달.
-// 후보가 여러 개면 1/N 페이징으로 하나씩 보여준다(전체 목록을 한 화면에 다 안 그림)
 export default function AiScheduleExtractionModal({
    candidates,
    currentIndex,
@@ -43,8 +41,6 @@ export default function AiScheduleExtractionModal({
    onSubmit,
    onClose,
 }: Props) {
-   // 한 번에 후보 하나만 그려지므로(전체 목록을 동시에 안 그림) currentIndex별로 나눌 필요 없이
-   // 고정된 id로 충분하다
    const idPrefix = useId();
    const titleId = `${idPrefix}-title`;
    const eventTypeId = `${idPrefix}-event-type`;
@@ -145,9 +141,6 @@ export default function AiScheduleExtractionModal({
                            showTypeWarning ? 'border-brand-red' : 'border-[#E5E7EB]'
                         }`}
                      >
-                        {/* base-ui의 SelectValue는 children이 함수면 placeholder를 무시하고 그
-                            함수 반환값만 쓴다 - 값이 없을 때 문구도, 값이 있을 때 라벨도 직접
-                            계산해야 함(내부 등록 기반 자동 라벨 해석은 드롭다운을 열기 전엔 못 믿음) */}
                         <SelectValue placeholder="유형을 선택해주세요">
                            {(value: string | null) =>
                               value

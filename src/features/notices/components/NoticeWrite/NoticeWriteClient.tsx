@@ -15,25 +15,36 @@ import {
    type NoticeCategory,
    type NoticeDetail,
 } from '@/services/notice.service';
+import AiSentenceImprovePanel from './AiSentenceImprovePanel';
 import NoticeContentPanel from './NoticeContentPanel';
 import NoticeSettingsPanel from './NoticeSettingsPanel';
+import { useAiSentenceImprove } from '../../hooks/useAiSentenceImprove';
+import { useNoticeEditor } from '../../hooks/useNoticeEditor';
 import { useNoticeWriteForm } from '../../hooks/useNoticeWriteForm';
 import { parseNoticeId } from '../../parseNoticeId';
 
+function escapeHtml(text: string) {
+   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function plainTextToHtml(text: string) {
+   return text
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => `<p>${escapeHtml(line)}</p>`)
+      .join('');
+}
+
 type Props = {
-   // 주어지면 수정 모드 - 해당 id의 공지를 실제 상세 조회 API로 불러와 폼을 프리필함
    noticeId?: string;
 };
 
-// 작성/수정 화면 진입점 - 수정 모드면 실제 GET /notices/{id}로 기존 공지를 먼저 불러온다.
-// useNoticeWriteForm은 마운트 시점의 초기값으로만 상태를 채우는 훅이라, 데이터가 도착하기 전에는
-// 폼(NoticeWriteForm)을 아예 그리지 않고 로딩 화면만 보여준다 - 도착한 뒤에야 그 값으로 마운트됨
+// 작성/수정 화면 진입점
 export default function NoticeWriteClient({ noticeId }: Props) {
    const router = useRouter();
    const numericNoticeId = parseNoticeId(noticeId);
    const isEditMode = Boolean(noticeId);
-   // noticeId가 양의 정수 문자열이 아니면(예: 잘못된 주소로 직접 진입) 조회 자체를 시도할 수 없는
-   // 상태 - 초기 state 값에서부터 이 경우를 반영해두면 effect가 "불러오는 중..."에서 못 빠져나오지 않는다
    const isInvalidNoticeId = isEditMode && numericNoticeId === undefined;
 
    const [categories, setCategories] = useState<NoticeCategory[]>([]);
@@ -68,8 +79,6 @@ export default function NoticeWriteClient({ noticeId }: Props) {
    }, []);
 
    useEffect(() => {
-      // isInvalidNoticeId가 false인데도 numericNoticeId가 undefined일 수는 없지만, TS는 그
-      // 관계를 모르므로 narrowing을 위해 명시적으로 한 번 더 확인한다
       if (!isEditMode || isInvalidNoticeId || numericNoticeId === undefined) return;
       let isMounted = true;
 
@@ -142,16 +151,24 @@ type FormProps = {
    isLoadingCategories: boolean;
 };
 
-// 좌측(제목+본문 편집기) / 우측(카테고리·공개설정 등) 패널과 등록/취소 버튼을 조립.
-// initialNotice가 이미 준비된 상태로만 마운트되므로, useNoticeWriteForm의 초기값이 항상 최신 데이터로 채워짐
+// 좌측(제목+본문 편집기) / 우측(카테고리·공개설정 등) 패널, 등록/취소 버튼 조립
 function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategories }: FormProps) {
    const router = useRouter();
    const isEditMode = Boolean(noticeId);
    const form = useNoticeWriteForm(noticeId, initialNotice);
+   const editor = useNoticeEditor(initialNotice?.content, form.setContent);
+   const {
+      isImproving,
+      suggestions,
+      improvedFullText,
+      improve,
+      close: closeImproveSuggestions,
+      copySuggestion,
+   } = useAiSentenceImprove();
    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
    const [isSubmitting, setIsSubmitting] = useState(false);
 
-   // 수정 모드에서는 실질적인 변경(여백만 바뀐 건 제외)이 있어야만 저장 가능
+   // 수정 모드는 실질적인 변경이 있어야 저장 가능
    const canSave = isEditMode ? form.isSubmitEnabled && form.hasChanges : form.isSubmitEnabled;
 
    const handleRegisterClick = () => {
@@ -159,7 +176,6 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
       setIsConfirmOpen(true);
    };
 
-   // [확인]을 눌렀을 때만 실제 등록/수정 API를 호출한다 - 모달이 뜨는 시점에는 아무 것도 호출하지 않음
    const handleConfirmRegister = async () => {
       if (isSubmitting || form.category === '') return;
       setIsSubmitting(true);
@@ -174,9 +190,6 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
                visibleToTrainee: form.visibility === 'public',
             });
 
-            // 첨부파일 추가/삭제는 별도 API라 본문 수정과 별개로 성공/실패할 수 있다. 일부라도
-            // 실패하면(예: 삭제하려던 파일이 이미 없어짐) 상세 페이지로 이동하지 않고 이 화면에
-            // 남겨서 실패한 항목을 다시 저장해볼 수 있게 한다 - 그대로 나가면 재시도할 방법이 없음
             const attachmentsOk = await form.commitAttachmentChanges();
             setIsConfirmOpen(false);
             if (!attachmentsOk) {
@@ -213,6 +226,16 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
       }
    };
 
+   if (!editor) return null;
+
+   const handleImproveClick = () => improve(editor.getText());
+
+   // 전체 적용 - 개선된 텍스트로 본문을 통째로 교체
+   const handleApplyAllSuggestions = (text: string) => {
+      editor.commands.setContent(plainTextToHtml(text));
+      closeImproveSuggestions();
+   };
+
    return (
       <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
          <h1 className="text-2xl font-bold text-gray-900">
@@ -223,8 +246,9 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
             <NoticeContentPanel
                title={form.title}
                onTitleChange={form.setTitle}
-               initialContentHtml={initialNotice?.content}
-               onContentChange={form.setContent}
+               editor={editor}
+               isImproving={isImproving}
+               onImproveClick={handleImproveClick}
             />
             <NoticeSettingsPanel
                category={form.category}
@@ -248,6 +272,18 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
                onFileRemove={form.removeFile}
             />
          </div>
+
+         {suggestions.length > 0 && (
+            <div className="mt-5">
+               <AiSentenceImprovePanel
+                  suggestions={suggestions}
+                  improvedFullText={improvedFullText}
+                  onCopySuggestion={copySuggestion}
+                  onApplyAll={handleApplyAllSuggestions}
+                  onClose={closeImproveSuggestions}
+               />
+            </div>
+         )}
 
          <div className="mt-5 flex justify-end gap-2">
             <button

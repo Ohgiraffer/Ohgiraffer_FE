@@ -20,8 +20,8 @@ function getApiErrorMessage(err: unknown, fallback: string) {
    return err instanceof ApiError ? err.message : fallback;
 }
 
-// 훈련생 "상담 신청" 탭 상태 - 운영진 선택 → 그 달의 상담 가능일 조회 → 날짜 선택 → 그 날짜의
-// 가능 시간 조회 → 주제·내용 입력 → [신청하기] → 확인 모달 → 신청, 순서로 이어진다
+// 훈련생 "상담 신청" 탭
+// 운영진 선택 → 그 달의 상담 가능일 조회 → 날짜 선택 → 가능 시간 조회 → 주제·내용 입력 → [신청하기] → 확인 모달 → 신청
 export function useApplyCounseling() {
    const [counselors, setCounselors] = useState<Counselor[]>([]);
    const [isLoadingCounselors, setIsLoadingCounselors] = useState(true);
@@ -40,16 +40,12 @@ export function useApplyCounseling() {
 
    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
    const [isSubmitting, setIsSubmitting] = useState(false);
-   // 더블클릭으로 인한 중복 신청 방지 - state는 비동기라 클릭 시점에 바로 막아줄 동기 가드가 필요
+   
    const isSubmittingRef = useRef(false);
 
-   // 시간 조회 요청(일반 조회 effect + 수동 refetchAvailableTimes)이 서로 경쟁할 수 있어, 응답이
-   // 왔을 때 "그 사이 선택이 바뀌었는지"를 판단할 세대 번호. useEffect로 갱신하면 렌더 커밋 이후
-   // 한 박자 늦게 반영돼서 그 틈에 응답이 도착하면 여전히 낡은 값을 최신으로 오판할 수 있으므로,
-   // 선택이 바뀌는 이벤트 핸들러(selectCounselor/selectDate) 안에서 동기적으로 올린다
    const selectionGenerationRef = useRef(0);
 
-   // 상담 가능 운영진 목록 최초 조회 - 첫 번째 운영진을 기본 선택해둔다
+   // 상담 가능 운영진 목록 최초 조회 - 첫 번째 운영진 기본 선택
    useEffect(() => {
       let isMounted = true;
 
@@ -91,10 +87,6 @@ export function useApplyCounseling() {
       };
    }, [selectedCounselorId, viewMonth]);
 
-   // 날짜를 고르면 그 운영진의 그 날짜 가능 시간을 조회 - 날짜가 없으면(운영진 변경 등으로 초기화된
-   // 경우) 아무것도 하지 않는다. availableTimes를 비우는 건 날짜를 비우는 시점(selectCounselor)에서 처리.
-   // isMounted만으로는 "언마운트"만 잡아내고 "선택이 바뀜"은 못 잡으므로(effect 자체는 새로
-   // 실행되지만, refetchAvailableTimes 같은 별도 호출과 세대를 맞추기 위해) 같은 세대 번호로도 확인한다
    useEffect(() => {
       if (selectedCounselorId === null || !selectedDate) return;
       let isMounted = true;
@@ -132,8 +124,6 @@ export function useApplyCounseling() {
       selectionGenerationRef.current += 1;
       setSelectedDate(date);
       setSelectedTime(null);
-      // 이전 날짜의 시간 목록을 남겨두면, 새 날짜 조회가 실패했을 때(catch에서 availableTimes를
-      // 안 건드림) 화면에 이전 날짜의 시간이 마치 새 날짜 것처럼 계속 보일 수 있다
       setAvailableTimes([]);
       setIsLoadingTimes(true);
    };
@@ -155,10 +145,6 @@ export function useApplyCounseling() {
       setIsConfirmOpen(false);
    };
 
-   // 409(이미 예약됨)로 거절되면, 화면에 남아있는 목록이 이미 낡은 값이므로 다시 조회해서
-   // 방금 신청 시도한 시간이 예약됨으로 바뀐 걸 보여준다. 방금 시도했던 시간 선택도 같이 풀어줘야
-   // 한다 - 안 그러면 이미 예약된(다시 눌러도 disabled인) 시간이 여전히 "선택됨" 상태로 남아서,
-   // 사용자가 그대로 다시 [신청하기]를 눌러 같은 409를 반복해서 받는 혼란스러운 루프가 생긴다
    const refetchAvailableTimes = async () => {
       if (selectedCounselorId === null || !selectedDate) return;
       const requestCounselorId = selectedCounselorId;
@@ -170,8 +156,6 @@ export function useApplyCounseling() {
       setSelectedTime(null);
       try {
          const times = await getAvailableTimes(requestCounselorId, requestDateKey);
-         // 응답을 기다리는 사이 사용자가 다른 날짜/운영진을 선택했으면 이미 낡은 응답이다 - 그
-         // 사이 새로 시작된 조회(effect)의 결과를 덮어쓰면 안 되므로 버린다
          if (!isStillCurrent()) return;
          setAvailableTimes(times);
       } catch (err) {
@@ -184,7 +168,6 @@ export function useApplyCounseling() {
 
    const confirmSubmit = async () => {
       if (!canSubmit || isSubmittingRef.current) return;
-      // canSubmit이 true인 시점엔 항상 값이 있지만, 타입 좁히기를 위해 다시 한번 확인
       if (selectedCounselorId === null || !selectedDate || !selectedTime) return;
 
       isSubmittingRef.current = true;

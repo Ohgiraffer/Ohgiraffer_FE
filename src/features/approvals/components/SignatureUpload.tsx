@@ -6,7 +6,6 @@ import { toast } from '@/lib/toast';
 import { deleteSignature, getSignature, registerSignature } from '@/services/signature.service';
 
 type Props = {
-   // 마운트 시 조회 결과 / 등록·삭제 이후 최신 상태를 상위(신청 폼)에 알려줌 - "신청하기" 활성화 조건으로 씀
    onStatusChange?: (hasSignature: boolean) => void;
 };
 
@@ -17,15 +16,12 @@ function getApiErrorMessage(err: unknown, fallback: string) {
    return err instanceof ApiError ? err.message : fallback;
 }
 
-// 훈련생 휴가 신청 / 강사 구매 예산 신청 등 여러 결재 서류 폼이 공통으로 쓰는 전자 서명 컴포넌트.
-// 서명은 서류마다 새로 첨부하는 게 아니라 계정에 하나만 등록해두는 자산이라(활성 서명이 있으면
-// 재등록 불가 - 먼저 삭제해야 함), 여기서 조회·등록·삭제 API를 전부 직접 들고 있는다.
+// 전자 서명(학생-휴가신청/강사-구매예산신청)
 export default function SignatureUpload({ onStatusChange }: Props) {
    const inputRef = useRef<HTMLInputElement>(null);
    const [signatureImage, setSignatureImage] = useState<string | null>(null);
    const [isLoading, setIsLoading] = useState(true);
    const [isSaving, setIsSaving] = useState(false);
-   // 더블클릭으로 인한 중복 요청 방지 - state는 비동기라 클릭 시점에 바로 막아줄 동기 가드가 필요
    const isSavingRef = useRef(false);
 
    useEffect(() => {
@@ -39,7 +35,7 @@ export default function SignatureUpload({ onStatusChange }: Props) {
          })
          .catch((err) => {
             if (!isMounted) return;
-            // 등록된 서명이 없는 것(404)은 정상적인 상태라 에러로 안내하지 않는다
+
             if (!(err instanceof ApiError && err.status === 404)) {
                toast.error(
                   getApiErrorMessage(
@@ -57,15 +53,13 @@ export default function SignatureUpload({ onStatusChange }: Props) {
       return () => {
          isMounted = false;
       };
-      // 마운트 시 한 번만 조회하면 되고, onStatusChange 참조가 매 렌더 바뀌어도 다시 조회할 필요는 없음
-      // eslint-disable-next-line react-hooks/exhaustive-deps
    }, []);
 
    const handleRegisterClick = () => inputRef.current?.click();
 
    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0] ?? null;
-      event.target.value = ''; // 같은 파일을 다시 선택해도 onChange가 뜨도록 초기화
+      event.target.value = '';
       if (!file) return;
 
       if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
@@ -132,7 +126,6 @@ export default function SignatureUpload({ onStatusChange }: Props) {
             {isLoading ? (
                <span className="text-sm text-gray-400">불러오는 중...</span>
             ) : signatureImage ? (
-               // eslint-disable-next-line @next/next/no-img-element -- 백엔드가 base64 data URI로 내려줘서 next/image 최적화 대상이 아님
                <img
                   src={signatureImage}
                   alt="등록된 서명 미리보기"

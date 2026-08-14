@@ -6,8 +6,8 @@ type Props = {
    onSelect: (time: string) => void;
 };
 
-// 훈련생 "상담 신청" - 선택한 운영진·날짜의 가능 시간 중 하나를 고른다.
-// 다른 훈련생이 이미 예약한(isReserved) 시간은 목록에 보이되 선택할 수 없다
+// 훈련생 "상담 신청" - 선택한 운영진·날짜의 가능 시간 중 하나를 선택
+// 다른 훈련생이 이미 예약한 시간은 선택할 수 없음
 export default function AvailableTimeSlots({ times, selectedTime, onSelect }: Props) {
    if (times.length === 0) {
       return (

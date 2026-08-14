@@ -26,27 +26,20 @@ type Props = {
    onRequiredChange: (value: boolean) => void;
    visibility: NoticeVisibility;
    onVisibilityChange: (value: NoticeVisibility) => void;
-   // 수정 모드에서는 첨부파일 추가/삭제도 다른 필드들과 마찬가지로 저장을 눌러야 실제로 반영된다 -
-   // 그 전까지는 화면에만 "추가/삭제 예정"으로 표시됨(안내 문구 분기에만 씀)
    isEditMode: boolean;
-   // 수정 모드에서 이미 서버에 저장돼있는 첨부파일 - 저장 전까지는 그대로 유지되고, pendingDeleteIds에
-   // 있는 항목만 "삭제 예정"으로 표시됨
    existingAttachments: NoticeAttachment[];
    pendingDeleteIds: Set<number>;
    onRemoveExisting: (noticeAttachmentId: number) => void;
    onUndoRemoveExisting: (noticeAttachmentId: number) => void;
-   // 수정 모드에서 저장 전까지 로컬에만 쌓아둔 "추가 예정" 새 파일(아직 서버에 업로드 안 함)
    pendingNewFiles: File[];
    onPendingNewFileRemove: (index: number) => void;
-   // 이번 작성 중에 이미 업로드 완료돼 등록 요청에 그대로 실어 보낼 첨부파일 - 작성 모드에서만 쓰임
    pendingAttachments: UploadedNoticeAttachment[];
    isUploadingFiles: boolean;
    onFilesAdd: (files: File[]) => void;
    onFileRemove: (index: number) => void;
 };
 
-// 오른쪽 영역 - 카테고리 / 고정 여부 / 공개 설정 / 파일 첨부.
-// 작성 모드는 파일이 선택 즉시 업로드되고, 수정 모드는 저장을 누르기 전까지 로컬 상태로만 존재한다
+// 오른쪽 패널 - 카테고리 / 고정 여부 / 공개 설정 / 파일 첨부
 export default function NoticeSettingsPanel({
    category,
    onCategoryChange,
@@ -69,9 +62,6 @@ export default function NoticeSettingsPanel({
    onFileRemove,
 }: Props) {
    return (
-      // 왼쪽 제목/본문 편집 패널과 동일한 고정 높이(NoticeContentPanel의 h-[527px]) - align-items:stretch는
-      // 자기보다 작은 항목만 늘려줄 뿐 큰 항목을 줄이지 못하므로, 파일이 많아 내용이 넘칠 때도 이 높이로
-      // 고정되고 아래 파일 목록 영역만 내부 스크롤되도록 직접 명시함
       <div className="flex h-131.75 min-h-0 w-90 shrink-0 flex-col overflow-hidden rounded-sm border border-[#E5E7EB] bg-white p-6">
          <div className="shrink-0">
             <label className="text-[15px] font-semibold text-gray-900">
@@ -83,15 +73,15 @@ export default function NoticeSettingsPanel({
                disabled={isLoadingCategories}
             >
                <SelectTrigger className="data-[size=default]:h-10 mt-2 w-full rounded-xs bg-white">
-                  <SelectValue
-                     placeholder={isLoadingCategories ? '불러오는 중...' : '카테고리 선택'}
-                  >
-                     {(value: string | null) =>
-                        value
-                           ? categoryOptions.find((option) => String(option.categoryId) === value)
-                                ?.name
-                           : null
-                     }
+                  <SelectValue placeholder="카테고리를 선택해주세요.">
+                     {(value: string | null) => {
+                        if (isLoadingCategories) return '불러오는 중...';
+                        if (!value) return '카테고리를 선택해주세요.';
+                        return (
+                           categoryOptions.find((option) => String(option.categoryId) === value)
+                              ?.name ?? '카테고리를 선택해주세요.'
+                        );
+                     }}
                   </SelectValue>
                </SelectTrigger>
                <SelectContent alignItemWithTrigger={false} align="start" sideOffset={4}>
@@ -159,7 +149,6 @@ export default function NoticeSettingsPanel({
                      onChange={(event) => {
                         const selected = Array.from(event.target.files ?? []);
                         if (selected.length > 0) onFilesAdd(selected);
-                        // 같은 파일을 다시 선택해도 onChange가 또 발생하도록 초기화
                         event.target.value = '';
                      }}
                      className="peer absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
@@ -179,7 +168,6 @@ export default function NoticeSettingsPanel({
                )}
             </div>
 
-            {/* 파일이 쌓여 패널 높이를 넘어가면 이 목록만 내부 스크롤되고, 위쪽 필드들은 항상 고정 노출됨 */}
             {(existingAttachments.length > 0 ||
                pendingAttachments.length > 0 ||
                pendingNewFiles.length > 0) && (

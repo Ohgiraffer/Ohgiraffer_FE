@@ -46,8 +46,6 @@ export function useCounselingDetail(consultationId: number) {
       };
    }, [consultationId, router]);
 
-   // 담당 운영진 본인인지 - 상세 응답에 담당자 id가 없어서 이름으로 비교한다
-   // (동명이인이면 어긋날 수 있는 한계가 있음, 백엔드에서 id를 내려주면 그걸로 바꿔야 함)
    const isMyConsultation = Boolean(me && detail && me.name === detail.counselorName);
 
    return { detail, setDetail, isLoading, hasError, isMyConsultation };

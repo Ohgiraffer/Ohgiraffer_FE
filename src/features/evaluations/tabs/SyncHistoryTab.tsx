@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { format, parseISO } from 'date-fns';
 import Pagination from '@/components/ui/Pagination';
+import { formatSyncedAt } from '../formatSyncedAt';
 import type { SyncHistoryEntry } from '../types';
 
 const PAGE_SIZE = 6;
@@ -14,8 +14,7 @@ type Props = {
    historyError: boolean;
 };
 
-// "이력" 탭 - 항목을 선택하면 이력 상세 페이지(/evaluations/sync-logs/{syncLogId})로 이동한다.
-// hover 스타일은 결재 이력 등 다른 목록과 동일하게 cursor-pointer + hover:bg-[#F9FAFB]
+// "이력" 탭
 export default function SyncHistoryTab({ history, isLoadingHistory, historyError }: Props) {
    const router = useRouter();
    const [currentPage, setCurrentPage] = useState(1);
@@ -67,7 +66,7 @@ export default function SyncHistoryTab({ history, isLoadingHistory, historyError
                               <td className="px-6 py-4 text-center text-gray-500">{rowNumber}</td>
                               <td className="px-15 py-4 text-center text-gray-900">{entry.executedByName}</td>
                               <td className="px-15 py-4 text-gray-700">
-                                 {format(parseISO(entry.syncedAt), 'yyyy.MM.dd HH:mm')}
+                                 {formatSyncedAt(entry.syncedAt)}
                               </td>
                               <td className="px-6 py-4 text-gray-700">{entry.changedCount}건</td>
                            </tr>

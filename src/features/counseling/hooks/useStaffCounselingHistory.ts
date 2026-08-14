@@ -22,8 +22,7 @@ export type ConsultationStatusFilter = 'ALL' | ConsultationStatus;
 export const UPCOMING_PAGE_SIZE = 3;
 export const HISTORY_PAGE_SIZE = 5;
 
-// 운영진 "상담 이력 조회" 탭 상태 - 위: 본인에게 예정된 "다가오는 상담"(API가 이미 오름차순으로
-// 내려줌), 아래: 전체 운영진의 상담 이력을 담당자 역할·상태로 필터링해서 날짜 빠른 순으로 보여준다
+// 운영진 "상담 이력 조회" 탭
 export function useStaffCounselingHistory() {
    const [upcoming, setUpcoming] = useState<StaffConsultationSummary[]>([]);
    const [isLoadingUpcoming, setIsLoadingUpcoming] = useState(true);
@@ -33,9 +32,6 @@ export function useStaffCounselingHistory() {
    const [isLoadingHistory, setIsLoadingHistory] = useState(true);
    const [hasHistoryError, setHasHistoryError] = useState(false);
 
-   // 상담 이력 응답엔 담당자의 역할이 없어서, "담당자" 필터(강사/매니저)는 상담 가능 운영진
-   // 목록(이름 기준)에서 역할을 가져와 매칭한다. 상담 가능 시간을 한 번도 등록한 적 없는
-   // 운영진은 이 목록에 없어 역할을 못 찾을 수 있는데, 이 경우 '전체'에서만 보인다
    const [roleByName, setRoleByName] = useState<Map<string, UserRole>>(new Map());
 
    const [roleFilter, setRoleFilter] = useState<CounselorRoleFilter>('ALL');
@@ -117,8 +113,6 @@ export function useStaffCounselingHistory() {
       });
    }, [history, statusFilter, roleFilter, roleByName]);
 
-   // 필터가 바뀌면 목록 자체가 줄어들 수 있어, 이전 필터 기준 페이지에 그대로 머무르면 빈 페이지를
-   // 보게 될 수 있다 - effect가 아니라 필터를 바꾸는 시점에 동기적으로 1페이지로 되돌린다
    const changeRoleFilter = (value: CounselorRoleFilter) => {
       setRoleFilter(value);
       setHistoryPage(1);

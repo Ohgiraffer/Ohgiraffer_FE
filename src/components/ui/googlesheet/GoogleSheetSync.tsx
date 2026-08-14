@@ -50,6 +50,11 @@ interface GoogleSheetSyncProps {
    // columnMapping(컬럼 key -> 실제 시트의 컬럼명)을 함께 주면, "수정"을 눌렀을 때 URL이 그대로인
    // 한 재검증 후 이 값으로 매핑을 미리 채워준다(안 주면 예전처럼 매핑을 처음부터 다시 입력해야 함)
    initialConnection?: { spreadsheetUrl: string; columnMapping?: Record<string, string> };
+   // [수정] 클릭으로 편집 폼이 열리거나(false) 저장이 끝나거나(true) - 이 컴포넌트 내부의 저장 여부를
+   // 상위가 몰라서, 상위가 "연동 설정이 저장된 상태에서만" 다른 동작(예: 동기화 실행)을 허용하려면
+   // 이 콜백으로 전달받아야 한다(부모의 isConnected는 저장 API 성공 시에만 바뀌고, [수정]으로
+   // 편집 중인 동안에는 안 바뀌기 때문에 이 콜백 없이는 편집 중이라는 걸 알 방법이 없다)
+   onSavedStateChange?: (isSaved: boolean) => void;
 }
 
 interface Connection {
@@ -65,6 +70,7 @@ export default function GoogleSheetSync({
    onSave,
    connectedExtra,
    initialConnection,
+   onSavedStateChange,
 }: GoogleSheetSyncProps) {
    const urlInputId = useId();
    // 컬럼 매핑 select가 반복 렌더링되므로 useId를 컬럼 개수만큼 미리 부를 수 없다 -
@@ -166,6 +172,7 @@ export default function GoogleSheetSync({
             columnMapping: resolvedMapping,
          });
          setIsSaved(true);
+         onSavedStateChange?.(true);
          setSavedSnapshot({
             spreadsheetUrl: spreadsheetUrl.trim(),
             columnMapping: Object.fromEntries(
@@ -187,6 +194,7 @@ export default function GoogleSheetSync({
    // handleUrlChange가 이미 connection/columnMapping을 비우므로 자연스럽게 새로 매핑하게 된다
    const handleEdit = async () => {
       setIsSaved(false);
+      onSavedStateChange?.(false);
       setVerifyError('');
       if (!savedSnapshot) {
          setConnection(null);
@@ -231,6 +239,7 @@ export default function GoogleSheetSync({
       setColumnMapping({});
       setVerifyError('');
       setIsSaved(true);
+      onSavedStateChange?.(true);
    };
 
    if (isSaved) {

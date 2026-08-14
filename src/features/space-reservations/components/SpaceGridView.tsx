@@ -12,16 +12,17 @@ type Props = {
    searchTrigger: number;
    onCheckIn: (spaceId: number) => void;
    onCheckOut: () => void;
+   isChangingLocation: boolean;
 };
 
-// 그리드 뷰 - 구역 카드들을 배치(좁은 화면에서는 1열, 그 외엔 2열), 카드마다 재실 인원 칩 +
-// (본인 미입실 시)입실 버튼 + 정도표시바. 본인 카드는 다시 클릭하면 퇴실됨
+// 그리드 뷰
 export default function SpaceGridView({
    spaces,
    searchKeyword,
    searchTrigger,
    onCheckIn,
    onCheckOut,
+   isChangingLocation,
 }: Props) {
    const trimmedKeyword = searchKeyword.trim();
 
@@ -84,19 +85,18 @@ export default function SpaceGridView({
                            </>
                         );
 
-                        // 매칭된 카드는 검색 트리거가 바뀔 때마다 새로 마운트되어 깜빡임 애니메이션이 다시 재생됨
                         const key = isMatch
                            ? `${occupant.userId}-blink-${searchTrigger}`
                            : occupant.userId;
 
-                        // 본인 카드는 클릭하면 퇴실(다른 구역으로 이동하지 않고 그냥 자리를 비움)
                         return occupant.mine ? (
                            <button
                               key={key}
                               type="button"
                               onClick={onCheckOut}
+                              disabled={isChangingLocation}
                               aria-label={`${occupant.userName} 퇴실`}
-                              className={`cursor-pointer ${cardClassName}`}
+                              className={`cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 ${cardClassName}`}
                            >
                               {cardContent}
                            </button>
@@ -107,11 +107,12 @@ export default function SpaceGridView({
                         );
                      })}
 
-                     {!isCurrentUserHere && (
+                     {!isCurrentUserHere && space.availableCount > 0 && (
                         <button
                            type="button"
                            onClick={() => onCheckIn(space.spaceId)}
-                           className="flex h-20 cursor-pointer items-center justify-center rounded-xs border border-dashed border-[#E5E7EB] px-3 py-2.5 text-sm text-gray-400 hover:bg-gray-50"
+                           disabled={isChangingLocation}
+                           className="flex h-20 cursor-pointer items-center justify-center rounded-xs border border-dashed border-[#E5E7EB] px-3 py-2.5 text-sm text-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent"
                         >
                            + 입실
                         </button>

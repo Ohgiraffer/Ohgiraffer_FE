@@ -20,7 +20,7 @@ type RegisterModalTab = 'manual' | 'file';
 type Props = {
    open: boolean;
    onClose: () => void;
-   // 직접 입력/파일 업로드 어느 쪽으로든 등록에 성공하면 호출됨 - 상위에서 목록을 다시 조회한다
+   // 직접 입력/파일 업로드 등록에 성공하면 호출
    onRegistered: () => void;
 };
 
@@ -41,29 +41,26 @@ function triggerBlobDownload(blob: Blob, filename: string) {
    URL.revokeObjectURL(url);
 }
 
-// "사용자 등록" 모달. 이 페이지에서만 쓰는 모달이라 셸(오버레이/닫기 버튼)과 내용을
-// 하나의 파일에 같이 둠 - 다른 화면에서 재사용할 모달이 생기면 그때 공용 셸로 다시 분리
+// "사용자 등록" 모달
 export default function UserRegisterModal({ open, onClose, onRegistered }: Props) {
    const [activeTab, setActiveTab] = useState<RegisterModalTab>('manual');
 
-   // 직접 입력 탭 전용 상태
+   // 직접 입력 탭 상태
    const [rows, setRows] = useState<UserDraftRow[]>([]);
 
-   // 파일 업로드 탭 전용 상태 - 파일을 고르면 즉시 추출 API를 호출해 행별 검증 결과를 받아온다
+   // 파일 업로드 탭 상태 - 파일을 고르면 즉시 추출 API 호출
    const [selectedFile, setSelectedFile] = useState<File | null>(null);
    const [extractedRows, setExtractedRows] = useState<ExtractedUserRow[] | null>(null);
    const [isExtracting, setIsExtracting] = useState(false);
    const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
-   // 오류 없는(valid) 행만 담을 수 있음 - 체크된 행만 등록 대상이 된다
    const [selectedRowNumbers, setSelectedRowNumbers] = useState<Set<number>>(new Set());
 
    const [isRegistering, setIsRegistering] = useState(false);
-   // 더블클릭으로 인한 중복 등록 방지 - state는 비동기라 클릭 시점에 바로 막아줄 동기 가드가 필요
+
    const isRegisteringRef = useRef(false);
-   // 추출 요청이 겹칠 때(파일을 빠르게 다시 고름) 더 최신 선택의 응답만 반영하기 위한 순번
+   
    const extractionRequestIdRef = useRef(0);
-   // 추출 실패로 파일을 비웠을 때 <input type="file">의 네이티브 값도 같이 리셋하기 위한 key -
-   // 값을 안 비우면 같은 파일을 다시 골라도 change 이벤트가 발생하지 않아 재시도가 안 된다
+
    const [fileInputResetKey, setFileInputResetKey] = useState(0);
 
    const addRow = () => setRows((prev) => [...prev, createEmptyDraftRow()]);
@@ -88,8 +85,6 @@ export default function UserRegisterModal({ open, onClose, onRegistered }: Props
       onClose();
    };
 
-   // 파일을 고르거나(드래그/선택) 다시 선택으로 비울 때 공통으로 거치는 경로 - 고른 즉시 추출 API를 호출한다.
-   // 추출 도중 다른 파일을 다시 고르면 이전 요청은 무시하고 가장 최근 선택의 응답만 반영한다
    const handleFileSelect = async (file: File | null) => {
       const requestId = ++extractionRequestIdRef.current;
       setSelectedFile(file);
@@ -100,9 +95,8 @@ export default function UserRegisterModal({ open, onClose, onRegistered }: Props
       setIsExtracting(true);
       try {
          const result = await extractUsersFromFile(file);
-         if (extractionRequestIdRef.current !== requestId) return; // 더 최신 선택이 있으면 이 결과는 버림
+         if (extractionRequestIdRef.current !== requestId) return; 
          setExtractedRows(result.rows);
-         // 오류 없는 행은 기본으로 전부 체크해둔다
          setSelectedRowNumbers(
             new Set(result.rows.filter((row) => row.valid).map((row) => row.rowNumber)),
          );
@@ -115,7 +109,7 @@ export default function UserRegisterModal({ open, onClose, onRegistered }: Props
             ),
          );
          setSelectedFile(null);
-         // 같은 파일을 다시 골라도 선택할 수 있도록 네이티브 input을 강제로 리마운트시킨다
+         
          setFileInputResetKey((key) => key + 1);
       } finally {
          if (extractionRequestIdRef.current === requestId) setIsExtracting(false);
@@ -157,7 +151,7 @@ export default function UserRegisterModal({ open, onClose, onRegistered }: Props
       }
    };
 
-   // "직접 입력" 탭 등록 - rows(이 탭 상태)만 보낸다
+   // "직접 입력" 탭 등록
    const handleManualRegister = async () => {
       if (!isManualValid) return;
       if (isRegisteringRef.current) return;
@@ -190,7 +184,7 @@ export default function UserRegisterModal({ open, onClose, onRegistered }: Props
       }
    };
 
-   // "파일 업로드" 탭 등록 - 이 탭에서 체크된(오류 없는) 행만 보낸다 (직접 입력 탭의 rows는 관여하지 않음)
+   // "파일 업로드" 탭 등록
    const handleFileRegister = async () => {
       if (selectedFileRows.length === 0) return;
       if (isRegisteringRef.current) return;
@@ -223,8 +217,6 @@ export default function UserRegisterModal({ open, onClose, onRegistered }: Props
       }
    };
 
-   // open은 항상 false로 시작해서(useState(false)) 최초 서버 렌더링 시엔 이 아래로 내려가지 않음 -
-   // document.body를 쓰는 포탈은 open이 true가 된 이후(=클라이언트 상호작용 이후)에만 실행됨
    useEffect(() => {
       if (!open) return;
 
@@ -239,7 +231,6 @@ export default function UserRegisterModal({ open, onClose, onRegistered }: Props
          document.removeEventListener('keydown', handleKeyDown);
          document.body.style.overflow = '';
       };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [open]);
 
    if (!open) return null;

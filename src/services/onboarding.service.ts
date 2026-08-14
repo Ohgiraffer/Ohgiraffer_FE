@@ -23,7 +23,7 @@ export interface PatchBootcampInfoPayload extends Partial<BootcampInfoPayload> {
    bootcampId: number;
 }
 
-// 1단계로 [이전] 후 값을 수정하고 다시 "다음" - 바뀐 필드만 담아 보냄(안 보낸 필드는 기존 값 유지)
+// 1단계로 [이전] 후 값을 수정하고 다시 "다음" - 바뀐 필드만 담아 보냄
 export function patchBootcampInfo(body: PatchBootcampInfoPayload) {
    return apiFetch<void>('/bootcamp/info', {
       method: 'PATCH',
@@ -45,7 +45,7 @@ export interface CreateBootcampPolicyPayload {
    expulsionPercent: number;
 }
 
-// 4단계 "완료" - 출결 단위기간 + 경고·제적 기준을 한 번에 등록(온보딩의 마지막 API 호출)
+// 4단계 "완료"
 export function createBootcampPolicy(body: CreateBootcampPolicyPayload) {
    return apiFetch<void>('/bootcamp/policy', {
       method: 'POST',

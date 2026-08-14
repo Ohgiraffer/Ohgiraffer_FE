@@ -2,21 +2,16 @@ import { Sparkles } from 'lucide-react';
 import type { EvaluationSyncSkippedRow } from '@/services/evaluation.service';
 
 type Props = {
-   // "방금 동기화" 또는 "2026.08.10 14:22 · 이매니저" 같은 부가 설명
    subtitle: string;
    changedCount: number;
-   // AI가 정리한 변경 요약 문장(실패 시 목록 형태로 대체되어 옴) - 줄바꿈만 살려서 그대로 보여준다
    diffSummary: string;
-   // 이력 목록(GET /evaluations/sync-logs)에는 없는 세부 항목 - 방금 이 화면에서 직접 실행한
-   // 동기화 결과에만 있어서, 없으면 신규/수정 건수·건너뛴 행 섹션 자체를 숨긴다
    addedCount?: number;
    updatedCount?: number;
    skipped?: EvaluationSyncSkippedRow[];
-   // "수정 완료 알림 보내기" 버튼 - 동기화 직후에만 넘기고, 이력 상세에서는 비워둔다
    footer?: React.ReactNode;
 };
 
-// "AI 수정사항 요약" 카드 - 동기화 실행 직후(SyncRunTab)와 이력 상세(SyncLogDetailClient)가 공용으로 씀
+// "AI 수정사항 요약" 카드 - 동기화 실행 직후/이력 상세 공용
 export default function AiSyncSummaryCard({
    subtitle,
    changedCount,

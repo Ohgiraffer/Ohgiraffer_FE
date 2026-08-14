@@ -7,16 +7,13 @@ import type { ExtractedUserRow } from '@/services/user.service';
 type Props = {
    selectedFile: File | null;
    onFileSelect: (file: File | null) => void;
-   // 파일을 고르면 즉시 추출 API가 호출되어 채워짐 - 아직 고르지 않았거나 추출 실패로 리셋되면 null
    extractedRows: ExtractedUserRow[] | null;
    isExtracting: boolean;
    onDownloadTemplate: () => void;
    isDownloadingTemplate: boolean;
-   // 오류 없는(valid) 행 중 등록 대상으로 체크된 행 번호
    selectedRowNumbers: Set<number>;
    onToggleRow: (rowNumber: number) => void;
    onToggleAll: () => void;
-   // 값이 바뀌면 <input type="file">을 강제로 리마운트해 네이티브 값을 비운다(추출 실패 후 같은 파일 재선택용)
    fileInputResetKey: number;
 };
 

@@ -25,13 +25,12 @@ const PAGE_SIZE = 6;
 export default function NoticesPageClient() {
    const router = useRouter();
    const { role } = useAuth();
-   // 카테고리 등록/삭제는 운영진(강사·매니저)만 가능 - 훈련생에게는 관리 버튼 자체를 숨긴다
    const canManageCategories = role === 'INSTRUCTOR' || role === 'MANAGER';
-   // 공지 작성도 운영진 전용 - 훈련생에게는 버튼 자체를 숨긴다
    const canWriteNotice = role === 'INSTRUCTOR' || role === 'MANAGER';
    const [categories, setCategories] = useState<NoticeCategory[]>([]);
    const [notices, setNotices] = useState<NoticeListItem[]>([]);
    const [isLoading, setIsLoading] = useState(true);
+   const [hasError, setHasError] = useState(false);
    const [activeCategoryId, setActiveCategoryId] = useState<number | 'all'>('all');
    const [keyword, setKeyword] = useState('');
    const [currentPage, setCurrentPage] = useState(1);
@@ -40,21 +39,15 @@ export default function NoticesPageClient() {
    useEffect(() => {
       let isMounted = true;
 
-      // 카테고리별 공지 수(카테고리 관리 모달의 "삭제 가능 여부" 판단용)를 정확히 계산하려면
-      // 전체 목록이 있어야 해서, categoryId 필터 없이 한 번에 받아 탭 전환은 클라이언트에서 처리한다
       Promise.all([getNoticeCategories(), getNotices()])
          .then(([categoryList, noticeList]) => {
             if (!isMounted) return;
             setCategories(categoryList);
             setNotices(noticeList);
          })
-         .catch((err) => {
+         .catch(() => {
             if (!isMounted) return;
-            toast.error(
-               err instanceof ApiError
-                  ? err.message
-                  : '공지사항을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
-            );
+            setHasError(true);
          })
          .finally(() => {
             if (isMounted) setIsLoading(false);
@@ -65,7 +58,6 @@ export default function NoticesPageClient() {
       };
    }, []);
 
-   // 카테고리별로 이 카테고리를 쓰는 공지가 몇 개인지 - 0개일 때만 삭제 가능
    const categoryNoticeCounts = useMemo(() => {
       const counts = new Map<number, number>();
       for (const notice of notices) {
@@ -107,7 +99,6 @@ export default function NoticesPageClient() {
       setCurrentPage(1);
    };
 
-   // 등록에 실패하면 에러를 다시 던져서 모달이 입력값을 지우지 않고 재시도할 수 있게 한다
    const addCategory = async (name: string) => {
       try {
          const created = await createNoticeCategory(name);
@@ -126,8 +117,7 @@ export default function NoticesPageClient() {
       try {
          await deleteNoticeCategory(id);
       } catch (err) {
-         // 이미 삭제된 카테고리(404)는 화면에서도 지워주고 넘어간다 - 그 외(주로 409, 사용 중)는
-         // 목록에 그대로 두고 에러만 안내한다
+         
          if (!(err instanceof ApiError && err.code === 'NOTICE_002')) {
             toast.error(
                err instanceof ApiError
@@ -139,7 +129,6 @@ export default function NoticesPageClient() {
       }
 
       setCategories((prev) => prev.filter((category) => category.categoryId !== id));
-      // 삭제한 카테고리가 현재 선택된 탭이었다면 전체 탭으로 되돌림
       if (activeCategoryId === id) {
          setActiveCategoryId('all');
          setCurrentPage(1);
@@ -226,6 +215,23 @@ export default function NoticesPageClient() {
                      <tr>
                         <td colSpan={7} className="px-6 py-10 text-center text-gray-400">
                            불러오는 중...
+                        </td>
+                     </tr>
+                  ) : hasError ? (
+                     <tr>
+                        <td colSpan={7} className="px-6 py-16">
+                           <div className="flex flex-col items-center gap-3">
+                              <p className="text-sm text-gray-400">
+                                 공지사항을 불러오는데 실패했습니다.
+                              </p>
+                              <button
+                                 type="button"
+                                 onClick={() => window.location.reload()}
+                                 className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                              >
+                                 새로고침
+                              </button>
+                           </div>
                         </td>
                      </tr>
                   ) : pagedNotices.length === 0 ? (

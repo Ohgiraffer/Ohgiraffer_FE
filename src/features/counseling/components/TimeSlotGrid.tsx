@@ -5,7 +5,7 @@ type Props = {
    onToggle: (time: string) => void;
 };
 
-// 09:00~19:00 30분 단위 상담 시간 슬롯 그리드 - 예약된(isBooked) 슬롯은 항상 켜진 채로 토글이 막힌다
+// 09:00~19:00 30분 단위 상담 시간 슬롯 그리드
 export default function TimeSlotGrid({ slots, onToggle }: Props) {
    return (
       <div className="grid grid-cols-7 gap-2">
