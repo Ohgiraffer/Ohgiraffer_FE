@@ -67,6 +67,9 @@ export default function DayAgendaModal({ date, events, onClose, onDelete }: DayA
                      >
                         <input
                            type="checkbox"
+                           aria-label={
+                              event.place ? `${event.title} (${event.place})` : event.title
+                           }
                            checked={canDelete(event) && checkedIds.includes(event.id)}
                            disabled={!canDelete(event)}
                            onChange={() => toggleChecked(event.id)}

@@ -125,10 +125,10 @@ export default function StudentTracker() {
                </div>
             </div>
 
-            <div className="p-6">
-               <div className="flex items-center justify-between">
+            <div className="min-w-0 p-6">
+               <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm text-gray-400">현재 출석률</p>
-                  <div className="flex items-center gap-1 rounded-xs border border-gray-200 p-1">
+                  <div className="flex flex-wrap items-center gap-1 rounded-xs border border-gray-200 p-1">
                      <button
                         type="button"
                         onClick={() => setRateFilter('ALL')}
