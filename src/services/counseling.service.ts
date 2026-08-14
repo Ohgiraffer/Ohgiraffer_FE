@@ -126,13 +126,15 @@ export function getMyAvailableDates(yearMonth: string) {
    return apiFetch<string[]>(`/consultation/available-dates/mine?${params}`);
 }
 
-// 강사·매니저 본인 - 특정 날짜(date: 'yyyy-MM-dd')에 등록해둔 상담 가능 시간 문자열 목록.
-// /consultation/available-times(훈련생용)와 달리 이 엔드포인트는 { time, isReserved } 객체가 아니라
-// 시간 문자열만 내려준다 - 예약 여부는 이 API로 알 수 없고, 저장 시 409(CONSULTATION_004)로만 감지된다
+// 강사·매니저 본인 - 특정 날짜(date: 'yyyy-MM-dd')에 등록해둔 상담 가능 시간 + 예약 여부.
+// 한때는 시간 문자열만 내려주는 걸로 알고 있었지만, 실제 라이브 스펙(GET /consultation/available-times/mine,
+// operationId getRegisteredTimes)을 확인해보니 훈련생용 /consultation/available-times와 동일하게
+// { time, isReserved } 객체 배열을 내려준다 - string[]로 잘못 가정해 map(normalizeTime)이 문자열이
+// 아닌 값에 .slice를 호출하며 터져서, 시간이 하나라도 등록된 날짜를 고르면 조회가 실패하던 버그가 있었음
 export function getMyAvailableTimes(date: string) {
    const params = new URLSearchParams({ date });
-   return apiFetch<string[]>(`/consultation/available-times/mine?${params}`).then((times) =>
-      times.map(normalizeTime),
+   return apiFetch<AvailableTimeSlot[]>(`/consultation/available-times/mine?${params}`).then(
+      normalizeAvailableTimeSlots,
    );
 }
 

@@ -1,5 +1,6 @@
 'use client';
 
+import Pagination from '@/components/ui/Pagination';
 import {
    Select,
    SelectContent,
@@ -9,6 +10,7 @@ import {
 } from '@/components/ui/shadcn/select';
 import StaffConsultationRow from '../components/StaffConsultationRow';
 import {
+   HISTORY_PAGE_SIZE,
    useStaffCounselingHistory,
    type ConsultationStatusFilter,
    type CounselorRoleFilter,
@@ -32,9 +34,17 @@ const STATUS_FILTER_OPTIONS: Array<{ value: ConsultationStatusFilter; label: str
 export default function StaffHistoryTab() {
    const {
       upcoming,
+      pagedUpcoming,
+      upcomingPage,
+      setUpcomingPage,
+      upcomingTotalPages,
       isLoadingUpcoming,
       hasUpcomingError,
       history,
+      pagedHistory,
+      historyPage,
+      setHistoryPage,
+      historyTotalPages,
       isLoadingHistory,
       hasHistoryError,
       roleFilter,
@@ -68,11 +78,20 @@ export default function StaffHistoryTab() {
             ) : upcoming.length === 0 ? (
                <p className="py-10 text-center text-sm text-gray-400">다가오는 상담이 없습니다.</p>
             ) : (
-               <div className="mt-3 flex flex-col gap-2">
-                  {upcoming.map((item) => (
-                     <StaffConsultationRow key={item.consultationId} item={item} variant="card" />
-                  ))}
-               </div>
+               <>
+                  <div className="mt-3 flex flex-col gap-2">
+                     {pagedUpcoming.map((item) => (
+                        <StaffConsultationRow key={item.consultationId} item={item} variant="card" />
+                     ))}
+                  </div>
+                  <div className="mt-3">
+                     <Pagination
+                        currentPage={upcomingPage}
+                        totalPages={upcomingTotalPages}
+                        onPageChange={setUpcomingPage}
+                     />
+                  </div>
+               </>
             )}
          </div>
 
@@ -128,16 +147,25 @@ export default function StaffHistoryTab() {
             ) : history.length === 0 ? (
                <p className="py-10 text-center text-sm text-gray-400">상담 이력이 없습니다.</p>
             ) : (
-               <div className="divide-y divide-[#F3F4F6]">
-                  {history.map((item, index) => (
-                     <StaffConsultationRow
-                        key={item.consultationId}
-                        item={item}
-                        index={index + 1}
-                        showCounselorName
+               <>
+                  <div className="divide-y divide-[#F3F4F6]">
+                     {pagedHistory.map((item, index) => (
+                        <StaffConsultationRow
+                           key={item.consultationId}
+                           item={item}
+                           index={(historyPage - 1) * HISTORY_PAGE_SIZE + index + 1}
+                           showCounselorName
+                        />
+                     ))}
+                  </div>
+                  <div className="border-t border-[#F3F4F6] px-6 py-3">
+                     <Pagination
+                        currentPage={historyPage}
+                        totalPages={historyTotalPages}
+                        onPageChange={setHistoryPage}
                      />
-                  ))}
-               </div>
+                  </div>
+               </>
             )}
          </div>
       </div>
