@@ -15,6 +15,7 @@ export default function LeaveRequestForm() {
       dateOrderError,
       birthDateError,
       isConfirmOpen,
+      isSubmitting,
       submit,
       confirmSubmit,
       cancelSubmit,
@@ -131,6 +132,8 @@ export default function LeaveRequestForm() {
             open={isConfirmOpen}
             title="휴가 결재 서류를 신청하시겠습니까?"
             description="신청 후 결재 담당자에게 알림이 발송됩니다."
+            confirmLabel={isSubmitting ? '처리 중...' : '확인'}
+            busy={isSubmitting}
             onConfirm={confirmSubmit}
             onClose={cancelSubmit}
          />

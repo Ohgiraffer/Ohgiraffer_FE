@@ -11,8 +11,7 @@ type Props = {
    onClose: () => void;
 };
 
-// 훈련생 "내 상담 이력" 상세 모달 - 정책상 상담 기록·AI 요약은 훈련생에게 아예 보여주지 않는다
-// (AI 요약과 묶여 있는 정보라 함께 비공개 처리하기로 함). 그 두 항목은 운영진 전용 상세 페이지에서만 보여준다
+// 훈련생 "내 상담 이력" 상세 모달
 export default function CounselingDetailModal({ detail, onClose }: Props) {
    return (
       <Modal onClose={onClose} ariaLabel="상담 상세" panelClassName="w-full max-w-md">

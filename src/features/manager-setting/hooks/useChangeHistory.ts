@@ -5,7 +5,6 @@ import { ApiError } from '@/lib/http';
 import { getBootcampSettingsLogs } from '@/services/bootcampSettings.service';
 import type { ChangeHistoryEntry } from '../types';
 
-// 백엔드 응답에 고유 id가 없어 - 목록이 필터링/페이지네이션되며 리렌더될 때 key로 쓸 값을 조회 시점에 붙여둔다
 export type ChangeHistoryEntryWithId = ChangeHistoryEntry & { id: string };
 
 function getApiErrorMessage(err: unknown, fallback: string) {

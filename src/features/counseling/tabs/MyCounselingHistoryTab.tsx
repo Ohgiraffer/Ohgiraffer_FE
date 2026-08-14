@@ -5,7 +5,7 @@ import CounselingStatusBadge from '../components/CounselingStatusBadge';
 import CounselingDetailModal from '../components/CounselingDetailModal';
 import { useMyCounselingHistory } from '../hooks/useMyCounselingHistory';
 
-// 훈련생 "내 상담 이력" 탭 - 예정·완료 상담 목록, 행을 클릭하면 상세 모달이 뜬다
+// 훈련생 "내 상담 이력" 탭 - 예정·완료 상담 목록, 행을 클릭하면 상세 모달
 export default function MyCounselingHistoryTab() {
    const { items, isLoading, loadError, detail, openDetail, closeDetail } =
       useMyCounselingHistory();

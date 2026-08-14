@@ -11,8 +11,7 @@ type Props = {
    onClose: () => void;
 };
 
-// [AI 문장 개선] 결과 - 문장별 원문/제안을 나란히 보여준다. 자동으로 반영되지 않고, 문장별 [복사] 또는
-// [전체 적용]을 사용자가 직접 눌러야 실제 본문에 반영된다(개선 결과를 검토 없이 그대로 덮어쓰지 않기 위함)
+// [AI 문장 개선] 결과
 export default function AiSentenceImprovePanel({
    suggestions,
    improvedFullText,

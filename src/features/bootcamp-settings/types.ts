@@ -6,7 +6,6 @@ export type BootcampOrgInfo = {
    endDate: string;
 };
 
-// 위와 마찬가지로 두 화면이 공유하는 출결 단위기간 한 건
 export type BootcampPeriod = {
    id: string;
    startDate: string;

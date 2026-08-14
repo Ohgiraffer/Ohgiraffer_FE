@@ -29,8 +29,7 @@ const STATUS_FILTER_OPTIONS: Array<{ value: ConsultationStatusFilter; label: str
    { value: 'CANCELLED', label: '취소' },
 ];
 
-// 운영진 "상담 이력 조회" 탭 - 위: 본인에게 예정된 다가오는 상담, 아래: 전체 운영진 상담 이력
-// (담당자 역할·상태로 필터링, 날짜 빠른 순 정렬 + 인덱스 번호)
+// 운영진 "상담 이력 조회" 탭
 export default function StaffHistoryTab() {
    const {
       upcoming,

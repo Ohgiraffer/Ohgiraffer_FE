@@ -43,8 +43,6 @@ export default function PurchaseBudgetRequestForm() {
                disabled={isLoadingCategories}
             >
                <SelectTrigger className="data-[size=default]:h-10 mt-2 w-full rounded-xs bg-white">
-                  {/* base-ui의 SelectValue는 children이 함수면 placeholder prop을 완전히 무시하고
-                      그 함수의 반환값만 쓴다 - 값이 없을 때 보여줄 문구도 함수 안에서 직접 계산해야 함 */}
                   <SelectValue placeholder="카테고리를 선택해주세요">
                      {(value: string | null) => {
                         if (value) {

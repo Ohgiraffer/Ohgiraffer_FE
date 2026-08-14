@@ -26,6 +26,8 @@ export interface RefreshResponse {
    accessToken: string;
    role: UserRole;
    status: string;
+   // 아직 온보딩(부트캠프 최초 설정)을 마치지 않은 계정이면 null - LoginResponse와 동일한 의미
+   bootcampId: number | null;
 }
 
 export function login(body: LoginRequest) {

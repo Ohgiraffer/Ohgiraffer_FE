@@ -10,11 +10,18 @@ type Props = {
    searchKeyword: string;
    onCheckIn: (spaceId: number) => void;
    onCheckOut: () => void;
+   isChangingLocation: boolean;
 };
 
 const ROW_GRID = 'grid w-full grid-cols-[1fr_1fr_1fr] items-center';
 
-export default function SpaceListView({ spaces, searchKeyword, onCheckIn, onCheckOut }: Props) {
+export default function SpaceListView({
+   spaces,
+   searchKeyword,
+   onCheckIn,
+   onCheckOut,
+   isChangingLocation,
+}: Props) {
    const trimmedKeyword = searchKeyword.trim();
    const isSearching = trimmedKeyword.length > 0;
 
@@ -70,14 +77,15 @@ export default function SpaceListView({ spaces, searchKeyword, onCheckIn, onChec
                         </>
                      );
 
-                     // 본인 행은 클릭하면 퇴실(다른 구역으로 이동하지 않고 그냥 자리를 비움)
+                     // 본인 행은 클릭하면 퇴실
                      return occupant.mine ? (
                         <button
                            key={occupant.userId}
                            type="button"
                            onClick={onCheckOut}
+                           disabled={isChangingLocation}
                            aria-label={`${occupant.userName} 퇴실`}
-                           className={`${ROW_GRID} cursor-pointer border-t-[0.5px] border-b-[0.5px] border-[#E5E7EB] bg-brand-sage/10 px-6 py-3 text-left hover:bg-brand-sage/20`}
+                           className={`${ROW_GRID} cursor-pointer border-t-[0.5px] border-b-[0.5px] border-[#E5E7EB] bg-brand-sage/10 px-6 py-3 text-left hover:bg-brand-sage/20 disabled:cursor-not-allowed disabled:opacity-60`}
                         >
                            {rowContent}
                         </button>
@@ -91,11 +99,13 @@ export default function SpaceListView({ spaces, searchKeyword, onCheckIn, onChec
                      );
                   })}
 
-                  {!isSearching && !isCurrentUserHere && (
+                  {/* 정원이 꽉 찬 공간은 입실 버튼 자체를 숨김 */}
+                  {!isSearching && !isCurrentUserHere && space.availableCount > 0 && (
                      <button
                         type="button"
                         onClick={() => onCheckIn(space.spaceId)}
-                        className="block w-full h-15 cursor-pointer border-t-[0.7px] border-b-[0.7px] border-[#E5E7EB] px-8 py-3 text-left text-sm text-gray-400 hover:bg-gray-50"
+                        disabled={isChangingLocation}
+                        className="block w-full h-15 cursor-pointer border-t-[0.7px] border-b-[0.7px] border-[#E5E7EB] px-8 py-3 text-left text-sm text-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent"
                      >
                         + 입실
                      </button>

@@ -10,10 +10,9 @@ import SpaceManagePanel from './SpaceManagePanel';
 import { useSpaceReservation } from '../hooks/useSpaceReservation';
 import { useSidePanel } from '@/components/layout/SidePanelContext';
 
-// 공간 예약(자리 현황) 페이지 - 헤더(제목+검색+뷰토글) + 안내 배너 + 그리드/리스트 뷰 조립
+// 공간 예약(자리 현황) 페이지
 export default function SpaceReservationClient() {
    const { role } = useAuth();
-   // 공간 관리(등록/삭제)는 강사·매니저 전용 기능 - 훈련생 화면에는 버튼 자체를 노출하지 않음
    const canManageSpaces = role === 'INSTRUCTOR' || role === 'MANAGER';
    const {
       spaces,
@@ -27,14 +26,13 @@ export default function SpaceReservationClient() {
       handleSearch,
       checkIn,
       checkOut,
+      isChangingLocation,
       addSpace,
       removeSpace,
    } = useSpaceReservation();
-   // 알림/채팅 등 다른 우측 패널이 열려 있으면 공간 관리를 열 때 자동으로 닫히도록 공용 상태로 관리
    const { isOpen: isManagePanelOpen, open: openManagePanel, close: closeManagePanel } =
       useSidePanel('space-manage');
 
-   // 공간 관리 패널에 넘길 행 - 재실 인원이 있으면 삭제 불가
    const manageRows = useMemo(
       () =>
          spaces.map((space) => ({
@@ -132,6 +130,7 @@ export default function SpaceReservationClient() {
                   searchTrigger={searchTrigger}
                   onCheckIn={checkIn}
                   onCheckOut={checkOut}
+                  isChangingLocation={isChangingLocation}
                />
             ) : (
                <SpaceListView
@@ -139,6 +138,7 @@ export default function SpaceReservationClient() {
                   searchKeyword={searchKeyword}
                   onCheckIn={checkIn}
                   onCheckOut={checkOut}
+                  isChangingLocation={isChangingLocation}
                />
             )}
          </div>

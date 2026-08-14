@@ -74,7 +74,6 @@ export default function UserPermissionTab() {
       setCurrentPage(1);
    };
 
-   // 실패하면 토스트만 띄우고 다시 던져서 모달이 열린 채로 남아 재시도할 수 있게 한다
    const handleConfirmStatusChange = async (reason: UserStatusChangeReason) => {
       if (!statusChangeTarget) return;
       try {
@@ -185,7 +184,6 @@ export default function UserPermissionTab() {
                      </tr>
                   ) : (
                      pagedUsers.map((user, index) => {
-                        // 수료·삭제됨 둘 다 더 이상 상태를 바꿀 수 없는 최종 상태라 읽기 전용으로 표시한다
                         const isReadOnly = user.status !== '활성';
                         const rowNumber = (currentPage - 1) * PAGE_SIZE + index + 1;
 

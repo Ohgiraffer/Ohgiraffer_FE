@@ -12,9 +12,6 @@ type Props = {
    onNotifyStaff: () => Promise<void>;
 };
 
-// 동기화 실행 섹션 - "연동 설정" 탭 안에서 GoogleSheetSync 바로 아래에 이어서 보여준다.
-// 연결된 Google Sheet에서 데이터를 가져와 AI가 변경 사항을 분석한다.
-// 연동이 끝나지 않았으면 안내만 보여주고 실행 버튼 자체를 노출하지 않는다
 export default function SyncRunTab({
    isConnected,
    latestSync,

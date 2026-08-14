@@ -30,16 +30,12 @@ const MANAGER_TABS: Tab[] = [
    { key: 'budget', label: '예산 관리' },
 ];
 
-// role별로 보이는 탭 구성이 다름 - 훈련생은 결재신청(휴가)/결재이력, 강사는 여기에 예산관리가 더 붙고,
-// 매니저는 결재신청 대신 결재처리 + 예산관리(구글 시트 연동 화면이라 강사와는 다른 내용)를 봄
 function getTabsForRole(role: string | null): Tab[] {
    if (role === 'STUDENT') return STUDENT_TABS;
    if (role === 'MANAGER') return MANAGER_TABS;
    return STAFF_TABS;
 }
 
-// 결재 이력 상세 화면의 "목록으로 돌아가기"가 ?tab=history로 넘어오는 경우처럼, 쿼리로 넘어온 탭이
-// 현재 role에서 유효할 때만 그 탭을 초기값으로 쓰고, 아니면 role의 첫 탭으로 대체한다
 function resolveInitialTab(role: string | null, requestedTab: string | null): TabKey {
    const tabs = getTabsForRole(role);
    const matched = tabs.find((tab) => tab.key === requestedTab);
@@ -52,8 +48,6 @@ export default function ApprovalsPageClient() {
    const tabs = getTabsForRole(role);
    const [activeTab, setActiveTab] = useState<TabKey>(() => resolveInitialTab(role, requestedTab));
 
-   // role 확인 전(null)엔 기본값(STAFF_TABS)으로 렌더링되므로, 실제 role이 확정되면 그 role의 첫 탭으로
-   // 다시 맞춰줘야 함 - useEffect 대신 렌더링 중 state를 조정하는 방식(리액트 공식 권장 패턴)으로 처리
    const [lastSyncedRole, setLastSyncedRole] = useState(role);
    if (role !== lastSyncedRole) {
       setLastSyncedRole(role);

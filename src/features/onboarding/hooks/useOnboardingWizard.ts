@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/auth/AuthContext';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import {
@@ -45,7 +46,7 @@ function isOrgInfoValid(data: OrgInfoData) {
 }
 
 function isAttendanceUnitValid(data: AttendanceUnitData) {
-   // 날짜 역전/기간 이탈/겹침 검증은 "다음" 클릭 시 에러 메시지로 안내하기 위해 여기서는 값 존재 여부만 확인
+   // 날짜 역전/기간 이탈/겹침 검증
    return (
       data.periods.length > 0 && data.periods.every((period) => period.startDate && period.endDate)
    );
@@ -65,7 +66,6 @@ function isWarningCriteriaValid(data: WarningCriteriaData) {
    );
 }
 
-// 1단계 재방문(이전→수정→다음) 시 실제로 바뀐 필드만 PATCH로 보내기 위한 diff
 function getOrgInfoDiff(saved: OrgInfoData, current: OrgInfoData): Partial<BootcampInfoPayload> {
    const diff: Partial<BootcampInfoPayload> = {};
    if (current.orgName !== saved.orgName) diff.orgName = current.orgName;
@@ -81,6 +81,7 @@ function getApiErrorMessage(err: unknown, fallback: string) {
 
 export function useOnboardingWizard() {
    const router = useRouter();
+   const { updateBootcampId } = useAuth();
    const [currentStep, setCurrentStep] = useState(1);
    const [orgInfo, setOrgInfo] = useState<OrgInfoData>(INITIAL_ORG_INFO);
    const [attendanceUnit, setAttendanceUnit] =
@@ -88,23 +89,19 @@ export function useOnboardingWizard() {
    const [warningCriteria, setWarningCriteria] =
       useState<WarningCriteriaData>(INITIAL_WARNING_CRITERIA);
 
-   // "다음"을 한 번이라도 눌러본 적 있는지 - 시작일/종료일 역전 에러를 그 이후부터 실시간으로 보여주기 위한 플래그
    const [orgInfoSubmitAttempted, setOrgInfoSubmitAttempted] = useState(false);
    const [attendanceUnitSubmitAttempted, setAttendanceUnitSubmitAttempted] = useState(false);
 
-   // 1단계 POST로 발급받은 부트캠프 ID - 이후 PATCH/POST 요청에 계속 실어 보냄
+   // 1단계 POST로 발급받은 부트캠프 ID
    const [bootcampId, setBootcampId] = useState<number | null>(null);
-   // 마지막으로 백엔드에 성공적으로 저장된 1단계 값의 스냅샷 - [이전]으로 돌아가 수정한 뒤
-   // 다시 "다음"을 누를 때 이 값과 비교해 바뀐 필드만 PATCH로 보낸다
    const [savedOrgInfo, setSavedOrgInfo] = useState<OrgInfoData | null>(null);
 
    const [isSavingOrgInfo, setIsSavingOrgInfo] = useState(false);
    const [isCompleting, setIsCompleting] = useState(false);
-   // 더블클릭으로 인한 중복 요청 방지 - state는 비동기라 클릭 시점에 바로 막아줄 동기 가드가 필요
+   
    const isSavingOrgInfoRef = useRef(false);
    const isCompletingRef = useRef(false);
 
-   // Step4는 입력 항목이 없는 읽기 전용 확인 화면이라 항상 통과 처리
    const isCurrentStepValid =
       currentStep === 1
          ? isOrgInfoValid(orgInfo)
@@ -116,7 +113,7 @@ export function useOnboardingWizard() {
 
    const orgInfoDateError = orgInfoSubmitAttempted && hasOrgDateOrderError(orgInfo);
 
-   // 기간 역전 / 부트캠프 기간 이탈 / 다른 단위기간과 겹침 / 양끝 경계 - 네 가지를 한 번에 계산해서 기간별로 하나씩만 보여줌
+   // 기간 역전 / 부트캠프 기간 이탈 / 다른 단위기간과 겹침 / 양끝 경계
    const attendanceUnitPeriodErrors: Record<string, PeriodErrorType> = attendanceUnitSubmitAttempted
       ? Object.fromEntries(
            attendanceUnit.periods.map((period) => [
@@ -148,6 +145,8 @@ export function useOnboardingWizard() {
                });
                setBootcampId(newBootcampId);
                setSavedOrgInfo(orgInfo);
+               
+               updateBootcampId(newBootcampId);
             } else if (savedOrgInfo) {
                const diff = getOrgInfoDiff(savedOrgInfo, orgInfo);
                if (Object.keys(diff).length > 0) {
@@ -186,7 +185,7 @@ export function useOnboardingWizard() {
       setCurrentStep((step) => Math.max(step - 1, 1));
    };
 
-   // 4단계 "완료" - 단위기간/경고·제적 기준을 등록하고 온보딩을 마무리
+   // 4단계 "완료" - 단위기간/경고·제적 기준을 등록하고 온보딩 마무리
    const completeOnboarding = async () => {
       if (!isCurrentStepValid || bootcampId === null) return;
       if (isCompletingRef.current) return;
@@ -194,7 +193,6 @@ export function useOnboardingWizard() {
       setIsCompleting(true);
 
       try {
-         // periodNo는 화면에 추가한 순서가 아니라 실제 날짜 순서를 따르도록 시작일 기준으로 재정렬
          const periods: BootcampPolicyPeriod[] = [...attendanceUnit.periods]
             .sort((a, b) => a.startDate.localeCompare(b.startDate))
             .map((period, index) => ({
@@ -211,7 +209,6 @@ export function useOnboardingWizard() {
             expulsionPercent: Number(warningCriteria.expulsionRiskRate),
          });
 
-         // 등록 응답에 별도 데이터가 없어(성공 시 응답 X), 화면에 이미 있는 조직명·과정명으로 메시지를 구성
          toast.success(
             `${orgInfo.orgName} - ${orgInfo.courseName}이(가) 성공적으로 등록되었습니다.`,
          );

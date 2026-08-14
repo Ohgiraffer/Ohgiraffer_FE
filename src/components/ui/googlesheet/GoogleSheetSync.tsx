@@ -48,6 +48,11 @@ interface GoogleSheetSyncProps {
    // 서버에 이미 저장된 연동 설정이 있어서 페이지 진입 시부터 "연결됨" 카드로 보여줘야 할 때 넘긴다.
    // 이 컴포넌트 자체는 조회 API를 모르므로(페이지마다 다름) 이미 조회된 결과를 그대로 받는다
    initialConnection?: { spreadsheetUrl: string };
+   // [수정] 클릭으로 편집 폼이 열리거나(false) 저장이 끝나거나(true) - 이 컴포넌트 내부의 저장 여부를
+   // 상위가 몰라서, 상위가 "연동 설정이 저장된 상태에서만" 다른 동작(예: 동기화 실행)을 허용하려면
+   // 이 콜백으로 전달받아야 한다(부모의 isConnected는 저장 API 성공 시에만 바뀌고, [수정]으로
+   // 편집 중인 동안에는 안 바뀌기 때문에 이 콜백 없이는 편집 중이라는 걸 알 방법이 없다)
+   onSavedStateChange?: (isSaved: boolean) => void;
 }
 
 interface Connection {
@@ -63,6 +68,7 @@ export default function GoogleSheetSync({
    onSave,
    connectedExtra,
    initialConnection,
+   onSavedStateChange,
 }: GoogleSheetSyncProps) {
    const urlInputId = useId();
    // 컬럼 매핑 select가 반복 렌더링되므로 useId를 컬럼 개수만큼 미리 부를 수 없다 -
@@ -146,6 +152,7 @@ export default function GoogleSheetSync({
             columnMapping: resolvedMapping,
          });
          setIsSaved(true);
+         onSavedStateChange?.(true);
       } catch (err) {
          toast.error(
             err instanceof ApiError
@@ -159,6 +166,7 @@ export default function GoogleSheetSync({
 
    const handleEdit = () => {
       setIsSaved(false);
+      onSavedStateChange?.(false);
       setConnection(null);
       setColumnMapping({});
       setVerifyError('');

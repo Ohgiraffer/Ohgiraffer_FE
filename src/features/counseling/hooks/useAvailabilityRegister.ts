@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
@@ -20,9 +20,6 @@ function getApiErrorMessage(err: unknown, fallback: string) {
    return err instanceof ApiError ? err.message : fallback;
 }
 
-// 서버는 "열려있는 시간"만 내려주므로(닫힌 시간은 응답에 아예 없음), 09:00~19:00 전체 고정
-// 슬롯과 합쳐서 화면에 뿌릴 21개짜리 목록을 만든다. 각 열린 시간의 isReserved를 그대로 isBooked에
-// 반영해서, 이미 예약된 시간은 토글이 막히고 서버 저장 시 409(CONSULTATION_004)로도 한 번 더 막힌다
 function buildSlots(times: AvailableTimeSlot[]): CounselingTimeSlot[] {
    const openTimes = new Map(times.map((slot) => [slot.time, slot.isReserved]));
    return ALL_TIME_SLOTS.map((time) => ({
@@ -40,19 +37,17 @@ function areSetsEqual(a: Set<string>, b: Set<string>) {
    return true;
 }
 
-// 운영진 "가능 시간 등록" 탭 상태 - 달이 바뀌면 그 달의 설정된 날짜를 조회하고, 날짜를 고르면
-// 그 날짜에 저장된 시간을 불러온다. 저장 버튼은 불러온 시점과 비교해 "수정이 있을 때만" 활성화된다
 export function useAvailabilityRegister() {
-   // 이미 가능 시간이 저장된 날짜 - 달력에 "설정됨"으로 표시됨
    const [viewMonth, setViewMonth] = useState<Date | null>(null);
    const [configuredDates, setConfiguredDates] = useState<Set<string>>(new Set());
 
    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
    const [slots, setSlots] = useState<CounselingTimeSlot[]>([]);
-   // 조회 직후의 "열린 시간" 스냅샷 - 여기서 값이 바뀌었는지를 기준으로 저장 버튼 활성화 여부를 결정한다
    const [originalOpenTimes, setOriginalOpenTimes] = useState<Set<string>>(new Set());
    const [isLoadingTimes, setIsLoadingTimes] = useState(false);
    const [isSaving, setIsSaving] = useState(false);
+   const isSavingRef = useRef(false);
+   const selectionGenerationRef = useRef(0);
 
    // 보고 있는 달이 바뀌면 그 달의 설정된 날짜 목록을 다시 조회
    useEffect(() => {
@@ -98,16 +93,14 @@ export function useAvailabilityRegister() {
    }, [selectedDate]);
 
    const selectDate = (date: Date) => {
+      selectionGenerationRef.current += 1;
       setSelectedDate(date);
-      // 이전 날짜의 slots/originalOpenTimes를 그대로 두면, 새 날짜 조회가 끝나기 전(로딩 중)에
-      // canSave가 여전히 "이전 날짜 기준으로 바뀐 값"을 참조하게 된다 - 그 틈에 저장을 누르면
-      // 실제로는 새로 고른 날짜에 이전 날짜의 시간 선택을 저장해버리는 사고로 이어질 수 있다
       setSlots([]);
       setOriginalOpenTimes(new Set());
       setIsLoadingTimes(true);
    };
 
-   // 예약된 슬롯은 토글 자체가 막힘 - 버튼에서도 disabled 처리하지만 여기서도 한 번 더 방어함
+   // 예약된 슬롯은 토글 자체가 막힘
    const toggleSlot = (time: string) => {
       setSlots((prev) =>
          prev.map((slot) =>
@@ -117,46 +110,58 @@ export function useAvailabilityRegister() {
    };
 
    const currentOpenTimes = new Set(slots.filter((slot) => slot.isOpen).map((slot) => slot.time));
-   // 불러온 시점과 달라진 게 있을 때만 저장 가능(하나도 안 바꿨으면 저장할 필요가 없음)
+   // 불러온 시점과 달라진 게 있을 때만 저장 가능
    const isDirty = !areSetsEqual(currentOpenTimes, originalOpenTimes);
    const canSave = Boolean(selectedDate) && isDirty && !isSaving;
 
-   // 서버 저장에 실패했을 때(예: 409로 거절) 화면을 다시 서버 상태로 맞춘다
    const refetchTimes = async () => {
       if (!selectedDate) return;
+      const requestGeneration = selectionGenerationRef.current;
+      const isStillCurrent = () => selectionGenerationRef.current === requestGeneration;
+
       setIsLoadingTimes(true);
       try {
          const times = await getMyAvailableTimes(format(selectedDate, DATE_KEY_FORMAT));
+         if (!isStillCurrent()) return;
          setSlots(buildSlots(times));
          setOriginalOpenTimes(new Set(times.map((slot) => slot.time)));
       } catch (err) {
+         if (!isStillCurrent()) return;
          toast.error(getApiErrorMessage(err, '상담 가능 시간을 불러오지 못했습니다.'));
       } finally {
-         setIsLoadingTimes(false);
+         if (isStillCurrent()) setIsLoadingTimes(false);
       }
    };
 
    const handleSave = async () => {
       if (!selectedDate || !canSave) return;
+      if (isSavingRef.current) return;
+      isSavingRef.current = true;
+
       const dateKey = format(selectedDate, DATE_KEY_FORMAT);
+      const savedTimes = currentOpenTimes;
+      const requestGeneration = selectionGenerationRef.current;
+      const isStillCurrent = () => selectionGenerationRef.current === requestGeneration;
+
       setIsSaving(true);
       try {
-         await saveMyAvailableTimes({ date: dateKey, times: Array.from(currentOpenTimes) });
-         setOriginalOpenTimes(new Set(currentOpenTimes));
+         await saveMyAvailableTimes({ date: dateKey, times: Array.from(savedTimes) });
          setConfiguredDates((prev) => {
             const next = new Set(prev);
-            if (currentOpenTimes.size > 0) {
+            if (savedTimes.size > 0) {
                next.add(dateKey);
             } else {
                next.delete(dateKey);
             }
             return next;
          });
+         
+         if (isStillCurrent()) setOriginalOpenTimes(new Set(savedTimes));
          toast.success('상담 가능 시간이 저장되었습니다.');
       } catch (err) {
          if (err instanceof ApiError && err.code === 'CONSULTATION_004') {
             toast.error('이미 예약이 잡힌 시간은 가능 시간에서 해제할 수 없습니다.');
-            refetchTimes();
+            if (isStillCurrent()) refetchTimes();
          } else {
             toast.error(
                getApiErrorMessage(
@@ -166,6 +171,7 @@ export function useAvailabilityRegister() {
             );
          }
       } finally {
+         isSavingRef.current = false;
          setIsSaving(false);
       }
    };

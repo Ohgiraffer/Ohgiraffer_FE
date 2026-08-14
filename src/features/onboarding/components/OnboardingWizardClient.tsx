@@ -1,6 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAuth } from '@/components/auth/AuthContext';
 import { ONBOARDING_TOTAL_STEPS } from '../types';
 import { useOnboardingWizard } from '../hooks/useOnboardingWizard';
 import Step1OrgInfoForm from '../steps/Step1OrgInfoForm';
@@ -10,6 +13,14 @@ import Step4FinalCheckForm from '../steps/Step4FinalCheckForm';
 import OnboardingSteps from './OnboardingSteps';
 
 export default function OnboardingWizardClient() {
+   const router = useRouter();
+   const { bootcampId, isInitializing } = useAuth();
+   const isAlreadyOnboarded = !isInitializing && bootcampId !== null;
+
+   useEffect(() => {
+      if (isAlreadyOnboarded) router.replace('/');
+   }, [isAlreadyOnboarded, router]);
+
    const {
       currentStep,
       isCurrentStepValid,
@@ -27,6 +38,8 @@ export default function OnboardingWizardClient() {
       orgInfoDateError,
       attendanceUnitPeriodErrors,
    } = useOnboardingWizard();
+
+   if (isInitializing || isAlreadyOnboarded) return null;
 
    const isLastStep = currentStep === ONBOARDING_TOTAL_STEPS;
    const isSubmitting = isSavingOrgInfo || isCompleting;

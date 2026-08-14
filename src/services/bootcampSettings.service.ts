@@ -16,7 +16,7 @@ export interface BootcampSettingsResponse {
    periods: BootcampSettingsPeriod[];
 }
 
-// 관리자 설정 "조직·출결" 탭 진입 시 현재 저장된 부트캠프 정보·단위기간을 조회
+// 관리자 설정 "조직·출결" 탭 진입 시 현재 저장된 부트캠프 정보·단위기간 조회
 export function getBootcampSettings() {
    return apiFetch<BootcampSettingsResponse>('/bootcamp/settings');
 }
@@ -35,7 +35,6 @@ export interface UpdateBootcampSettingsPayload {
    periods: UpdateBootcampSettingsPeriod[];
 }
 
-// 부분 수정이 아니라 전체 교체 방식이라, 바뀐 필드만 보내는 게 아니라 항상 전체 데이터를 다 담아 보낸다
 export function updateBootcampSettings(body: UpdateBootcampSettingsPayload) {
    return apiFetch<void>('/bootcamp/settings', {
       method: 'PATCH',

@@ -52,14 +52,10 @@ function InfoField({
    );
 }
 
-// 결재 이력/처리 상세 - 신청자 본인 화면(훈련생 휴가 신청 / 강사 구매 요청)과 처리자(매니저) 화면
-// 모두 requestType(LEAVE/PURCHASE)으로 분기해서 보여준다
 export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClientProps) {
    const { role } = useAuth();
    const router = useRouter();
    const numericApprovalId = Number(approvalId);
-   // 지금은 매니저만 결재 처리 화면을 가짐(강사 처리 탭은 아직 없음) - 나중에 강사도 처리 화면이
-   // 생기면 이 조건에 추가
    const isProcessor = role === 'MANAGER';
 
    const [detail, setDetail] = useState<ApprovalDetail | null>(null);
@@ -67,8 +63,6 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
    const [hasError, setHasError] = useState(false);
    const [retryKey, setRetryKey] = useState(0);
 
-   // 담당자 배정 성공 시 상세를 다시 불러온다 - "다시 시도" 버튼(retry)과 달리 로딩 화면으로
-   // 전체를 갈아치우지 않고 조용히 최신 상태로 갈아끼운다(버튼 영역이 갑자기 사라졌다 나타나는 걸 방지)
    const silentRefetch = () => setRetryKey((key) => key + 1);
 
    const {
@@ -120,9 +114,6 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
       setRetryKey((key) => key + 1);
    };
 
-   // 신청자 본인 화면에서만 - 담당자가 처리하는 동안 이 화면을 보고 있어도 새로고침 없이 갱신되도록
-   // 조용히 짧은 간격으로 다시 조회한다. 처리하는 쪽(매니저)은 본인 액션 직후 silentRefetch로 이미
-   // 최신 상태를 받으므로 폴링이 따로 필요 없음
    const { isPollingStopped } = useApprovalLivePolling(
       numericApprovalId,
       detail?.status,
@@ -278,13 +269,10 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
                   </div>
                </div>
 
-               {/* 전자 서명 스냅샷 - 신청자가 이후 서명을 바꿔도 이 결재 시점의 서명은 그대로 유지됨.
-                   처리 주체(매니저)가 신청자 서명을 확인할 수 있어야 해서 처리 화면에서만 보여줌 */}
                {isProcessor && detail.signatureImage && (
                   <div className="mt-6">
                      <p className="text-[15px] font-semibold text-gray-900">전자 서명</p>
                      <div className="mt-2 flex h-35 items-center justify-center overflow-hidden rounded-sm border border-[#E5E7EB] bg-[#F9FAFB]">
-                        {/* eslint-disable-next-line @next/next/no-img-element -- 백엔드가 base64 data URI로 내려줘서 next/image 최적화 대상이 아님 */}
                         <img
                            src={detail.signatureImage}
                            alt="신청자 전자서명"

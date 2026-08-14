@@ -31,8 +31,13 @@ const FIELDS: Array<{
 
 export default function Step3WarningCriteriaForm({ value, onChange }: Props) {
    const updateField = (field: keyof WarningCriteriaData, fieldValue: string) => {
-      // 100 초과값 입력 제한
-      const clampedValue = fieldValue !== '' && Number(fieldValue) > 100 ? '100' : fieldValue;
+      // 0~100 범위를 벗어나는 값은 입력되는 즉시 경계값으로 고정
+      let clampedValue = fieldValue;
+      if (fieldValue !== '') {
+         const num = Number(fieldValue);
+         if (num < 0) clampedValue = '0';
+         else if (num > 100) clampedValue = '100';
+      }
       onChange({ ...value, [field]: clampedValue });
    };
 

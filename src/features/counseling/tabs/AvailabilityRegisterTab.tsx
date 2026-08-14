@@ -6,9 +6,7 @@ import CounselingCalendar from '../components/CounselingCalendar';
 import TimeSlotGrid from '../components/TimeSlotGrid';
 import { useAvailabilityRegister } from '../hooks/useAvailabilityRegister';
 
-// 운영진 "가능 시간 등록" 탭 - 달력에서 날짜를 고르고, 그 날 09:00~19:00 중 상담을 열고 싶은
-// 시간을 선택해서 저장한다. 불러온 시점과 달라진 게 있을 때만 저장 버튼이 활성화되고,
-// 예약된 시간은 끌 수 없다
+// 운영진 "가능 시간 등록" 탭
 export default function AvailabilityRegisterTab() {
    const {
       setViewMonth,

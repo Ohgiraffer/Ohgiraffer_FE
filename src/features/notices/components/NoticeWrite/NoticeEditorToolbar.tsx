@@ -19,7 +19,7 @@ type BlockOption = {
    onSelect: (editor: Editor) => void;
 };
 
-// 본문(문단) / 소제목(h3) / 제목(h1) 전환 - 사진의 스타일 셀렉터와 동일
+// 본문(문단) / 소제목(h3) / 제목(h1) 전환
 const BLOCK_OPTIONS: BlockOption[] = [
    {
       label: '본문',

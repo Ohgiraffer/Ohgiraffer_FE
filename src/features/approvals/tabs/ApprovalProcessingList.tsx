@@ -10,7 +10,6 @@ import { useApprovalPdfDownload } from '../hooks/useApprovalPdfDownload';
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_TONES } from '../types';
 import type { ApprovalSummary } from '@/services/approval.service';
 
-// LEAVE는 훈련생만, PURCHASE는 강사만 신청 가능해서 requestType만으로 역할을 확정할 수 있다
 function formatRequesterLabel(approval: ApprovalSummary) {
    return `${approval.requesterName} (${approval.requestType === 'LEAVE' ? '학생' : '강사'})`;
 }
@@ -30,7 +29,7 @@ function formatSummary(approval: ApprovalSummary) {
 // 매니저 "결재 처리" 탭 - 처리 대상 결재 목록(PROCESSING) 조회
 export default function ApprovalProcessingList() {
    const router = useRouter();
-   const { approvals, isLoading, refetch } = useApprovalList('PROCESSING');
+   const { approvals, isLoading, hasError, refetch } = useApprovalList('PROCESSING');
    const {
       isConfirmOpen,
       pendingRequestType,
@@ -62,6 +61,23 @@ export default function ApprovalProcessingList() {
                      <tr>
                         <td colSpan={8} className="px-6 py-10 text-center text-gray-400">
                            불러오는 중...
+                        </td>
+                     </tr>
+                  ) : hasError ? (
+                     <tr>
+                        <td colSpan={8} className="px-6 py-16">
+                           <div className="flex flex-col items-center gap-3">
+                              <p className="text-sm text-gray-400">
+                                 결재 처리 목록을 불러오는데 실패했습니다.
+                              </p>
+                              <button
+                                 type="button"
+                                 onClick={() => window.location.reload()}
+                                 className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                              >
+                                 새로고침
+                              </button>
+                           </div>
                         </td>
                      </tr>
                   ) : approvals.length === 0 ? (

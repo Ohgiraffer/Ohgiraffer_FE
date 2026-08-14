@@ -30,10 +30,7 @@ export default function NoticeDetailClient({ noticeId }: Props) {
    const router = useRouter();
    const { role } = useAuth();
    const numericNoticeId = parseNoticeId(noticeId);
-   // AI 일정 추출 노란 박스는 운영진 전용 - 훈련생에게는 박스 자체가 보이면 안 됨
    const canUseAiScheduleExtraction = role === 'INSTRUCTOR' || role === 'MANAGER';
-   // 공지 수정/삭제도 운영진 전용 - 훈련생에게는 버튼 자체가 보이면 안 됨(작성자 본인이 아니어도
-   // 운영진이면 서버가 403으로 막아주지만, 애초에 훈련생 화면엔 버튼을 안 보여주는 게 맞음)
    const canManageNotice = role === 'INSTRUCTOR' || role === 'MANAGER';
 
    const [notice, setNotice] = useState<NoticeDetail | null>(null);
@@ -44,15 +41,10 @@ export default function NoticeDetailClient({ noticeId }: Props) {
    const [isDeleting, setIsDeleting] = useState(false);
    const [isConfirming, setIsConfirming] = useState(false);
 
-   // numericNoticeId가 아직 없어도(로딩 전/잘못된 주소) 훅은 항상 호출해야 하므로 더미값을 넘긴다 -
-   // 실제로 이 훅의 동작(runExtraction)은 notice가 로드된 뒤 노란 박스 클릭으로만 시작되므로 안전함
    const aiSchedule = useAiScheduleExtraction(numericNoticeId ?? -1, () => {
       setNotice((prev) => (prev ? { ...prev, aiCalendarRegistered: true } : prev));
    });
 
-   // noticeId가 다른 값으로 바뀌면(같은 페이지 컴포넌트가 재사용되며 다른 공지로 이동하는 경우)
-   // 이전 조회의 에러/로딩 상태가 남아있어 새 조회가 성공해도 이전 에러 화면이 계속 보일 수 있다 -
-   // effect 안이 아니라 렌더링 중에 바로 리셋한다(리트라이는 retry()가 이미 직접 리셋해줌)
    const [prevNoticeId, setPrevNoticeId] = useState(numericNoticeId);
    if (numericNoticeId !== prevNoticeId) {
       setPrevNoticeId(numericNoticeId);
@@ -60,9 +52,6 @@ export default function NoticeDetailClient({ noticeId }: Props) {
       setHasError(false);
    }
 
-   // 본문은 작성자가 에디터로 만든 HTML을 그대로 저장/조회한 값이라, 편집기를 거치지 않은 API
-   // 클라이언트가 <script>/onerror 같은 실행형 마크업을 실어 보내도 서버가 막지 않으면 그대로
-   // 저장돼 다른 사용자 화면에서 실행될 수 있다(저장형 XSS) - 렌더링 직전에 항상 정화한다
    const sanitizedContent = useMemo(
       () => (notice ? DOMPurify.sanitize(notice.content) : ''),
       [notice],
@@ -100,7 +89,7 @@ export default function NoticeDetailClient({ noticeId }: Props) {
       setRetryKey((key) => key + 1);
    };
 
-   // 확인 처리 - 취소하는 API가 없어 한 번 확인하면 되돌릴 수 없다(체크박스는 disabled로 잠가둠)
+   // 공지 확인 처리
    const handleConfirm = async () => {
       if (!notice || notice.confirmedByMe || isConfirming) return;
       setIsConfirming(true);
@@ -196,7 +185,6 @@ export default function NoticeDetailClient({ noticeId }: Props) {
 
    return (
       <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
-         {/* 화면이 넓어도 카드 너비는 이 안에서 고정되고, 화면이 좁아지면 max-w보다 먼저 w-full이 줄어듦 */}
          <div className="mx-auto w-full max-w-4xl">
             <Link
                href="/notices"

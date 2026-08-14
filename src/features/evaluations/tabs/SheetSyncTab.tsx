@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import GoogleSheetSync, {
    type GoogleSheetSaveResult,
 } from '@/components/ui/googlesheet/GoogleSheetSync';
@@ -30,6 +31,8 @@ export default function SheetSyncTab({
    onRunSync,
    onNotifyStaff,
 }: Props) {
+   const [isEditingSheetLink, setIsEditingSheetLink] = useState(false);
+
    if (isLoading) {
       return <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>;
    }
@@ -55,9 +58,10 @@ export default function SheetSyncTab({
             columns={EVALUATION_SHEET_COLUMNS}
             onSave={onSaveMapping}
             initialConnection={isConnected ? { spreadsheetUrl } : undefined}
+            onSavedStateChange={(saved) => setIsEditingSheetLink(!saved)}
          />
          <SyncRunTab
-            isConnected={isConnected}
+            isConnected={isConnected && !isEditingSheetLink}
             latestSync={latestSync}
             isSyncing={isSyncing}
             onRunSync={onRunSync}
