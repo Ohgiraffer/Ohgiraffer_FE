@@ -33,6 +33,7 @@ function quoteSheetName(sheetName: string) {
 export function useTrackerSheetSync() {
    const [isConnected, setIsConnected] = useState(false);
    const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
+   const [columnMapping, setColumnMapping] = useState<AttendanceSheetColumnMapping | null>(null);
    const [isLoading, setIsLoading] = useState(true);
    const [loadError, setLoadError] = useState(false);
 
@@ -50,6 +51,7 @@ export function useTrackerSheetSync() {
             }
             setIsConnected(true);
             setSpreadsheetUrl(link.sheetUrl);
+            setColumnMapping(link.columnMapping);
          })
          .catch((err) => {
             if (!isMounted) return;
@@ -69,7 +71,7 @@ export function useTrackerSheetSync() {
    }, []);
 
    const handleSaveMapping = useCallback(async (result: GoogleSheetSaveResult) => {
-      const columnMapping = Object.fromEntries(
+      const mapping = Object.fromEntries(
          Object.entries(result.columnMapping).map(([key, value]) => [key, value.columnName]),
       ) as unknown as AttendanceSheetColumnMapping;
 
@@ -78,11 +80,12 @@ export function useTrackerSheetSync() {
          tabName: result.sheetName,
          // 날짜는 항상 "시트 이름!I2" 셀에 있어야 함 - 사용자 입력이 아니라 고정 규칙으로 만든다
          dateCellRange: `${quoteSheetName(result.sheetName)}!I2`,
-         columnMapping,
+         columnMapping: mapping,
       });
       setIsConnected(true);
       setSpreadsheetUrl(result.spreadsheetUrl);
+      setColumnMapping(mapping);
    }, []);
 
-   return { isConnected, spreadsheetUrl, isLoading, loadError, handleSaveMapping };
+   return { isConnected, spreadsheetUrl, columnMapping, isLoading, loadError, handleSaveMapping };
 }

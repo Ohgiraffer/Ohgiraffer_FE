@@ -15,6 +15,8 @@ interface MergedItem {
    title: string;
    dueAt: string;
    isDone: boolean;
+   // 제출함은 시작일(startAt), 설문은 시작일 개념이 없어 생성일(createdAt)을 대신 보여준다
+   secondaryDate: string;
 }
 
 export default function StudentSubmissionsPageClient() {
@@ -46,6 +48,7 @@ export default function StudentSubmissionsPageClient() {
                title: box.projectName,
                dueAt: box.dueAt,
                isDone: !!box.submitted,
+               secondaryDate: box.startAt,
             })),
             ...forms.map((form) => ({
                key: `form-${form.surveyFormId}`,
@@ -54,6 +57,7 @@ export default function StudentSubmissionsPageClient() {
                title: form.title,
                dueAt: form.dueAt,
                isDone: !!form.responded,
+               secondaryDate: form.createdAt,
             })),
          ];
          merged.sort((a, b) => {
@@ -131,16 +135,17 @@ export default function StudentSubmissionsPageClient() {
                      onClick={() => handleClick(item)}
                      className="flex w-full cursor-pointer items-center justify-between gap-4 border-b border-[#F3F4F6] px-6 py-4 text-left transition-colors last:border-b-0 hover:bg-[#F9FAFB]"
                   >
-                     <div className="flex min-w-0 items-center gap-3">
-                        <StatusBadge tone={item.type === 'box' ? 'muted' : 'gold'} className="shrink-0">
-                           {item.type === 'box' ? '제출함' : '설문'}
-                        </StatusBadge>
-                        <div className="min-w-0">
-                           <p className="truncate text-sm font-medium text-gray-900">{item.title}</p>
-                           <p className="mt-0.5 text-xs text-gray-400">
-                              마감 {formatDateTime(item.dueAt)}
-                           </p>
+                     <div className="min-w-0">
+                        <div className="flex items-center gap-3">
+                           <StatusBadge tone={item.type === 'box' ? 'muted' : 'gold'} className="shrink-0">
+                              {item.type === 'box' ? '제출함' : '설문'}
+                           </StatusBadge>
+                           <p className="min-w-0 truncate text-sm font-medium text-gray-900">{item.title}</p>
                         </div>
+                        <p className="mt-1 text-xs text-gray-400">
+                           {item.type === 'box' ? '시작' : '생성'} {formatDateTime(item.secondaryDate)} · 마감{' '}
+                           {formatDateTime(item.dueAt)}
+                        </p>
                      </div>
                      <div className="flex shrink-0 items-center gap-3">
                         {item.type === 'box' && !item.isDone && (

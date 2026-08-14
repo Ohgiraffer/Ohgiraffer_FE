@@ -37,7 +37,8 @@ function formatSyncedAt(value: string) {
 }
 
 export default function SheetSyncTab() {
-   const { isConnected, spreadsheetUrl, isLoading, loadError, handleSaveMapping } = useTrackerSheetSync();
+   const { isConnected, spreadsheetUrl, columnMapping, isLoading, loadError, handleSaveMapping } =
+      useTrackerSheetSync();
    const { history, isLoadingHistory, historyError, isSyncing, runSync } = useTrackerSyncHistory(isConnected);
    // 서버가 최근 5일치 이력만 내려주므로(5일 지난 이력은 매일 자정 직후 자동 삭제), 이 필터는
    // 그 범위 안에서만 날짜를 고를 수 있다
@@ -94,7 +95,11 @@ export default function SheetSyncTab() {
          <GoogleSheetSync
             columns={ATTENDANCE_SHEET_COLUMNS}
             onSave={handleSaveMapping}
-            initialConnection={isConnected ? { spreadsheetUrl } : undefined}
+            initialConnection={
+               isConnected && columnMapping
+                  ? { spreadsheetUrl, columnMapping: columnMapping as unknown as Record<string, string> }
+                  : undefined
+            }
          />
 
          {isConnected && (

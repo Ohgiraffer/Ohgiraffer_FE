@@ -63,21 +63,21 @@ export default function DayAgendaModal({ date, events, onClose, onDelete }: DayA
                   return (
                      <li
                         key={event.id}
-                        className="flex items-center gap-3 rounded-sm border border-gray-200 px-3 py-2.5"
+                        className="flex items-center gap-3 rounded-xs border border-gray-200 px-3 py-2.5"
                      >
-                        {canDelete(event) ? (
-                           <input
-                              type="checkbox"
-                              checked={checkedIds.includes(event.id)}
-                              onChange={() => toggleChecked(event.id)}
-                              className="h-4 w-4 cursor-pointer accent-brand-green"
-                           />
-                        ) : (
-                           <span className="h-4 w-4 shrink-0" />
-                        )}
+                        <input
+                           type="checkbox"
+                           checked={canDelete(event) && checkedIds.includes(event.id)}
+                           disabled={!canDelete(event)}
+                           onChange={() => toggleChecked(event.id)}
+                           className="h-4 w-4 shrink-0 cursor-pointer accent-brand-green disabled:cursor-not-allowed disabled:accent-gray-300"
+                        />
                         <div className="flex min-w-0 flex-1 flex-col">
                            <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-gray-900">
-                              <span className="truncate">
+                              <span
+                                 title={event.place ? `${event.title} (${event.place})` : event.title}
+                                 className="truncate"
+                              >
                                  {event.title}
                                  {event.place && (
                                     <span className="font-normal text-gray-400"> ({event.place})</span>
@@ -101,7 +101,7 @@ export default function DayAgendaModal({ date, events, onClose, onDelete }: DayA
                type="button"
                onClick={handleDelete}
                disabled={checkedIds.length === 0}
-               className="flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-sm bg-brand-maroon text-sm font-medium text-white transition-colors hover:bg-[#832E2E] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
+               className="flex h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xs bg-brand-maroon text-sm font-medium text-white transition-colors hover:bg-[#832E2E] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
             >
                <Trash2 size={15} />
                삭제 ({checkedIds.length})
