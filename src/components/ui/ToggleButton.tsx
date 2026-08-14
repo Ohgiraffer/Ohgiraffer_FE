@@ -15,6 +15,7 @@ export default function ToggleButton({ selected, onClick, children, className }:
       <button
          type="button"
          onClick={onClick}
+         aria-pressed={selected}
          className={cn(
             'w-full cursor-pointer rounded-xs border px-4 py-2.5 text-sm font-medium transition-colors',
             selected

@@ -139,10 +139,20 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
 
    const { guardedAction, isLeaveConfirmOpen, onConfirmLeave, onCancelLeave } = useLeaveGuard(isDirty);
 
+   const startTimeValue = `${startHour}:${startMinute}`;
+   const dueTimeValue = `${dueHour}:${dueMinute}`;
+   // 날짜만 비교하면 같은 날 안에서 마감 시각이 시작 시각보다 빠른 경우(예: 시작 09:00, 마감
+   // 08:00)를 걸러내지 못한다 - yyyy-MM-ddTHH:mm 형식은 문자열 비교가 곧 시간 순서 비교와 같다
+   const isDateTimeRangeInvalid =
+      startAt.length > 0 &&
+      dueAt.length > 0 &&
+      `${dueAt}T${dueTimeValue}` <= `${startAt}T${startTimeValue}`;
+
    const canSubmit =
       projectName.trim().length > 0 &&
       startAt.length > 0 &&
       dueAt.length > 0 &&
+      !isDateTimeRangeInvalid &&
       items.length > 0 &&
       items.every((item) => item.name.trim().length > 0);
 
@@ -174,9 +184,6 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
       if (!canSubmit) return;
       setIsConfirmOpen(true);
    };
-
-   const startTimeValue = `${startHour}:${startMinute}`;
-   const dueTimeValue = `${dueHour}:${dueMinute}`;
 
    const handleConfirmSave = async () => {
       if (isSubmitting) return;
@@ -314,6 +321,11 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
                   />
                </div>
                <p className="mt-1.5 text-xs text-gray-400">지정하지 않으면 23:59에 마감됩니다</p>
+               {isDateTimeRangeInvalid && (
+                  <p className="mt-1.5 text-xs text-brand-red">
+                     마감 일시는 시작 일시보다 빠를 수 없습니다
+                  </p>
+               )}
             </div>
          </div>
 

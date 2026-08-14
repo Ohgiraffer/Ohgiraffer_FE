@@ -429,7 +429,7 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
                )}
                {!canSubmit && !isBlocked && (
                   <p className="mt-2 text-center text-xs text-gray-400">
-                     모든 항목을 입력해야 {isEditing ? '저장할' : '제출할'} 수 있습니다
+                     필수 항목을 모두 입력해야 {isEditing ? '저장할' : '제출할'} 수 있습니다
                   </p>
                )}
             </div>

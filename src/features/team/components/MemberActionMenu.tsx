@@ -41,6 +41,12 @@ export default function MemberActionMenu({
          toast.error('아직 생성된 팀이 없습니다. 팀을 먼저 생성해주세요.');
          return;
       }
+      // 이동할 다른 팀도 없고(전부 해체됨) 이미 미배정 상태라 "미배정으로 이동"도 못 보여줄 때 -
+      // 빈 메뉴가 열리는 대신 안내한다
+      if (otherTeams.length === 0 && currentTeamId === null) {
+         toast.error('이동할 수 있는 팀이 없습니다.');
+         return;
+      }
       setIsOpen((prev) => !prev);
    };
 
