@@ -104,7 +104,9 @@ export default function TodayScheduleCard({ refreshKey = 0 }: TodayScheduleCardP
                         style={{ backgroundColor: EVENT_TYPE_COLORS[item.type].dot }}
                      />
                      <span className="w-12 shrink-0 text-sm text-gray-500">{item.time}</span>
-                     <span className="min-w-0 flex-1 truncate text-sm text-gray-900">{item.title}</span>
+                     <span title={item.title} className="min-w-0 flex-1 truncate text-sm text-gray-900">
+                        {item.title}
+                     </span>
                   </li>
                ))}
             </ul>

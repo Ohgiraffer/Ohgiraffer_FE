@@ -46,8 +46,10 @@ interface GoogleSheetSyncProps {
    // 연결된 상태의 헤더 영역에 페이지별 추가 액션(예: "평가 요약 결과 다운로드")을 끼워 넣는다
    connectedExtra?: React.ReactNode;
    // 서버에 이미 저장된 연동 설정이 있어서 페이지 진입 시부터 "연결됨" 카드로 보여줘야 할 때 넘긴다.
-   // 이 컴포넌트 자체는 조회 API를 모르므로(페이지마다 다름) 이미 조회된 결과를 그대로 받는다
-   initialConnection?: { spreadsheetUrl: string };
+   // 이 컴포넌트 자체는 조회 API를 모르므로(페이지마다 다름) 이미 조회된 결과를 그대로 받는다.
+   // columnMapping(컬럼 key -> 실제 시트의 컬럼명)을 함께 주면, "수정"을 눌렀을 때 URL이 그대로인
+   // 한 재검증 후 이 값으로 매핑을 미리 채워준다(안 주면 예전처럼 매핑을 처음부터 다시 입력해야 함)
+   initialConnection?: { spreadsheetUrl: string; columnMapping?: Record<string, string> };
 }
 
 interface Connection {
@@ -76,6 +78,13 @@ export default function GoogleSheetSync({
    const [columnMapping, setColumnMapping] = useState<Record<string, number>>({});
    const [isSaving, setIsSaving] = useState(false);
    const [isSaved, setIsSaved] = useState(initialConnection != null);
+   // 마지막으로 저장 확인된 상태의 스냅샷 - "수정" 시 재검증 후 매핑을 미리 채우거나,
+   // "취소" 시 되돌아가는 기준으로 쓴다(저장에 성공할 때마다 최신 값으로 갱신)
+   const [savedSnapshot, setSavedSnapshot] = useState(
+      initialConnection
+         ? { spreadsheetUrl: initialConnection.spreadsheetUrl, columnMapping: initialConnection.columnMapping ?? {} }
+         : null,
+   );
 
    const canVerify = spreadsheetUrl.trim().length > 0 && !isVerifying;
    const canSave =
@@ -146,6 +155,12 @@ export default function GoogleSheetSync({
             columnMapping: resolvedMapping,
          });
          setIsSaved(true);
+         setSavedSnapshot({
+            spreadsheetUrl: spreadsheetUrl.trim(),
+            columnMapping: Object.fromEntries(
+               Object.entries(resolvedMapping).map(([key, value]) => [key, value.columnName]),
+            ),
+         });
       } catch (err) {
          toast.error(
             err instanceof ApiError
@@ -157,11 +172,51 @@ export default function GoogleSheetSync({
       }
    };
 
-   const handleEdit = () => {
+   // URL이 그대로면 재검증 후 이전에 저장했던 컬럼명으로 매핑을 미리 채운다 - URL을 바꾸면
+   // handleUrlChange가 이미 connection/columnMapping을 비우므로 자연스럽게 새로 매핑하게 된다
+   const handleEdit = async () => {
       setIsSaved(false);
+      setVerifyError('');
+      if (!savedSnapshot) {
+         setConnection(null);
+         setColumnMapping({});
+         return;
+      }
+      setIsVerifying(true);
+      try {
+         const result = await validateExternalSheet(savedSnapshot.spreadsheetUrl.trim());
+         const firstSheet = result.sheets[0];
+         const columnOptions = firstSheet?.columns ?? [];
+         setConnection({
+            spreadsheetId: result.spreadsheetId,
+            spreadsheetTitle: result.spreadsheetTitle,
+            sheetName: firstSheet?.sheetName ?? '',
+            columnOptions,
+         });
+         const prefilled: Record<string, number> = {};
+         Object.entries(savedSnapshot.columnMapping).forEach(([key, name]) => {
+            const index = columnOptions.indexOf(name);
+            if (index !== -1) prefilled[key] = index;
+         });
+         setColumnMapping(prefilled);
+      } catch {
+         // 재검증 자체가 실패해도 편집은 계속할 수 있어야 하므로 빈 상태로 두고,
+         // 사용자가 "연결 확인"을 다시 눌러 직접 재시도하게 한다
+         setConnection(null);
+         setColumnMapping({});
+      } finally {
+         setIsVerifying(false);
+      }
+   };
+
+   // 편집을 그만두고 마지막 저장 상태로 되돌아간다(저장된 적이 없으면 취소 버튼 자체가 안 보임)
+   const handleCancelEdit = () => {
+      if (!savedSnapshot) return;
+      setSpreadsheetUrl(savedSnapshot.spreadsheetUrl);
       setConnection(null);
       setColumnMapping({});
       setVerifyError('');
+      setIsSaved(true);
    };
 
    if (isSaved) {
@@ -284,7 +339,17 @@ export default function GoogleSheetSync({
             </div>
          )}
 
-         <div className="mt-6 flex justify-end border-t border-gray-100 pt-4">
+         <div className="mt-6 flex justify-end gap-2 border-t border-gray-100 pt-4">
+            {savedSnapshot && (
+               <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  disabled={isSaving}
+                  className="cursor-pointer rounded-xs border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+               >
+                  취소
+               </button>
+            )}
             <button
                type="button"
                onClick={handleSave}

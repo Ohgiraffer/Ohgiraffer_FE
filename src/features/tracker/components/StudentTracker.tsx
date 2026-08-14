@@ -22,11 +22,12 @@ const TODAY_STATUS_BADGE_CLASSES: Record<AttendanceColorGroup, string> = {
    red: 'bg-brand-maroon/10 text-brand-maroon',
 };
 
-type RateTab = 'month' | 'all';
+// 출석률 필터 - 'ALL'이면 전체 기간, 숫자면 그 단위기간(periodNo)만
+type RateFilter = 'ALL' | number;
 
 // 훈련생 본인 화면 - "내 훈련 현황"
 export default function StudentTracker() {
-   const [rateTab, setRateTab] = useState<RateTab>('month');
+   const [rateFilter, setRateFilter] = useState<RateFilter>('ALL');
    const {
       overview,
       isLoadingOverview,
@@ -65,6 +66,12 @@ export default function StudentTracker() {
 
    const warningMessage =
       overview.riskStatus === 'NORMAL' ? null : RISK_WARNING_MESSAGES[overview.riskStatus];
+
+   const displayedRate =
+      rateFilter === 'ALL'
+         ? overview.attendanceRate
+         : (overview.periodRates.find((period) => period.periodNo === rateFilter)?.attendanceRate ??
+            overview.attendanceRate);
 
    return (
       <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
@@ -118,34 +125,45 @@ export default function StudentTracker() {
                </div>
             </div>
 
-            <div className="p-6">
-               <div className="flex items-center justify-between">
+            <div className="min-w-0 p-6">
+               <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm text-gray-400">현재 출석률</p>
-                  <div className="flex gap-4 text-sm">
+                  <div className="flex flex-wrap items-center gap-1 rounded-xs border border-gray-200 p-1">
                      <button
                         type="button"
-                        onClick={() => setRateTab('month')}
-                        className={`cursor-pointer ${rateTab === 'month' ? 'font-bold text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
-                     >
-                        이번 단위기간
-                     </button>
-                     <button
-                        type="button"
-                        onClick={() => setRateTab('all')}
-                        className={`cursor-pointer ${rateTab === 'all' ? 'font-bold text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                        onClick={() => setRateFilter('ALL')}
+                        className={`cursor-pointer rounded-xs px-2.5 py-1 text-xs font-medium transition-colors ${
+                           rateFilter === 'ALL'
+                              ? 'bg-brand-green text-white'
+                              : 'text-gray-500 hover:text-gray-700'
+                        }`}
                      >
                         전체
                      </button>
+                     {overview.periodRates.map((period) => (
+                        <button
+                           key={period.periodNo}
+                           type="button"
+                           onClick={() => setRateFilter(period.periodNo)}
+                           className={`cursor-pointer rounded-xs px-2.5 py-1 text-xs font-medium transition-colors ${
+                              rateFilter === period.periodNo
+                                 ? 'bg-brand-green text-white'
+                                 : 'text-gray-500 hover:text-gray-700'
+                           }`}
+                        >
+                           {period.periodNo}단위
+                        </button>
+                     ))}
                   </div>
                </div>
                <div className="mt-2 flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-gray-900">{overview.attendanceRate}%</span>
+                  <span className="text-3xl font-bold text-gray-900">{displayedRate}%</span>
                   <span className="text-sm text-gray-400">목표 {ATTENDANCE_TARGET_RATE}%</span>
                </div>
                <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-gray-100">
                   <div
                      className="h-full rounded-full bg-brand-sage"
-                     style={{ width: `${overview.attendanceRate}%` }}
+                     style={{ width: `${displayedRate}%` }}
                   />
                </div>
             </div>

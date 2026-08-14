@@ -55,8 +55,8 @@ export interface UserListItem {
    // 훈련생만 소속 팀이 있고, 강사·매니저는 항상 null
    teamName: string | null;
    status: UserStatus;
-   // 백엔드 지원 예정(합의됨) - 아직 없거나 로드 실패 시 ChatAvatar가 기본 아이콘으로 대체
-   profileImageUrl: string | null;
+   // 로드 실패 시 ChatAvatar가 기본 아이콘으로 대체
+   profileImgUrl: string | null;
 }
 
 // 관리자 설정 > 사용자 및 권한 관리 - 전체 사용자 목록 조회
