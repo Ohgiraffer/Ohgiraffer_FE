@@ -18,7 +18,7 @@ export default function TimeSlotGrid({ slots, onToggle }: Props) {
                aria-pressed={slot.isOpen}
                className={`rounded-sm border py-2.5 text-[15px] font-medium transition-colors ${
                   slot.isBooked
-                     ? 'cursor-not-allowed border-brand-maroon text-brand-maroon'
+                     ? 'bg-[#DC928A]/20 border-brand-red text-brand-red'
                      : slot.isOpen
                        ? 'cursor-pointer border-brand-green bg-brand-sage/20 font-semibold text-brand-green'
                        : 'cursor-pointer border-[#E5E7EB] text-gray-700 hover:bg-gray-50'

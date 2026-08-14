@@ -12,8 +12,9 @@ type Props = {
    onNotifyStaff: () => Promise<void>;
 };
 
-// "동기화 실행" 탭 - 연결된 Google Sheet에서 데이터를 가져와 AI가 변경 사항을 분석한다.
-// "연동 설정" 탭에서 연동이 끝나지 않았으면 안내만 보여주고 실행 버튼 자체를 노출하지 않는다
+// 동기화 실행 섹션 - "연동 설정" 탭 안에서 GoogleSheetSync 바로 아래에 이어서 보여준다.
+// 연결된 Google Sheet에서 데이터를 가져와 AI가 변경 사항을 분석한다.
+// 연동이 끝나지 않았으면 안내만 보여주고 실행 버튼 자체를 노출하지 않는다
 export default function SyncRunTab({
    isConnected,
    latestSync,
@@ -24,13 +25,13 @@ export default function SyncRunTab({
    if (!isConnected) {
       return (
          <div className="rounded-sm border border-[#E5E7EB] bg-white px-8 py-16 text-center text-sm text-gray-400">
-            먼저 [연동 설정] 탭에서 Google Sheet 연동을 완료해주세요.
+            먼저 위 Google Sheet 연동을 완료해주세요.
          </div>
       );
    }
 
    return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
          <div className="rounded-sm border border-[#E5E7EB] bg-white p-6">
             <h3 className="text-sm font-bold text-gray-900">동기화 실행</h3>
             <p className="mt-1 text-sm text-gray-500">

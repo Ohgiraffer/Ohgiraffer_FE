@@ -3,16 +3,16 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SheetSyncTab from '../tabs/SheetSyncTab';
-import SyncRunTab from '../tabs/SyncRunTab';
 import SyncHistoryTab from '../tabs/SyncHistoryTab';
 import { useEvaluationSheetSync } from '../hooks/useEvaluationSheetSync';
 import { useSyncHistory } from '../hooks/useSyncHistory';
 
-type TabKey = 'sheet-sync' | 'sync-run' | 'history';
+type TabKey = 'sheet-sync' | 'history';
 
+// 원래는 "연동 설정"/"동기화 실행"이 별도 탭이었으나, 시트 연동 후 탭을 옮겨 동기화를 실행해야 하는
+// 불편함 때문에 하나로 합쳤다(연동 설정 탭 안에서 GoogleSheetSync 아래에 동기화 실행 UI가 이어짐)
 const TABS: Array<{ key: TabKey; label: string }> = [
    { key: 'sheet-sync', label: '연동 설정' },
-   { key: 'sync-run', label: '동기화 실행' },
    { key: 'history', label: '이력' },
 ];
 
@@ -23,7 +23,7 @@ function resolveInitialTab(requestedTab: string | null): TabKey {
    return (matched ?? TABS[0]).key;
 }
 
-// 평가 관리 페이지(운영진 전용) - 연동 설정/동기화 실행/이력을 탭으로 묶음.
+// 평가 관리 페이지(운영진 전용) - 연동 설정(+동기화 실행)/이력을 탭으로 묶음.
 // 연동 상태(isConnected)와 동기화 이력은 탭을 옮겨도 유지되어야 해서 이 상위 컴포넌트에서 한 번만 관리한다
 export default function EvaluationsPageClient() {
    const router = useRouter();
@@ -69,11 +69,6 @@ export default function EvaluationsPageClient() {
                   isLoading={isLoading}
                   loadError={loadError}
                   onSaveMapping={handleSaveMapping}
-               />
-            )}
-            {activeTab === 'sync-run' && (
-               <SyncRunTab
-                  isConnected={isConnected}
                   latestSync={latestSync}
                   isSyncing={isSyncing}
                   onRunSync={runSync}
