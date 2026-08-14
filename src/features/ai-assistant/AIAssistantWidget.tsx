@@ -139,12 +139,12 @@ export default function AIAssistantWidget() {
 
                   <div className="max-h-[60vh] min-h-[25vh] overflow-y-auto bg-brand-cream/30 p-4">
                      {isLoading && !summary ? (
-                        <div className="flex flex-col items-center gap-3 py-6">
+                        <div className="flex h-full min-h-[calc(25vh-2rem)] flex-col items-center justify-center gap-3">
                            <InlineProgressBar className="bg-white" />
                            <p className="text-xs text-gray-400">요약을 불러오는 중...</p>
                         </div>
                      ) : errorMessage && !summary ? (
-                        <div className="flex flex-col items-center gap-3 py-6">
+                        <div className="flex h-full min-h-[calc(25vh-2rem)] flex-col items-center justify-center gap-3">
                            <p className="text-center text-sm text-gray-400">{errorMessage}</p>
                            <button
                               type="button"

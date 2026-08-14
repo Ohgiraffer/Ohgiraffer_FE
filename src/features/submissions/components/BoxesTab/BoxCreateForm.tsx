@@ -3,6 +3,13 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
+import {
+   Select,
+   SelectContent,
+   SelectItem,
+   SelectTrigger,
+   SelectValue,
+} from '@/components/ui/shadcn/select';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
@@ -44,6 +51,24 @@ interface BoxCreateFormProps {
 
 function createId() {
    return crypto.randomUUID();
+}
+
+const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
+// 마감 시간의 기본값이 59분이라 목록에도 포함시킨다
+const MINUTES = ['00', '10', '20', '30', '40', '50', '59'];
+// 시간을 따로 지정하지 않아도(=선택 항목) 항상 이 값으로 지정된다 - 그래서 처음부터 선택란에
+// 채워서 보여준다(빈 값이 아니라 이 기본값이 이미 선택된 상태로 시작)
+const DEFAULT_START_HOUR = '00';
+const DEFAULT_START_MINUTE = '00';
+const DEFAULT_DUE_HOUR = '23';
+const DEFAULT_DUE_MINUTE = '59';
+
+// ISO 문자열(예: '2026-08-20T09:30:00')에서 시/분만 뽑아낸다 - 없으면 기본값을 그대로 쓴다
+function parseTime(iso: string | undefined, defaultHour: string, defaultMinute: string): [string, string] {
+   if (!iso) return [defaultHour, defaultMinute];
+   const time = iso.slice(11, 16);
+   const [hour, minute] = time.split(':');
+   return [hour || defaultHour, minute || defaultMinute];
 }
 
 // 항목명 / 파일 업로드 / 외부 링크 / 삭제 버튼 컬럼 너비 비율.
@@ -91,6 +116,16 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
    );
    const [startAt, setStartAt] = useState(toDateInputValue(editTarget?.startAt));
    const [dueAt, setDueAt] = useState(toDateInputValue(editTarget?.dueAt));
+   const [[initialStartHour, initialStartMinute]] = useState(() =>
+      parseTime(editTarget?.startAt, DEFAULT_START_HOUR, DEFAULT_START_MINUTE),
+   );
+   const [[initialDueHour, initialDueMinute]] = useState(() =>
+      parseTime(editTarget?.dueAt, DEFAULT_DUE_HOUR, DEFAULT_DUE_MINUTE),
+   );
+   const [startHour, setStartHour] = useState(initialStartHour);
+   const [startMinute, setStartMinute] = useState(initialStartMinute);
+   const [dueHour, setDueHour] = useState(initialDueHour);
+   const [dueMinute, setDueMinute] = useState(initialDueMinute);
    const [latePolicy, setLatePolicy] = useState<LatePolicy>(editTarget?.latePolicy ?? 'BLOCK');
    const [items, setItems] = useState<ItemDraft[]>(
       editTarget
@@ -137,6 +172,10 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
       targetScope,
       startAt,
       dueAt,
+      startHour: initialStartHour,
+      startMinute: initialStartMinute,
+      dueHour: initialDueHour,
+      dueMinute: initialDueMinute,
       latePolicy,
       itemsSnapshot: toItemsSnapshot(items),
    });
@@ -146,6 +185,10 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
       targetScope !== initialSnapshot.targetScope ||
       startAt !== initialSnapshot.startAt ||
       dueAt !== initialSnapshot.dueAt ||
+      startHour !== initialSnapshot.startHour ||
+      startMinute !== initialSnapshot.startMinute ||
+      dueHour !== initialSnapshot.dueHour ||
+      dueMinute !== initialSnapshot.dueMinute ||
       latePolicy !== initialSnapshot.latePolicy ||
       itemsSnapshot !== initialSnapshot.itemsSnapshot;
 
@@ -259,6 +302,9 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
       setIsConfirmOpen(true);
    };
 
+   const startTimeValue = `${startHour}:${startMinute}`;
+   const dueTimeValue = `${dueHour}:${dueMinute}`;
+
    const handleConfirmSave = async () => {
       if (isSubmitting) return;
       setIsSubmitting(true);
@@ -266,8 +312,8 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
       const body = {
          projectName: projectName.trim(),
          targetScope,
-         startAt: `${startAt}T00:00:00`,
-         dueAt: `${dueAt}T23:59:00`,
+         startAt: `${startAt}T${startTimeValue}:00`,
+         dueAt: `${dueAt}T${dueTimeValue}:00`,
          latePolicy,
          items: items.map((item) => ({
             submissionBoxItemId: item.submissionBoxItemId,
@@ -300,7 +346,7 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
    };
 
    return (
-      <div className="rounded-sm border border-[#E5E7EB] bg-white p-6">
+      <div className="rounded-xs border border-[#E5E7EB] bg-white p-6">
          <h2 className="text-sm font-bold text-gray-900">
             {isEditing ? '제출함 수정' : '새 제출함 생성'}
          </h2>
@@ -318,7 +364,7 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
                   placeholder="예: 팀 최종 발표자료"
-                  className="mt-2 h-10 w-full rounded-sm border border-[#E5E7EB] px-4 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-green"
+                  className="mt-2 h-10 w-full rounded-xs border border-[#E5E7EB] px-4 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-green"
                />
             </div>
             <div>
@@ -365,6 +411,76 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
                   제출 마감일 <span className="font-bold text-brand-gold">*</span>
                </label>
                <DatePicker id={dueAtId} value={dueAt} onChange={setDueAt} className="mt-2" />
+            </div>
+
+            <div>
+               <label className="flex items-center gap-1 text-sm font-semibold text-gray-900">
+                  제출 시작 시간 <span className="text-gray-400">(선택)</span>
+               </label>
+               <div className="mt-2 flex items-center gap-1">
+                  <Select value={startHour} onValueChange={(value) => setStartHour(value ?? DEFAULT_START_HOUR)}>
+                     <SelectTrigger className="h-10 flex-1 rounded-xs">
+                        <SelectValue placeholder="시" />
+                     </SelectTrigger>
+                     <SelectContent alignItemWithTrigger={false}>
+                        {HOURS.map((h) => (
+                           <SelectItem key={h} value={h}>
+                              {h}
+                           </SelectItem>
+                        ))}
+                     </SelectContent>
+                  </Select>
+                  <span className="text-gray-400">:</span>
+                  <Select
+                     value={startMinute}
+                     onValueChange={(value) => setStartMinute(value ?? DEFAULT_START_MINUTE)}
+                  >
+                     <SelectTrigger className="h-10 flex-1 rounded-xs">
+                        <SelectValue placeholder="분" />
+                     </SelectTrigger>
+                     <SelectContent alignItemWithTrigger={false}>
+                        {MINUTES.map((m) => (
+                           <SelectItem key={m} value={m}>
+                              {m}
+                           </SelectItem>
+                        ))}
+                     </SelectContent>
+                  </Select>
+               </div>
+               <p className="mt-1.5 text-xs text-gray-400">지정하지 않으면 00:00부터 시작됩니다</p>
+            </div>
+            <div>
+               <label className="flex items-center gap-1 text-sm font-semibold text-gray-900">
+                  제출 마감 시간 <span className="text-gray-400">(선택)</span>
+               </label>
+               <div className="mt-2 flex items-center gap-1">
+                  <Select value={dueHour} onValueChange={(value) => setDueHour(value ?? DEFAULT_DUE_HOUR)}>
+                     <SelectTrigger className="h-10 flex-1 rounded-xs">
+                        <SelectValue placeholder="시" />
+                     </SelectTrigger>
+                     <SelectContent alignItemWithTrigger={false}>
+                        {HOURS.map((h) => (
+                           <SelectItem key={h} value={h}>
+                              {h}
+                           </SelectItem>
+                        ))}
+                     </SelectContent>
+                  </Select>
+                  <span className="text-gray-400">:</span>
+                  <Select value={dueMinute} onValueChange={(value) => setDueMinute(value ?? DEFAULT_DUE_MINUTE)}>
+                     <SelectTrigger className="h-10 flex-1 rounded-xs">
+                        <SelectValue placeholder="분" />
+                     </SelectTrigger>
+                     <SelectContent alignItemWithTrigger={false}>
+                        {MINUTES.map((m) => (
+                           <SelectItem key={m} value={m}>
+                              {m}
+                           </SelectItem>
+                        ))}
+                     </SelectContent>
+                  </Select>
+               </div>
+               <p className="mt-1.5 text-xs text-gray-400">지정하지 않으면 23:59에 마감됩니다</p>
             </div>
          </div>
 
@@ -420,7 +536,7 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
                               value={item.name}
                               onChange={(e) => updateItem(item.draftId, { name: e.target.value })}
                               placeholder="항목명 (예: 발표자료)"
-                              className="h-10 min-w-0 flex-1 rounded-sm border border-[#E5E7EB] px-3 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-green sm:order-2 sm:w-full"
+                              className="h-10 min-w-0 flex-1 rounded-xs border border-[#E5E7EB] px-3 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-green sm:order-2 sm:w-full"
                            />
                            <button
                               type="button"
@@ -460,7 +576,7 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
                                        updateItem(item.draftId, { hint: e.target.value })
                                     }
                                     placeholder="허용 확장자 (예: pdf, pptx)"
-                                    className="h-9 w-full rounded-sm border border-[#E5E7EB] px-3 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-green"
+                                    className="h-9 w-full rounded-xs border border-[#E5E7EB] px-3 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-green"
                                  />
                               ) : (
                                  <p className="text-xs text-gray-400">
