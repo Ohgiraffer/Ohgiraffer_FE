@@ -225,7 +225,6 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
                      approverName={detail.approverName}
                      confirmedAt={detail.confirmedAt}
                      processedAt={detail.processedAt}
-                     showCheckerCaption={isProcessor}
                   />
                </div>
 

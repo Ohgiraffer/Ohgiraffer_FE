@@ -13,7 +13,7 @@ export const APPROVAL_STATUS_TONES: Record<
    ApprovalStatus,
    'success' | 'danger' | 'neutral' | 'muted' | 'gold'
 > = {
-   PENDING: 'gold',
+   PENDING: 'muted',
    CHECKED: 'gold',
    APPROVED: 'neutral',
    REJECTED: 'danger',
@@ -22,8 +22,10 @@ export const APPROVAL_STATUS_TONES: Record<
 
 // 훈련생 "결재 신청" 탭 - 휴가 신청 폼 데이터
 // 전자 서명은 서류에 딸린 값이 아니라 계정에 등록해두는 별도 자산이라(조회/등록/삭제 API 별도)
-// 여기서는 파일 자체가 아니라 "서명이 등록되어 있는지"만 훅에서 별도로 관리한다
+// 여기서는 파일 자체가 아니라 "서명이 등록되어 있는지"만 훅에서 별도로 관리한다.
+// 전화번호는 이 폼에서 입력받지 않음(사용자 기본 정보 값을 그대로 표시만 함) - birthDate만 폼 데이터로 관리
 export type LeaveRequestFormData = {
+   birthDate: string;
    startDate: string;
    endDate: string;
 };

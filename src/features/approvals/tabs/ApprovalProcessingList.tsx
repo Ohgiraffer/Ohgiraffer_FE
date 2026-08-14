@@ -48,24 +48,25 @@ export default function ApprovalProcessingList() {
                <thead>
                   <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
                      <th className="w-[6%] px-8 py-3 text-center font-medium">#</th>
-                     <th className="w-[16%] px-6 py-3 text-center font-medium">결재 항목</th>
-                     <th className="w-[14%] px-6 py-3 font-medium">신청인</th>
-                     <th className="w-[22%] px-6 py-3 font-medium">요약</th>
+                     <th className="w-[14%] px-6 py-3 text-center font-medium">결재 항목</th>
+                     <th className="w-[12%] px-6 py-3 font-medium">신청인</th>
+                     <th className="w-[12%] px-6 py-3 font-medium">담당자</th>
+                     <th className="w-[18%] px-6 py-3 font-medium">요약</th>
                      <th className="w-[10%] px-6 py-3 text-center font-medium">처리 상태</th>
-                     <th className="w-[14%] px-6 py-3 text-center font-medium">신청일자</th>
-                     <th className="w-[18%] px-6 py-3 font-medium text-center"></th>
+                     <th className="w-[12%] px-6 py-3 text-center font-medium">신청일자</th>
+                     <th className="w-[16%] px-6 py-3 font-medium text-center"></th>
                   </tr>
                </thead>
                <tbody>
                   {isLoading ? (
                      <tr>
-                        <td colSpan={7} className="px-6 py-10 text-center text-gray-400">
+                        <td colSpan={8} className="px-6 py-10 text-center text-gray-400">
                            불러오는 중...
                         </td>
                      </tr>
                   ) : approvals.length === 0 ? (
                      <tr>
-                        <td colSpan={7} className="px-6 py-10 text-center text-gray-400">
+                        <td colSpan={8} className="px-6 py-10 text-center text-gray-400">
                            처리할 결재 내역이 없습니다.
                         </td>
                      </tr>
@@ -85,6 +86,9 @@ export default function ApprovalProcessingList() {
                               </td>
                               <td className="px-6 py-3 text-gray-700">
                                  {formatRequesterLabel(approval)}
+                              </td>
+                              <td className="px-6 py-3 text-gray-700">
+                                 {approval.approverName ?? '—'}
                               </td>
                               <td className="px-6 py-3 text-gray-700">{formatSummary(approval)}</td>
                               <td className="px-6 py-3">

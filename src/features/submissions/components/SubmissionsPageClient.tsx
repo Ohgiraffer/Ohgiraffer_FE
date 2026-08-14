@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthContext';
+import ConfirmModal from '@/components/ui/ConfirmModal';
+import { hasUnsavedChanges } from '@/lib/navigationGuard';
 import BoxesTab from './BoxesTab/BoxesTab';
 import FormsTab from './FormsTab/FormsTab';
 import StudentSubmissionsPageClient from './StudentSubmissionsPageClient';
@@ -19,12 +21,24 @@ export default function SubmissionsPageClient() {
    const searchParams = useSearchParams();
    const [tab, setTab] = useState<Tab>(searchParams.get('tab') === 'forms' ? 'forms' : 'boxes');
    const [isCreating, setIsCreating] = useState(false);
+   // 제출함/설문 생성 폼이 저장 안 된 채로 열려 있을 때 다른 탭으로 넘어가면 그 입력이 그대로
+   // 사라지므로, Menubar의 사이드바 이동 가드와 동일한 방식으로 한 번 더 확인받는다
+   const [pendingTab, setPendingTab] = useState<Tab | null>(null);
 
    if (role === 'STUDENT') return <StudentSubmissionsPageClient />;
 
-   const handleTabChange = (next: Tab) => {
+   const switchTab = (next: Tab) => {
       setTab(next);
       setIsCreating(false);
+   };
+
+   const handleTabChange = (next: Tab) => {
+      if (next === tab) return;
+      if (hasUnsavedChanges()) {
+         setPendingTab(next);
+         return;
+      }
+      switchTab(next);
    };
 
    return (
@@ -70,6 +84,19 @@ export default function SubmissionsPageClient() {
                <FormsTab isCreating={isCreating} onCreatingChange={setIsCreating} />
             )}
          </div>
+
+         <ConfirmModal
+            open={!!pendingTab}
+            title="저장하지 않은 변경사항이 있습니다"
+            description="지금 나가면 변경사항이 저장되지 않습니다. 그래도 나가시겠습니까?"
+            confirmLabel="나가기"
+            variant="danger"
+            onConfirm={() => {
+               if (pendingTab) switchTab(pendingTab);
+               setPendingTab(null);
+            }}
+            onClose={() => setPendingTab(null)}
+         />
       </div>
    );
 }

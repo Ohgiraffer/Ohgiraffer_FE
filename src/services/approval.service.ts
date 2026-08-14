@@ -33,6 +33,32 @@ export function getApprovals(scope: ApprovalScope) {
    return apiFetch<GetApprovalsResponse>(`/approvals?scope=${scope}`);
 }
 
+export interface ApprovalProfile {
+   // 훈련생이 입력/수정한 값 - 아직 저장한 적 없으면 null
+   birthDate: string | null;
+   // 사용자 기본 정보에 저장된 전화번호를 그대로 보여주기만 함(이 프로필 API로는 수정 불가)
+   phoneNumber: string | null;
+}
+
+// 훈련생 휴가 신청서 작성에 필요한 결재 프로필(생년월일/전화번호) 조회 - 신청 화면 진입 시 호출
+export function getApprovalProfile() {
+   return apiFetch<ApprovalProfile>('/users/me/approval-profile');
+}
+
+export interface UpdateApprovalProfileRequest {
+   birthDate: string;
+}
+
+// 훈련생의 생년월일 저장/수정 - 전화번호는 이 API로 수정되지 않음(사용자 기본 정보 값 그대로 유지).
+// 휴가 신청서 작성 후 실제 신청(createLeaveApproval) 전에 호출해서 최신 생년월일을 먼저 반영한다.
+// 비어있거나 미래 날짜면 400(COMMON_001)
+export function updateApprovalProfile(body: UpdateApprovalProfileRequest) {
+   return apiFetch<ApprovalProfile>('/users/me/approval-profile', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+   });
+}
+
 export interface CreateLeaveApprovalRequest {
    startDate: string;
    endDate: string;
