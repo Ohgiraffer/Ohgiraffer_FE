@@ -6,7 +6,7 @@ import { Clock, Plus } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
-import { setUnsavedChangesChecker } from '@/lib/navigationGuard';
+import { useLeaveGuard } from '@/lib/hooks/useLeaveGuard';
 import {
    deleteTeamPeriod,
    getTeams,
@@ -195,79 +195,9 @@ export default function ManagerTeamBoard() {
       return memberDirty;
    }, [deletedTeamIds, draftTeams, serverTeams, memberInfoByUserId, draftAssignment]);
 
-   // 사이드바 등 앱 내 이동은 navigationGuard로, 새로고침/탭 닫기는 beforeunload로 막는다
-   useEffect(() => {
-      setUnsavedChangesChecker(() => isDirty);
-      return () => setUnsavedChangesChecker(null);
-   }, [isDirty]);
-
-   useEffect(() => {
-      const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-         if (!isDirty) return;
-         e.preventDefault();
-         e.returnValue = '';
-      };
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-   }, [isDirty]);
-
-   // 저장 안 한 변경사항이 있는 채로 화면을 떠나려는 시도(뒤로가기, 기간 탭 전환)를 공통으로 가드한다.
-   // dirty가 아니면 바로 실행하고, dirty면 실행을 보류해뒀다가 확인 모달에서 승인해야 실행한다
-   const [isLeaveConfirmOpen, setIsLeaveConfirmOpen] = useState(false);
-   const pendingActionRef = useRef<(() => void) | null>(null);
-
-   const guardedAction = (fn: () => void) => {
-      if (!isDirty) {
-         fn();
-         return;
-      }
-      pendingActionRef.current = fn;
-      setIsLeaveConfirmOpen(true);
-   };
-
-   const handleConfirmLeave = () => {
-      setIsLeaveConfirmOpen(false);
-      const fn = pendingActionRef.current;
-      pendingActionRef.current = null;
-      fn?.();
-   };
-
-   const handleCancelLeave = () => {
-      setIsLeaveConfirmOpen(false);
-      pendingActionRef.current = null;
-   };
-
-   // 브라우저 뒤로가기 대응: dirty 상태로 들어가는 시점에 같은 주소로 더미 히스토리를 하나 쌓아둔다.
-   // 뒤로가기를 누르면 popstate가 뜨는데, 그때 다시 더미를 쌓아 실제 이동을 취소하고 확인을 받는다
-   const guardPushedRef = useRef(false);
-   // 승인 후 go(-2)가 발생시키는 popstate까지 다시 가로채면 뒤로가기가 영원히 막히므로,
-   // 승인된 이동 한 번은 그대로 통과시키기 위한 플래그
-   const isLeavingRef = useRef(false);
-
-   useEffect(() => {
-      if (isDirty && !guardPushedRef.current) {
-         window.history.pushState(null, '', window.location.href);
-         guardPushedRef.current = true;
-      } else if (!isDirty) {
-         guardPushedRef.current = false;
-      }
-   }, [isDirty]);
-
-   useEffect(() => {
-      const handlePopState = () => {
-         if (isLeavingRef.current) return;
-         if (!isDirty) return;
-         window.history.pushState(null, '', window.location.href);
-         guardedAction(() => {
-            isLeavingRef.current = true;
-            guardPushedRef.current = false;
-            window.history.go(-2);
-         });
-      };
-      window.addEventListener('popstate', handlePopState);
-      return () => window.removeEventListener('popstate', handlePopState);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-   }, [isDirty]);
+   // 저장 안 한 변경사항이 있는 채로 화면을 떠나려는 시도(사이드바 이동, 새로고침/탭 닫기, 뒤로가기,
+   // 기간 탭 전환)를 공통으로 가드한다
+   const { guardedAction, isLeaveConfirmOpen, onConfirmLeave, onCancelLeave } = useLeaveGuard(isDirty);
 
    const moveDraft = (userId: number, targetTeamId: number | null) => {
       setDraftAssignment((prev) => ({ ...prev, [userId]: targetTeamId }));
@@ -649,8 +579,8 @@ export default function ManagerTeamBoard() {
             description="지금 나가면 변경사항이 저장되지 않습니다. 그래도 나가시겠습니까?"
             confirmLabel="나가기"
             variant="danger"
-            onConfirm={handleConfirmLeave}
-            onClose={handleCancelLeave}
+            onConfirm={onConfirmLeave}
+            onClose={onCancelLeave}
          />
       </div>
    );

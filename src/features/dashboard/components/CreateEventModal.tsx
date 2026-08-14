@@ -13,6 +13,7 @@ import {
    SelectValue,
 } from '@/components/ui/shadcn/select';
 import { DatePicker } from '@/components/ui/date-picker';
+import TimeSelect from '@/components/ui/TimeSelect';
 import { useAuth } from '@/components/auth/AuthContext';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
@@ -26,8 +27,6 @@ interface CreateEventModalProps {
 }
 
 const MANAGER_EVENT_TYPES: EventType[] = ['수업/발표', '행사', '개인'];
-const HOURS = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'));
-const MINUTES = ['00', '10', '20', '30', '40', '50'];
 
 // 수업/발표는 화면에서 하나로 묶어 보여주되 API로는 항상 CLASS로 전송한다
 const EVENT_TYPE_TO_API: Record<EventType, CalendarEventApiType> = {
@@ -41,7 +40,11 @@ function toDateInputValue(date: Date) {
    return new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10);
 }
 
-export default function CreateEventModal({ defaultDate, onClose, onCreated }: CreateEventModalProps) {
+export default function CreateEventModal({
+   defaultDate,
+   onClose,
+   onCreated,
+}: CreateEventModalProps) {
    const { role } = useAuth();
    const isStaff = role === 'MANAGER' || role === 'INSTRUCTOR';
 
@@ -89,7 +92,9 @@ export default function CreateEventModal({ defaultDate, onClose, onCreated }: Cr
          onCreated();
       } catch (err) {
          toast.error(
-            err instanceof ApiError ? err.message : '일정 등록에 실패했습니다. 잠시 후 다시 시도해주세요.',
+            err instanceof ApiError
+               ? err.message
+               : '일정 등록에 실패했습니다. 잠시 후 다시 시도해주세요.',
          );
       } finally {
          setIsSubmitting(false);
@@ -118,7 +123,7 @@ export default function CreateEventModal({ defaultDate, onClose, onCreated }: Cr
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="일정명을 입력해주세요"
-                  className="h-10 w-full rounded-sm border border-gray-200 px-3 text-sm text-gray-900 outline-none focus:border-gray-400"
+                  className="h-10 w-full rounded-xs border border-gray-200 px-3 text-sm text-gray-900 outline-none focus:border-gray-400"
                />
             </div>
 
@@ -126,10 +131,10 @@ export default function CreateEventModal({ defaultDate, onClose, onCreated }: Cr
                <label className="mb-1.5 block text-sm font-medium text-gray-700">유형</label>
                {isStaff ? (
                   <Select value={type} onValueChange={(value) => setType(value as EventType)}>
-                     <SelectTrigger className="h-10 w-full rounded-sm">
+                     <SelectTrigger className="h-10 w-full rounded-xs">
                         <SelectValue />
                      </SelectTrigger>
-                     <SelectContent>
+                     <SelectContent alignItemWithTrigger={false}>
                         {MANAGER_EVENT_TYPES.map((t) => (
                            <SelectItem key={t} value={t}>
                               {t}
@@ -138,7 +143,7 @@ export default function CreateEventModal({ defaultDate, onClose, onCreated }: Cr
                      </SelectContent>
                   </Select>
                ) : (
-                  <p className="flex h-10 w-full items-center rounded-sm border border-gray-200 bg-gray-50 px-3 text-sm text-gray-500">
+                  <p className="flex h-10 w-full items-center rounded-xs border border-gray-200 bg-gray-50 px-3 text-sm text-gray-500">
                      유형: 개인 일정으로 자동 등록됩니다
                   </p>
                )}
@@ -157,7 +162,9 @@ export default function CreateEventModal({ defaultDate, onClose, onCreated }: Cr
                   </label>
                   <DatePicker value={endDate} onChange={setEndDate} />
                   {isDateRangeInvalid && (
-                     <p className="mt-1 text-xs text-brand-red">종료일은 시작일보다 빠를 수 없습니다</p>
+                     <p className="mt-1 text-xs text-brand-red">
+                        종료일은 시작일보다 빠를 수 없습니다
+                     </p>
                   )}
                </div>
             </div>
@@ -167,91 +174,39 @@ export default function CreateEventModal({ defaultDate, onClose, onCreated }: Cr
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">
                      시작 시각 <span className="text-gray-400">(선택)</span>
                   </label>
-                  <div className="flex items-center gap-1">
-                     <Select
-                        value={startHour}
-                        onValueChange={(value) => {
-                           setStartHour(value ?? '');
-                           if (!startMinute) setStartMinute('00');
-                        }}
-                     >
-                        <SelectTrigger className="h-10 flex-1 rounded-sm">
-                           <SelectValue placeholder="시" />
-                        </SelectTrigger>
-                        <SelectContent>
-                           {HOURS.map((h) => (
-                              <SelectItem key={h} value={h}>
-                                 {h}
-                              </SelectItem>
-                           ))}
-                        </SelectContent>
-                     </Select>
-                     <span className="text-gray-400">:</span>
-                     <Select
-                        value={startMinute}
-                        onValueChange={(value) => {
-                           setStartMinute(value ?? '');
-                           if (!startHour) setStartHour('00');
-                        }}
-                     >
-                        <SelectTrigger className="h-10 flex-1 rounded-sm">
-                           <SelectValue placeholder="분" />
-                        </SelectTrigger>
-                        <SelectContent>
-                           {MINUTES.map((m) => (
-                              <SelectItem key={m} value={m}>
-                                 {m}
-                              </SelectItem>
-                           ))}
-                        </SelectContent>
-                     </Select>
-                  </div>
+                  <TimeSelect
+                     hour={startHour}
+                     minute={startMinute}
+                     onHourChange={(value) => {
+                        setStartHour(value);
+                        if (!startMinute) setStartMinute('00');
+                     }}
+                     onMinuteChange={(value) => {
+                        setStartMinute(value);
+                        if (!startHour) setStartHour('00');
+                     }}
+                  />
                </div>
                <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">
                      종료 시각 <span className="text-gray-400">(선택)</span>
                   </label>
-                  <div className="flex items-center gap-1">
-                     <Select
-                        value={endHour}
-                        onValueChange={(value) => {
-                           setEndHour(value ?? '');
-                           if (!endMinute) setEndMinute('00');
-                        }}
-                     >
-                        <SelectTrigger className="h-10 flex-1 rounded-sm">
-                           <SelectValue placeholder="시" />
-                        </SelectTrigger>
-                        <SelectContent>
-                           {HOURS.map((h) => (
-                              <SelectItem key={h} value={h}>
-                                 {h}
-                              </SelectItem>
-                           ))}
-                        </SelectContent>
-                     </Select>
-                     <span className="text-gray-400">:</span>
-                     <Select
-                        value={endMinute}
-                        onValueChange={(value) => {
-                           setEndMinute(value ?? '');
-                           if (!endHour) setEndHour('00');
-                        }}
-                     >
-                        <SelectTrigger className="h-10 flex-1 rounded-sm">
-                           <SelectValue placeholder="분" />
-                        </SelectTrigger>
-                        <SelectContent>
-                           {MINUTES.map((m) => (
-                              <SelectItem key={m} value={m}>
-                                 {m}
-                              </SelectItem>
-                           ))}
-                        </SelectContent>
-                     </Select>
-                  </div>
+                  <TimeSelect
+                     hour={endHour}
+                     minute={endMinute} 
+                     onHourChange={(value) => {
+                        setEndHour(value);
+                        if (!endMinute) setEndMinute('00');
+                     }}
+                     onMinuteChange={(value) => {
+                        setEndMinute(value);
+                        if (!endHour) setEndHour('00');
+                     }}
+                  />
                   {isTimeRangeInvalid && (
-                     <p className="mt-1 text-xs text-brand-red">종료 시각은 시작 시각보다 빠를 수 없습니다</p>
+                     <p className="mt-1 text-xs text-brand-red">
+                        종료 시각은 시작 시각보다 빠를 수 없습니다
+                     </p>
                   )}
                </div>
             </div>
@@ -264,19 +219,22 @@ export default function CreateEventModal({ defaultDate, onClose, onCreated }: Cr
                   value={place}
                   onChange={(e) => setPlace(e.target.value)}
                   placeholder="장소를 입력해주세요"
-                  className="h-10 w-full rounded-sm border border-gray-200 px-3 text-sm text-gray-900 outline-none focus:border-gray-400"
+                  className="h-10 w-full rounded-xs border border-gray-200 px-3 text-sm text-gray-900 outline-none focus:border-gray-400"
                />
             </div>
 
             {needsNotifyConsent && (
-               <label className="flex cursor-pointer items-start gap-2 rounded-sm border border-brand-gold/40 bg-brand-cream/40 p-3 text-xs text-gray-700">
+               <label className="flex cursor-pointer items-start gap-2 rounded-xs border border-brand-gold/40 bg-brand-cream/40 p-3 text-xs text-gray-700">
                   <input
                      type="checkbox"
                      checked={notifyConsent}
                      onChange={(e) => setNotifyConsent(e.target.checked)}
-                     className="mt-0.5 h-4 w-4 cursor-pointer accent-brand-green"
+                     className="mt-0.5 h-3.5 w-3.5 cursor-pointer accent-brand-green"
                   />
-                  등록 시 전체 훈련생에게 알림이 발송됩니다. 일정을 등록하시겠습니까?
+                  <div>
+                     <p>등록 시 전체 훈련생에게 알림이 발송됩니다.</p>
+                     <p>일정을 등록하시겠습니까?</p>
+                  </div>
                </label>
             )}
 
@@ -284,14 +242,14 @@ export default function CreateEventModal({ defaultDate, onClose, onCreated }: Cr
                <button
                   type="button"
                   onClick={onClose}
-                  className="h-10 flex-1 cursor-pointer rounded-sm border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                  className="h-10 flex-1 cursor-pointer rounded-xs border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50"
                >
                   취소
                </button>
                <Button
                   type="submit"
                   disabled={!canSubmit || isSubmitting}
-                  className="h-10 flex-1 rounded-sm bg-brand-green hover:bg-[#4D655A] disabled:bg-gray-200 disabled:text-gray-400"
+                  className="h-10 flex-1 rounded-xs bg-brand-green hover:bg-[#4D655A] disabled:bg-gray-200 disabled:text-gray-400"
                >
                   {isSubmitting ? '등록 중...' : '등록'}
                </Button>
