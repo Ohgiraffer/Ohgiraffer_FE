@@ -85,11 +85,11 @@ export default function Menubar() {
                      key={href}
                      href={href}
                      onClick={(e) => handleNavigate(e, href, isActive)}
-                     className={`flex min-h-0 cursor-pointer flex-col items-center justify-center gap-[clamp(0px,0.3vh,4px)] rounded-sm px-1.5 py-[clamp(4px,1.5vh,12px)] text-[11px] font-semibold transition-colors ${
+                     className={`flex min-h-0 cursor-pointer flex-col items-center justify-center gap-[clamp(0px,0.3vh,4px)] rounded-sm px-1.5 py-[clamp(4px,2vh,12px)] text-[11px] font-semibold transition-colors ${
                         isActive ? 'bg-brand-green text-white' : 'text-[#3B4150] hover:bg-[#F7F8FA]'
                      }`}
                   >
-                     <Icon className="h-[clamp(14px,2.6vh,22px)] w-[clamp(14px,2.6vh,22px)] shrink-0" />
+                     <Icon className="h-[clamp(14px,3.667vh,22px)] w-[clamp(14px,3.667vh,22px)] shrink-0" />
                      <span className="truncate">{label}</span>
                   </Link>
                );

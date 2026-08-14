@@ -95,7 +95,7 @@ export default function TodoCard() {
                </button>
             </div>
          ) : visibleTodos.length === 0 ? (
-            <p className="py-6 text-center text-sm text-gray-400">표시할 항목이 없습니다</p>
+            <p className="break-keep py-6 text-center text-sm text-gray-400">표시할 항목이 없습니다</p>
          ) : (
             <ul>
                {visibleTodos.map((todo) => {
