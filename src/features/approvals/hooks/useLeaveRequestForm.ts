@@ -3,11 +3,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
-import { createLeaveApproval } from '@/services/approval.service';
+import {
+   createLeaveApproval,
+   getApprovalProfile,
+   updateApprovalProfile,
+} from '@/services/approval.service';
 import { getLeaveSickCount } from '@/services/attendance.service';
 import type { LeaveRequestFormData } from '../types';
 
 const INITIAL_FORM: LeaveRequestFormData = {
+   birthDate: '',
    startDate: '',
    endDate: '',
 };
@@ -51,6 +56,40 @@ export function useLeaveRequestForm() {
       };
    }, []);
 
+   // 전화번호는 사용자 기본 정보 값을 그대로 보여주기만 함(수정 불가) - 로딩/실패를 phoneNumber가
+   // null인 것과 구분하기 위해 별도 상태로 관리
+   const [phoneNumber, setPhoneNumber] = useState<string | null>(null);
+   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+   const [hasProfileError, setHasProfileError] = useState(false);
+
+   useEffect(() => {
+      let isMounted = true;
+
+      getApprovalProfile()
+         .then((data) => {
+            if (!isMounted) return;
+            setPhoneNumber(data.phoneNumber);
+            // 조회 응답이 도착하기 전에 사용자가 이미 생년월일을 입력했다면 그 입력을 덮어쓰지 않는다
+            setForm((prev) => (prev.birthDate ? prev : { ...prev, birthDate: data.birthDate ?? '' }));
+         })
+         .catch((err) => {
+            if (!isMounted) return;
+            setHasProfileError(true);
+            toast.error(
+               err instanceof ApiError
+                  ? err.message
+                  : '결재 프로필을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+            );
+         })
+         .finally(() => {
+            if (isMounted) setIsLoadingProfile(false);
+         });
+
+      return () => {
+         isMounted = false;
+      };
+   }, []);
+
    const updateField = <K extends keyof LeaveRequestFormData>(
       field: K,
       value: LeaveRequestFormData[K],
@@ -61,7 +100,7 @@ export function useLeaveRequestForm() {
    const hasDateOrderError =
       Boolean(form.startDate) && Boolean(form.endDate) && form.startDate > form.endDate;
 
-   const isFilled = Boolean(form.startDate && form.endDate && hasSignature);
+   const isFilled = Boolean(form.birthDate && form.startDate && form.endDate && hasSignature);
 
    // "신청하기" 클릭 - 검증 통과 시 바로 제출하지 않고 확인 모달을 띄운다
    const submit = () => {
@@ -74,17 +113,20 @@ export function useLeaveRequestForm() {
       setIsConfirmOpen(true);
    };
 
-   // 확인 모달의 [확인] - 실제 제출. 담당자는 신청 시점에 지정하지 않고, 결재 처리 화면에서
-   // 강사/매니저가 [확인]을 누른 시점에 배정된다
+   // 확인 모달의 [확인] - 실제 제출. 생년월일은 휴가 신청서에 딸린 값이 아니라 계정에 저장해두는
+   // 결재 프로필이라, 실제 휴가 신청(createLeaveApproval) 전에 먼저 저장한다(문서에 명시된 순서).
+   // 담당자는 신청 시점에 지정하지 않고, 결재 처리 화면에서 강사/매니저가 [확인]을 누른 시점에 배정된다
    const confirmSubmit = async () => {
       if (isSubmittingRef.current) return;
       isSubmittingRef.current = true;
 
       try {
+         await updateApprovalProfile({ birthDate: form.birthDate });
          await createLeaveApproval({ startDate: form.startDate, endDate: form.endDate });
          toast.success('휴가 결재 서류를 신청했습니다.');
          setIsConfirmOpen(false);
-         setForm(INITIAL_FORM);
+         // 생년월일은 계정에 저장된 값이라 다음 신청을 위해 지울 필요가 없음 - 휴가 기간만 초기화
+         setForm((prev) => ({ ...prev, startDate: '', endDate: '' }));
          setSubmitAttempted(false);
       } catch (err) {
          toast.error(
@@ -113,5 +155,8 @@ export function useLeaveRequestForm() {
       cancelSubmit,
       remainingLeaveDays,
       hasLeaveDaysError,
+      phoneNumber,
+      isLoadingProfile,
+      hasProfileError,
    };
 }

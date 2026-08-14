@@ -18,7 +18,16 @@ export default function LeaveRequestForm() {
       cancelSubmit,
       remainingLeaveDays,
       hasLeaveDaysError,
+      phoneNumber,
+      isLoadingProfile,
+      hasProfileError,
    } = useLeaveRequestForm();
+
+   const phoneNumberDisplay = hasProfileError
+      ? '불러오지 못했습니다'
+      : isLoadingProfile
+        ? '불러오는 중...'
+        : (phoneNumber ?? '-');
 
    return (
       <div className="rounded-sm border border-[#E5E7EB] bg-white px-8 py-7">
@@ -36,6 +45,31 @@ export default function LeaveRequestForm() {
          </div>
 
          <div className="mt-4 grid grid-cols-2 gap-6">
+            <div>
+               <label className="text-[15px] font-semibold text-gray-900">
+                  생년월일 <span className="font-bold text-[16px] text-brand-gold">*</span>
+               </label>
+               <DatePicker
+                  value={form.birthDate}
+                  onChange={(value) => updateField('birthDate', value)}
+                  className="mt-2"
+               />
+            </div>
+            <div>
+               <label className="text-[15px] font-semibold text-gray-900">
+                  전화번호 <span className="font-bold text-[16px] text-brand-gold">*</span>
+               </label>
+               <input
+                  type="text"
+                  readOnly
+                  disabled
+                  value={phoneNumberDisplay}
+                  className="mt-2 w-full cursor-not-allowed rounded-xs border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-2.5 text-sm text-gray-500"
+               />
+            </div>
+         </div>
+
+         <div className="mt-6 grid grid-cols-2 gap-6">
             <div>
                <label className="text-[15px] font-semibold text-gray-900">
                   휴가 시작일 <span className="font-bold text-[16px] text-brand-gold">*</span>
