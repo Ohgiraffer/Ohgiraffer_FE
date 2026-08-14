@@ -15,10 +15,27 @@ import {
    type NoticeCategory,
    type NoticeDetail,
 } from '@/services/notice.service';
+import AiSentenceImprovePanel from './AiSentenceImprovePanel';
 import NoticeContentPanel from './NoticeContentPanel';
 import NoticeSettingsPanel from './NoticeSettingsPanel';
+import { useAiSentenceImprove } from '../../hooks/useAiSentenceImprove';
+import { useNoticeEditor } from '../../hooks/useNoticeEditor';
 import { useNoticeWriteForm } from '../../hooks/useNoticeWriteForm';
 import { parseNoticeId } from '../../parseNoticeId';
+
+function escapeHtml(text: string) {
+   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// AI가 돌려준 건 서식 없는 순수 텍스트라, 줄바꿈만 문단으로 살려서 에디터에 다시 넣는다
+function plainTextToHtml(text: string) {
+   return text
+      .split(/\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => `<p>${escapeHtml(line)}</p>`)
+      .join('');
+}
 
 type Props = {
    // 주어지면 수정 모드 - 해당 id의 공지를 실제 상세 조회 API로 불러와 폼을 프리필함
@@ -148,6 +165,18 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
    const router = useRouter();
    const isEditMode = Boolean(noticeId);
    const form = useNoticeWriteForm(noticeId, initialNotice);
+   // 에디터 인스턴스를 여기서 만드는 이유는 useNoticeEditor 주석 참고 - [AI 문장 개선] 제안 패널이
+   // 고정 높이인 NoticeContentPanel 카드 밖(전체 너비)에 그려져야 해서 getText/setContent에
+   // 이 레벨에서도 접근할 수 있어야 한다
+   const editor = useNoticeEditor(initialNotice?.content, form.setContent);
+   const {
+      isImproving,
+      suggestions,
+      improvedFullText,
+      improve,
+      close: closeImproveSuggestions,
+      copySuggestion,
+   } = useAiSentenceImprove();
    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
    const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -213,6 +242,19 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
       }
    };
 
+   // immediatelyRender: false 때문에 마운트 첫 틱에는 editor가 아직 없다(SSR/CSR 불일치 방지용) -
+   // 그 사이엔 폼 자체를 그리지 않는다(곧바로 채워지는 짧은 순간이라 별도 로딩 UI 없이 넘어감)
+   if (!editor) return null;
+
+   const handleImproveClick = () => improve(editor.getText());
+
+   // "전체 적용" - 개선된 텍스트로 본문을 통째로 교체한다(기존 굵게/기울임 등 서식은 사라짐).
+   // setContent는 기본적으로 onUpdate를 그대로 발생시켜서 form.contentHtml도 자동으로 갱신된다
+   const handleApplyAllSuggestions = (text: string) => {
+      editor.commands.setContent(plainTextToHtml(text));
+      closeImproveSuggestions();
+   };
+
    return (
       <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
          <h1 className="text-2xl font-bold text-gray-900">
@@ -223,8 +265,9 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
             <NoticeContentPanel
                title={form.title}
                onTitleChange={form.setTitle}
-               initialContentHtml={initialNotice?.content}
-               onContentChange={form.setContent}
+               editor={editor}
+               isImproving={isImproving}
+               onImproveClick={handleImproveClick}
             />
             <NoticeSettingsPanel
                category={form.category}
@@ -248,6 +291,18 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
                onFileRemove={form.removeFile}
             />
          </div>
+
+         {suggestions.length > 0 && (
+            <div className="mt-5">
+               <AiSentenceImprovePanel
+                  suggestions={suggestions}
+                  improvedFullText={improvedFullText}
+                  onCopySuggestion={copySuggestion}
+                  onApplyAll={handleApplyAllSuggestions}
+                  onClose={closeImproveSuggestions}
+               />
+            </div>
+         )}
 
          <div className="mt-5 flex justify-end gap-2">
             <button

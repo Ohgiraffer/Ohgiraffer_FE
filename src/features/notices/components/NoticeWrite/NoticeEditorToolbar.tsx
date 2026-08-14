@@ -9,6 +9,8 @@ import { uploadNoticeImage } from '@/services/notice.service';
 
 type Props = {
    editor: Editor;
+   isImproving: boolean;
+   onImproveClick: () => void;
 };
 
 type BlockOption = {
@@ -68,7 +70,7 @@ function ToolbarButton({
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png'];
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
-export default function NoticeEditorToolbar({ editor }: Props) {
+export default function NoticeEditorToolbar({ editor, isImproving, onImproveClick }: Props) {
    const [isUploadingImage, setIsUploadingImage] = useState(false);
 
    const handleImageInsert = () => {
@@ -182,12 +184,12 @@ export default function NoticeEditorToolbar({ editor }: Props) {
          <div className="flex items-center gap-2">
             <button
                type="button"
-               disabled
-               // TODO: AI 문장 개선 기능 백엔드 준비되면 연동
-               className="flex cursor-pointer items-center gap-1.5 rounded-xs border border-brand-green bg-white px-3 py-1.5 text-sm text-brand-green hover:bg-gray-50"
+               disabled={isImproving || editor.isEmpty}
+               onClick={onImproveClick}
+               className="flex cursor-pointer items-center gap-1.5 rounded-xs border border-brand-green bg-white px-3 py-1.5 text-sm text-brand-green transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
                <Wand2 size={14} />
-               AI 문장 개선
+               {isImproving ? '개선 중...' : 'AI 문장 개선'}
             </button>
          </div>
       </div>

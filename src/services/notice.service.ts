@@ -279,3 +279,17 @@ export function registerNoticeCalendarEvents(noticeId: number, schedules: Calend
       body: JSON.stringify({ schedules }),
    });
 }
+
+export interface AiRewriteKeyResponse {
+   apiKey: string;
+   // 어떤 모델을 쓸지는 백엔드가 정해서 내려줌(모델을 바꿔도 프론트 재배포 없이 대응)
+   model: string;
+}
+
+// [AI 문장 개선] 클릭 시 호출 - Gemini API를 프론트에서 직접 부르기 위한 키/모델명을 받는다.
+// 실제 문장 개선 요청(본문 내용)은 이 API가 아니라 이 응답으로 받은 키를 들고 Gemini API를
+// 브라우저에서 직접 호출할 때 실린다 - 여기엔 공지 내용이 전혀 실리지 않음.
+// 운영진(강사·매니저)만 가능, 훈련생이 호출하면 403
+export function getAiRewriteKey() {
+   return apiFetch<AiRewriteKeyResponse>('/notices/ai-rewrite-key');
+}
