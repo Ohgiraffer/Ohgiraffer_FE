@@ -33,6 +33,13 @@ import { getChatErrorMessage } from '../../chatErrors';
 import { toast } from '@/lib/toast';
 import type { ChatMessage, ChatMentionUser } from '../../types';
 
+// "@이름"이 본문에 온전한 단어로 남아있는지 확인 - 단순 부분 문자열(includes)로 비교하면
+// "@Kim"을 멘션한 뒤 "@Kimchi"로 고쳐도 여전히 Kim이 멘션된 것으로 잘못 판정된다
+function containsMention(content: string, name: string) {
+   const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+   return new RegExp(`(^|\\s)@${escapedName}(?=\\s|$)`).test(content);
+}
+
 // 열려 있는 대화방에 다른 참여자가 보낸 새 메시지가 있는지 주기적으로 확인 (실시간 푸시가 없어 근사치)
 const MESSAGE_POLL_INTERVAL_MS = 8000;
 // 검색어를 입력하는 동안마다 서버로 요청을 보내지 않도록 잠깐 대기
@@ -499,9 +506,9 @@ export default function ChatConversation({
             onReplySent(replyTarget.id);
             setReplyTarget(null);
          } else {
-            // 본문에 "@이름"이 아직 남아있는(도중에 지우지 않은) 멘션만 대상 id로 보낸다
+            // 본문에 "@이름"이 아직 온전한 단어로 남아있는(도중에 지우지 않은) 멘션만 대상 id로 보낸다
             const mentionedUserIds = mentionedUsers
-               .filter((user) => content.includes(`@${user.name}`))
+               .filter((user) => containsMention(content, user.name))
                .map((user) => user.id);
             const dto = await sendMessage(room.channelId, {
                content: content || null,

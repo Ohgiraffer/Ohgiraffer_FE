@@ -80,11 +80,13 @@ export default function TeamCard({
    return (
       <div
          onDragOver={(e) => {
+            if (team.dissolved) return;
             e.preventDefault();
             onDragOverChange(true);
          }}
          onDragLeave={() => onDragOverChange(false)}
          onDrop={(e) => {
+            if (team.dissolved) return;
             e.preventDefault();
             onDragOverChange(false);
             const raw = e.dataTransfer.getData(TEAM_MEMBER_DRAG_TYPE).trim();
@@ -98,7 +100,9 @@ export default function TeamCard({
          )}
       >
          <div className="flex items-start justify-between">
-            {isEditingName ? (
+            {team.dissolved ? (
+               <span className="text-sm font-bold text-gray-500">{team.name}</span>
+            ) : isEditingName ? (
                <div className="flex items-center gap-1">
                   <input
                      autoFocus
@@ -130,7 +134,11 @@ export default function TeamCard({
                </button>
             )}
 
-            {isConfirmingDelete ? (
+            {team.dissolved ? (
+               <span className="shrink-0 rounded-xs bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-400">
+                  해체됨
+               </span>
+            ) : isConfirmingDelete ? (
                <div className="flex shrink-0 items-center gap-1">
                   <span className="text-xs font-medium whitespace-nowrap text-brand-maroon">
                      {members.length}명 삭제?
@@ -216,14 +224,16 @@ export default function TeamCard({
             })}
          </div>
 
-         <div
-            className={cn(
-               'mt-2 rounded-xs border border-dashed py-3 text-center text-xs',
-               isDragOver ? 'border-brand-green text-brand-green' : 'border-gray-200 text-gray-300',
-            )}
-         >
-            여기에 드래그
-         </div>
+         {!team.dissolved && (
+            <div
+               className={cn(
+                  'mt-2 rounded-xs border border-dashed py-3 text-center text-xs',
+                  isDragOver ? 'border-brand-green text-brand-green' : 'border-gray-200 text-gray-300',
+               )}
+            >
+               여기에 드래그
+            </div>
+         )}
 
          <TeamWorkspaceLink teamId={team.teamId} />
       </div>

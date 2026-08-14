@@ -11,7 +11,7 @@ import { toast } from '@/lib/toast';
 
 export default function LoginPageClient() {
    const router = useRouter();
-   const { login, isAuthenticated, isInitializing } = useAuth();
+   const { login, isAuthenticated, isInitializing, bootcampId, needResetPw } = useAuth();
    const [email, setEmail] = useState('');
    const [password, setPassword] = useState('');
    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -21,14 +21,17 @@ export default function LoginPageClient() {
    // 최초 진입 시 "이미 로그인된 상태인지"를 한 번만 확인하기 위한 가드
    const hasCheckedInitialAuthRef = useRef(false);
 
-   // 이미 로그인된 상태로 로그인 페이지에 들어오면 대시보드로 보냄
+   // 이미 로그인된 상태로 로그인 페이지에 들어오면 대시보드로 보냄 - 단, 비밀번호를 아직
+   // 재설정하지 않은 계정이면(예: 재설정 화면에서 뒤로가기) 재설정 화면으로, 온보딩(부트캠프 최초
+   // 설정)을 아직 마치지 않은 계정이면 위저드로 보낸다. RequireOnboardingGuard가 결국 같은 곳으로
+   // 다시 보내주긴 하지만, 여기서 바로 보내면 대시보드를 거쳤다 다시 튕기는 이중 리다이렉트를 피할 수 있다
    useEffect(() => {
       if (isInitializing || hasCheckedInitialAuthRef.current) return;
       hasCheckedInitialAuthRef.current = true;
       if (isAuthenticated) {
-         router.replace('/');
+         router.replace(needResetPw ? '/reset-password' : bootcampId === null ? '/onboarding-wizard' : '/');
       }
-   }, [isInitializing, isAuthenticated, router]);
+   }, [isInitializing, isAuthenticated, needResetPw, bootcampId, router]);
 
    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();

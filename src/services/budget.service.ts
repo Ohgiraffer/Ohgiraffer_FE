@@ -18,7 +18,7 @@ export interface SaveBudgetSheetSettingsResponse {
    syncedAt: string;
 }
 
-// 예산 시트 설정을 최초 저장하면서 즉시 동기화한다
+// 예산 시트 설정을 최초 저장하면서 즉시 동기화
 export function saveBudgetSheetSettings(body: SaveBudgetSheetSettingsRequest) {
    return apiFetch<SaveBudgetSheetSettingsResponse>('/budgets/sheets/settings', {
       method: 'POST',
@@ -33,8 +33,7 @@ export interface BudgetSheetSettings {
    lastSyncedAt: string | null;
 }
 
-// 저장된 예산 시트 설정 조회 - 예산 관리 탭 진입 시 GoogleSheetSync에 "연결됨" 상태로 프리필하는
-// 용도. 저장된 설정이 없으면 404(COMMON_006) - 아직 연동 전인 정상 상태로 취급한다
+// 저장된 예산 시트 설정 조회
 export function getBudgetSheetSettings() {
    return apiFetch<BudgetSheetSettings>('/budgets/sheets/settings');
 }
@@ -44,9 +43,7 @@ export interface SyncBudgetSheetResponse {
    syncedAt: string;
 }
 
-// 저장된 시트 설정 기준으로 예산 데이터를 다시 동기화한다(요청 본문 없음). GET /budgets/summary는
-// 재동기화를 하지 않고 저장된 값만 돌려주므로, 최신 시트 내용을 반영하려면 화면 진입/새로고침 시
-// 이 API를 먼저 호출해야 한다. 저장된 시트 설정이 없으면 400(COMMON_001)
+// 저장된 시트 설정 기준으로 예산 데이터를 다시 동기화
 export function syncBudgetSheet() {
    return apiFetch<SyncBudgetSheetResponse>('/budgets/sync', {
       method: 'POST',
@@ -71,9 +68,7 @@ export interface BudgetSummary {
    categories: BudgetCategorySummary[];
 }
 
-// 예산 요약 조회 - 재동기화 없이 저장된(마지막으로 동기화된) 값만 그대로 돌려준다.
-// 최신 시트 내용을 반영하려면 호출 전에 syncBudgetSheet()를 먼저 호출해야 한다.
-// 저장된 시트 설정이 아직 없으면 400(COMMON_001) - "연동 전" 상태로 취급한다
+// 예산 요약 조회 - 재동기화 없이 저장된(마지막으로 동기화된) 값
 export function getBudgetSummary() {
    return apiFetch<BudgetSummary>('/budgets/summary');
 }

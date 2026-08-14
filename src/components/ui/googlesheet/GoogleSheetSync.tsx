@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import {
    Select,
    SelectContent,
@@ -46,8 +46,15 @@ interface GoogleSheetSyncProps {
    // 연결된 상태의 헤더 영역에 페이지별 추가 액션(예: "평가 요약 결과 다운로드")을 끼워 넣는다
    connectedExtra?: React.ReactNode;
    // 서버에 이미 저장된 연동 설정이 있어서 페이지 진입 시부터 "연결됨" 카드로 보여줘야 할 때 넘긴다.
-   // 이 컴포넌트 자체는 조회 API를 모르므로(페이지마다 다름) 이미 조회된 결과를 그대로 받는다
-   initialConnection?: { spreadsheetUrl: string };
+   // 이 컴포넌트 자체는 조회 API를 모르므로(페이지마다 다름) 이미 조회된 결과를 그대로 받는다.
+   // columnMapping(컬럼 key -> 실제 시트의 컬럼명)을 함께 주면, "수정"을 눌렀을 때 URL이 그대로인
+   // 한 재검증 후 이 값으로 매핑을 미리 채워준다(안 주면 예전처럼 매핑을 처음부터 다시 입력해야 함)
+   initialConnection?: { spreadsheetUrl: string; columnMapping?: Record<string, string> };
+   // [수정] 클릭으로 편집 폼이 열리거나(false) 저장이 끝나거나(true) - 이 컴포넌트 내부의 저장 여부를
+   // 상위가 몰라서, 상위가 "연동 설정이 저장된 상태에서만" 다른 동작(예: 동기화 실행)을 허용하려면
+   // 이 콜백으로 전달받아야 한다(부모의 isConnected는 저장 API 성공 시에만 바뀌고, [수정]으로
+   // 편집 중인 동안에는 안 바뀌기 때문에 이 콜백 없이는 편집 중이라는 걸 알 방법이 없다)
+   onSavedStateChange?: (isSaved: boolean) => void;
 }
 
 interface Connection {
@@ -63,6 +70,7 @@ export default function GoogleSheetSync({
    onSave,
    connectedExtra,
    initialConnection,
+   onSavedStateChange,
 }: GoogleSheetSyncProps) {
    const urlInputId = useId();
    // 컬럼 매핑 select가 반복 렌더링되므로 useId를 컬럼 개수만큼 미리 부를 수 없다 -
@@ -76,14 +84,27 @@ export default function GoogleSheetSync({
    const [columnMapping, setColumnMapping] = useState<Record<string, number>>({});
    const [isSaving, setIsSaving] = useState(false);
    const [isSaved, setIsSaved] = useState(initialConnection != null);
+   // 마지막으로 저장 확인된 상태의 스냅샷 - "수정" 시 재검증 후 매핑을 미리 채우거나,
+   // "취소" 시 되돌아가는 기준으로 쓴다(저장에 성공할 때마다 최신 값으로 갱신)
+   const [savedSnapshot, setSavedSnapshot] = useState(
+      initialConnection
+         ? { spreadsheetUrl: initialConnection.spreadsheetUrl, columnMapping: initialConnection.columnMapping ?? {} }
+         : null,
+   );
+   // handleVerify/handleEdit이 각자 독립적으로 validateExternalSheet를 호출할 수 있어서, 취소
+   // 없이 겹쳐 호출되면(예: handleEdit 재검증 도중 사용자가 "연결 확인"을 다시 누른 경우) 먼저
+   // 끝난 요청의 finally가 isVerifying을 꺼버려 아직 실행 중인 요청이 있는데도 저장이 활성화될
+   // 수 있다 - 매 호출마다 세대를 올리고, 응답이 왔을 때 가장 최신 요청인지 확인해 그 결과만 반영한다
+   const verifyEpochRef = useRef(0);
 
-   const canVerify = spreadsheetUrl.trim().length > 0 && !isVerifying;
+   const canVerify = spreadsheetUrl.trim().length > 0 && !isVerifying && !isSaving;
    const canSave =
       connection !== null &&
       columns.every(
          (column) => column.required === false || columnMapping[column.key] !== undefined,
       ) &&
-      !isSaving;
+      !isSaving &&
+      !isVerifying;
 
    // 같은 이름의 컬럼이 여러 개면 선택 목록에서 구분할 수 있도록 표시해준다.
    // (API가 컬럼 이름 문자열만 내려줘서, 이름이 같으면 백엔드 입장에서도 여전히 구분이 안 된다는 한계는 남아있다)
@@ -104,10 +125,14 @@ export default function GoogleSheetSync({
    };
 
    const handleVerify = async () => {
+      const epoch = ++verifyEpochRef.current;
       setIsVerifying(true);
       setVerifyError('');
       try {
          const result = await validateExternalSheet(spreadsheetUrl.trim());
+         // 이 요청이 진행되는 동안 더 최신 검증 요청이 시작됐다면(재검증이 겹친 경우) 낡은
+         // 응답이니 상태를 덮어쓰지 않는다
+         if (verifyEpochRef.current !== epoch) return;
          const firstSheet = result.sheets[0];
          setConnection({
             spreadsheetId: result.spreadsheetId,
@@ -117,6 +142,7 @@ export default function GoogleSheetSync({
          });
          setColumnMapping({});
       } catch (err) {
+         if (verifyEpochRef.current !== epoch) return;
          setConnection(null);
          setVerifyError(
             err instanceof ApiError
@@ -124,7 +150,7 @@ export default function GoogleSheetSync({
                : '연결 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
          );
       } finally {
-         setIsVerifying(false);
+         if (verifyEpochRef.current === epoch) setIsVerifying(false);
       }
    };
 
@@ -146,6 +172,13 @@ export default function GoogleSheetSync({
             columnMapping: resolvedMapping,
          });
          setIsSaved(true);
+         onSavedStateChange?.(true);
+         setSavedSnapshot({
+            spreadsheetUrl: spreadsheetUrl.trim(),
+            columnMapping: Object.fromEntries(
+               Object.entries(resolvedMapping).map(([key, value]) => [key, value.columnName]),
+            ),
+         });
       } catch (err) {
          toast.error(
             err instanceof ApiError
@@ -157,11 +190,56 @@ export default function GoogleSheetSync({
       }
    };
 
-   const handleEdit = () => {
+   // URL이 그대로면 재검증 후 이전에 저장했던 컬럼명으로 매핑을 미리 채운다 - URL을 바꾸면
+   // handleUrlChange가 이미 connection/columnMapping을 비우므로 자연스럽게 새로 매핑하게 된다
+   const handleEdit = async () => {
       setIsSaved(false);
+      onSavedStateChange?.(false);
+      setVerifyError('');
+      if (!savedSnapshot) {
+         setConnection(null);
+         setColumnMapping({});
+         return;
+      }
+      const epoch = ++verifyEpochRef.current;
+      setIsVerifying(true);
+      try {
+         const result = await validateExternalSheet(savedSnapshot.spreadsheetUrl.trim());
+         if (verifyEpochRef.current !== epoch) return;
+         const firstSheet = result.sheets[0];
+         const columnOptions = firstSheet?.columns ?? [];
+         setConnection({
+            spreadsheetId: result.spreadsheetId,
+            spreadsheetTitle: result.spreadsheetTitle,
+            sheetName: firstSheet?.sheetName ?? '',
+            columnOptions,
+         });
+         const prefilled: Record<string, number> = {};
+         Object.entries(savedSnapshot.columnMapping).forEach(([key, name]) => {
+            const index = columnOptions.indexOf(name);
+            if (index !== -1) prefilled[key] = index;
+         });
+         setColumnMapping(prefilled);
+      } catch {
+         if (verifyEpochRef.current !== epoch) return;
+         // 재검증 자체가 실패해도 편집은 계속할 수 있어야 하므로 빈 상태로 두고,
+         // 사용자가 "연결 확인"을 다시 눌러 직접 재시도하게 한다
+         setConnection(null);
+         setColumnMapping({});
+      } finally {
+         if (verifyEpochRef.current === epoch) setIsVerifying(false);
+      }
+   };
+
+   // 편집을 그만두고 마지막 저장 상태로 되돌아간다(저장된 적이 없으면 취소 버튼 자체가 안 보임)
+   const handleCancelEdit = () => {
+      if (!savedSnapshot) return;
+      setSpreadsheetUrl(savedSnapshot.spreadsheetUrl);
       setConnection(null);
       setColumnMapping({});
       setVerifyError('');
+      setIsSaved(true);
+      onSavedStateChange?.(true);
    };
 
    if (isSaved) {
@@ -190,7 +268,7 @@ export default function GoogleSheetSync({
                   id={urlInputId}
                   value={spreadsheetUrl}
                   onChange={(e) => handleUrlChange(e.target.value)}
-                  disabled={isVerifying}
+                  disabled={isVerifying || isSaving}
                   placeholder="https://docs.google.com/spreadsheets/..."
                   className="h-8 flex-1 rounded-xs border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-gray-400 disabled:bg-gray-50 disabled:text-gray-400"
                />
@@ -248,7 +326,7 @@ export default function GoogleSheetSync({
                                     [column.key]: Number(value),
                                  }));
                               }}
-                              disabled={!connection}
+                              disabled={!connection || isVerifying || isSaving}
                            >
                               <SelectTrigger
                                  id={fieldId}
@@ -284,7 +362,17 @@ export default function GoogleSheetSync({
             </div>
          )}
 
-         <div className="mt-6 flex justify-end border-t border-gray-100 pt-4">
+         <div className="mt-6 flex justify-end gap-2 border-t border-gray-100 pt-4">
+            {savedSnapshot && (
+               <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  disabled={isSaving}
+                  className="cursor-pointer rounded-xs border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+               >
+                  취소
+               </button>
+            )}
             <button
                type="button"
                onClick={handleSave}

@@ -26,8 +26,8 @@ export interface Team {
    startDate: string;
    endDate: string;
    memberCount: number;
-   sendbirdChannelUrl: string | null;
-   notionPageId: string | null;
+   // 해체된 팀 - 이력 조회용으로 계속 내려오지만 더 이상 이름 변경/삭제/팀원 배정 대상이 아니다
+   dissolved: boolean;
    members: TeamMember[];
 }
 
@@ -47,6 +47,8 @@ export interface DraftTeam {
    name: string;
    startDate: string;
    endDate: string;
+   // 해체된 팀은 이름 변경/삭제/새 팀원 배정 대상에서 제외한다
+   dissolved: boolean;
 }
 
 export interface TeamConfigurationTeamInput {
@@ -101,7 +103,7 @@ export interface TeamHistoryResult {
 
 export interface TeamWorkspace {
    teamId: number;
-   teamName: string;
-   // 아직 Notion 페이지가 생성되지 않았으면 null
+   // 아직 Notion 페이지가 생성되지 않았으면 둘 다 null
    notionPageId: string | null;
+   workspaceUrl: string | null;
 }

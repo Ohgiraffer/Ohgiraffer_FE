@@ -12,7 +12,6 @@ type Props = {
    processedAt: string | null;
 };
 
-// 아직 승인/반려가 결정되지 않은 상태에서 보여줄 마지막 단계 자리표시 라벨
 const FINAL_STEP_LABEL: Record<ApprovalStatus, string> = {
    PENDING: '처리 완료',
    CHECKED: '처리 완료',
@@ -25,10 +24,7 @@ function formatStepDate(iso: string, withTime: boolean) {
    return format(new Date(iso), withTime ? 'yyyy-MM-dd HH:mm' : 'yyyy-MM-dd');
 }
 
-// 결재 이력 상세 상단의 4단계 진행바 - 신청 완료 → 대기 → 확인 중 → 승인/반려.
-// 신청 완료 후 곧바로 대기 상태로 넘어가는 정책이라 이 둘은 결재가 존재하는 한 항상 완료 상태.
-// 확인 처리 이후 단계(캡션 포함)는 최종 결정(승인/반려)이 나도 계속 보여준다 - "누가 언제 확인했는지"는
-// 처리 완료 후에도 유효한 정보라서 최종 단계가 생겼다고 사라지면 안 됨
+// 결재 이력 상세 상단의 4단계 진행바 - 신청 완료 → 대기 → 확인 중 → 승인/반려
 export default function ApprovalStatusTimeline({
    status,
    approverName,
@@ -59,8 +55,6 @@ export default function ApprovalStatusTimeline({
       },
    ];
 
-   // 단계 i-1과 i를 잇는 연결선의 완료 여부. 각 단계의 "왼쪽 절반"과 이전 단계의 "오른쪽 절반"이
-   // 같은 값을 참조해야 두 절반이 이어졌을 때 하나의 선처럼 보인다
    const connectorDoneBefore = (index: number) => steps[index].done;
 
    return (

@@ -23,8 +23,7 @@ function BackLink() {
    );
 }
 
-// 상담 상세 페이지(모달이 아닌 별도 페이지) - 신청자/담당자/일시/요청 내용은 누구나 보이고,
-// 담당 운영진 본인인 경우에만 상담 기록 작성/AI 요약 영역이 추가로 보인다
+// 상담 상세 페이지
 export default function CounselingDetailClient({ consultationId }: Props) {
    const numericId = Number(consultationId);
    const { detail, setDetail, isLoading, hasError, isMyConsultation } =
@@ -92,7 +91,7 @@ export default function CounselingDetailClient({ consultationId }: Props) {
                   </p>
                </div>
 
-               {/* 취소된 상담은 메모를 남길 수 없다는 정책(백엔드 409)에 맞춰 작성 영역 자체를 숨긴다 */}
+               {/* 취소된 상담은 메모를 남길 수 없다 */}
                {isMyConsultation && detail.status !== 'CANCELLED' && (
                   <CounselorNoteSection detail={detail} onSaved={setDetail} />
                )}

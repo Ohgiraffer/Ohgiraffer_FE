@@ -42,7 +42,6 @@ export function DatePicker({
             onAccept={(maskedValue, maskRef) => {
                if (maskedValue === value) return;
 
-               // 입력한 값이 실제 달력에 존재하지 않는 날짜면 반영하지 않음
                if (
                   maskedValue.length === 10 &&
                   !isValid(parse(maskedValue, DATE_FORMAT, new Date()))

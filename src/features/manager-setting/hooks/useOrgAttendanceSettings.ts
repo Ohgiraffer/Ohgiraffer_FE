@@ -35,11 +35,10 @@ export function useOrgAttendanceSettings() {
    });
    const [periods, setPeriods] = useState<BootcampPeriod[]>([]);
    const [isDirty, setIsDirty] = useState(false);
-   // "저장"을 한 번이라도 눌러본 적 있는지 - 그 이후부터 에러 메시지를 실시간으로 보여주기 위한 플래그
    const [submitAttempted, setSubmitAttempted] = useState(false);
 
    const [isSaving, setIsSaving] = useState(false);
-   // 더블클릭으로 인한 중복 요청 방지 - state는 비동기라 클릭 시점에 바로 막아줄 동기 가드가 필요
+
    const isSavingRef = useRef(false);
 
    useEffect(() => {
@@ -86,14 +85,14 @@ export function useOrgAttendanceSettings() {
 
    const orgInfoDateError = submitAttempted && hasOrgDateOrderError(orgInfo);
 
-   // 기간 역전 / 부트캠프 기간 이탈 / 다른 단위기간과 겹침 / 양끝 경계 - 온보딩과 동일한 기준으로 검증
+   // 기간 역전 / 부트캠프 기간 이탈 / 다른 단위기간과 겹침 / 양끝 경계 - 온보딩과 동일한 기준
    const periodErrors: Record<string, PeriodErrorType> = submitAttempted
       ? Object.fromEntries(
            periods.map((period) => [period.id, getPeriodErrorType(period, periods, orgInfo)]),
         )
       : {};
 
-   // *(필수) 표시된 항목들 - 하나라도 비면 저장 자체를 막는다 (날짜 순서 등은 저장 시점에 별도 안내)
+   // *(필수) 항목들 - 하나라도 비면 저장 자체를 비활
    const isOrgInfoFilled = Boolean(
       orgInfo.orgName.trim() && orgInfo.courseName.trim() && orgInfo.startDate && orgInfo.endDate,
    );
@@ -117,7 +116,6 @@ export function useOrgAttendanceSettings() {
       setIsSaving(true);
 
       try {
-         // periodNo는 화면에 추가한 순서가 아니라 실제 날짜 순서를 따르도록 시작일 기준으로 재정렬
          const sortedLocalPeriods = [...periods].sort((a, b) =>
             a.startDate.localeCompare(b.startDate),
          );
@@ -127,7 +125,7 @@ export function useOrgAttendanceSettings() {
             periodEnd: period.endDate,
          }));
 
-         // 부분 수정이 아니라 전체 교체라 항상 모든 필드를 다 담아 보낸다
+         // 부분 수정이 아니라 전체 교체라 항상 모든 필드
          await updateBootcampSettings({
             orgName: orgInfo.orgName,
             proName: orgInfo.courseName,
@@ -137,7 +135,7 @@ export function useOrgAttendanceSettings() {
          });
 
          toast.success('조직·출결 설정이 저장되었습니다.');
-         // 화면에 보여줄 순번도 방금 서버에 저장한 순서(날짜순)로 맞춰야, 새로고침 시 순번이 갑자기 바뀌지 않는다
+         
          setPeriods(sortedLocalPeriods);
          setIsDirty(false);
          setSubmitAttempted(false);

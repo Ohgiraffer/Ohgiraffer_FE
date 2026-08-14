@@ -4,6 +4,7 @@ import { Check, Eye, EyeOff, TriangleAlert } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/shadcn/button';
+import { useAuth } from '@/components/auth/AuthContext';
 import { resetPassword } from '@/services/auth.service';
 import { setAccessToken } from '@/lib/auth/token-store';
 import { ApiError } from '@/lib/http';
@@ -11,6 +12,7 @@ import { toast } from '@/lib/toast';
 
 export default function ResetPasswordPageClient() {
    const router = useRouter();
+   const { clearNeedResetPw } = useAuth();
    const [password, setPassword] = useState('');
    const [passwordConfirm, setPasswordConfirm] = useState('');
    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -42,6 +44,7 @@ export default function ResetPasswordPageClient() {
       try {
          const data = await resetPassword(password);
          toast.success(data.message);
+         clearNeedResetPw();
          // 응답 메시지가 재로그인을 안내하므로 로컬 세션을 정리하고 로그인 페이지로 보낸다
          setAccessToken(null);
          router.push('/login');
@@ -49,7 +52,9 @@ export default function ResetPasswordPageClient() {
          if (err instanceof ApiError) {
             toast.error(err.message);
             if (err.status === 403) {
-               // 이미 최초 비밀번호를 변경한 계정 — 더 이상 이 페이지에 머물 이유가 없다
+               // 이미 최초 비밀번호를 변경한 계정 — AuthGuard가 다시 여기로 돌려보내지 않도록
+               // needResetPw부터 끈 다음 대시보드로 보낸다
+               clearNeedResetPw();
                router.push('/');
             } else if (err.status === 401) {
                router.push('/login');

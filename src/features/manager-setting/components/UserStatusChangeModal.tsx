@@ -19,20 +19,16 @@ const REASON_OPTIONS: Array<{ value: UserStatusChangeReason; label: string }> = 
 ];
 
 type Props = {
-   // null이면 닫힌 상태 - 변경 대상 사용자
    user: ManagerSettingUser | null;
    onClose: () => void;
-   // 실패하면 던져서(에러 토스트는 상위가 이미 띄움) 모달을 열어둔 채 다시 시도할 수 있게 한다
    onConfirm: (reason: UserStatusChangeReason) => Promise<void>;
 };
 
-// 사용자 목록의 휴지통 버튼 → 자퇴/제적 사유를 선택해 상태를 변경하는 확인 모달.
-// 되돌릴 수 없는 작업이라 사유 선택 + 안내 체크박스 둘 다 확인해야만 [확인] 버튼이 활성화된다
+// 사용자 목록 휴지통 버튼(자퇴/제적 처리)
 export default function UserStatusChangeModal({ user, onClose, onConfirm }: Props) {
    const [reason, setReason] = useState<UserStatusChangeReason | ''>('');
    const [isAcknowledged, setIsAcknowledged] = useState(false);
    const [isSubmitting, setIsSubmitting] = useState(false);
-   // 더블클릭으로 인한 중복 요청 방지 - state는 비동기라 클릭 시점에 바로 막아줄 동기 가드가 필요
    const isSubmittingRef = useRef(false);
 
    if (!user) return null;
@@ -40,9 +36,6 @@ export default function UserStatusChangeModal({ user, onClose, onConfirm }: Prop
    const canSubmit = reason !== '' && isAcknowledged && !isSubmitting;
 
    const handleClose = () => {
-      // Modal 내부의 Escape 리스너는 최초 마운트 시점의 handleClose 클로저를 그대로 쓰기 때문에
-      // state(isSubmitting)를 직접 참조하면 이후 값이 바뀌어도 여기선 항상 최초값(false)으로 보인다.
-      // ref는 클로저와 무관하게 항상 최신값을 읽으므로 이 가드에는 반드시 ref를 써야 한다
       if (isSubmittingRef.current) return;
       setReason('');
       setIsAcknowledged(false);
@@ -55,7 +48,6 @@ export default function UserStatusChangeModal({ user, onClose, onConfirm }: Prop
       setIsSubmitting(true);
       try {
          await onConfirm(reason);
-         // 성공하면 상위가 user를 null로 바꿔 모달이 닫히므로, 다음에 새로 열릴 때를 위해서만 리셋해둔다
          setReason('');
          setIsAcknowledged(false);
       } catch {

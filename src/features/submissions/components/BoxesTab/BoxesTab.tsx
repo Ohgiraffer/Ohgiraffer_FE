@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
@@ -26,7 +26,7 @@ export default function BoxesTab({ isCreating, onCreatingChange }: BoxesTabProps
    const [reloadKey, setReloadKey] = useState(0);
    const [editTarget, setEditTarget] = useState<EditableBox | null>(null);
    const [deleteTarget, setDeleteTarget] = useState<SubmissionBoxListItem | null>(null);
-   const isDeletingRef = useRef(false);
+   const [isDeleting, setIsDeleting] = useState(false);
 
    useEffect(() => {
       let isMounted = true;
@@ -92,8 +92,8 @@ export default function BoxesTab({ isCreating, onCreatingChange }: BoxesTabProps
    };
 
    const handleDelete = async () => {
-      if (!deleteTarget || isDeletingRef.current) return;
-      isDeletingRef.current = true;
+      if (!deleteTarget || isDeleting) return;
+      setIsDeleting(true);
       try {
          await deleteSubmissionBox(deleteTarget.submissionBoxId);
          toast.success('제출함을 삭제했습니다.');
@@ -115,7 +115,7 @@ export default function BoxesTab({ isCreating, onCreatingChange }: BoxesTabProps
             );
          }
       } finally {
-         isDeletingRef.current = false;
+         setIsDeleting(false);
       }
    };
 
@@ -169,6 +169,7 @@ export default function BoxesTab({ isCreating, onCreatingChange }: BoxesTabProps
             description="삭제하면 훈련생의 제출 내역도 함께 사라지며 복구할 수 없습니다."
             variant="danger"
             confirmLabel="삭제"
+            busy={isDeleting}
             onConfirm={handleDelete}
             onClose={() => setDeleteTarget(null)}
          />

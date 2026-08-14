@@ -120,12 +120,12 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
 
    return (
       <div>
-         <div className="grid grid-cols-7 divide-x divide-gray-100 rounded-sm border border-gray-200 bg-white">
+         <div className="grid grid-cols-7 divide-x divide-gray-100 rounded-xs border border-gray-200 bg-white">
             {OVERVIEW_STATS.map((stat) => (
                <div key={stat.label} className="flex flex-col items-center gap-1 py-4">
                   <span className="text-xs text-gray-400">{stat.label}</span>
                   <span className="text-xl font-bold text-gray-900">
-                     {stats[stat.valueKey]}
+                     {stats[stat.valueKey] ?? 0}
                      {stat.suffix}
                   </span>
                   <span className="text-[11px] text-gray-400">{stat.caption}</span>
@@ -133,7 +133,7 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
             ))}
          </div>
 
-         <div className="mt-6 rounded-sm border border-gray-200 bg-white p-6">
+         <div className="mt-6 rounded-xs border border-gray-200 bg-white p-6">
             <div className="flex items-center justify-between">
                <p className="text-sm font-bold text-gray-900">출석 추이</p>
                <Select

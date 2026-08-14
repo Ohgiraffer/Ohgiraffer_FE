@@ -1,9 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import GoogleSheetSync, {
    type GoogleSheetSaveResult,
 } from '@/components/ui/googlesheet/GoogleSheetSync';
 import { EVALUATION_SHEET_COLUMNS } from '../hooks/useEvaluationSheetSync';
+import SyncRunTab from './SyncRunTab';
+import type { SyncHistoryEntry } from '../types';
 
 type Props = {
    isConnected: boolean;
@@ -11,18 +14,25 @@ type Props = {
    isLoading: boolean;
    loadError: boolean;
    onSaveMapping: (result: GoogleSheetSaveResult) => Promise<void>;
+   latestSync: SyncHistoryEntry | null;
+   isSyncing: boolean;
+   onRunSync: () => Promise<void>;
+   onNotifyStaff: () => Promise<void>;
 };
 
-// "연동 설정" 탭 - 평가 시트 컬럼 매핑(훈련생 식별자/평가 유형/평가 항목/점수/의견).
-// 저장 성공 여부는 상위(EvaluationsPageClient)의 isConnected로 관리되어 탭을 옮겨도
-// "동기화 실행" 탭 잠금 해제 상태가 유지된다
 export default function SheetSyncTab({
    isConnected,
    spreadsheetUrl,
    isLoading,
    loadError,
    onSaveMapping,
+   latestSync,
+   isSyncing,
+   onRunSync,
+   onNotifyStaff,
 }: Props) {
+   const [isEditingSheetLink, setIsEditingSheetLink] = useState(false);
+
    if (isLoading) {
       return <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>;
    }
@@ -43,10 +53,20 @@ export default function SheetSyncTab({
    }
 
    return (
-      <GoogleSheetSync
-         columns={EVALUATION_SHEET_COLUMNS}
-         onSave={onSaveMapping}
-         initialConnection={isConnected ? { spreadsheetUrl } : undefined}
-      />
+      <div className="flex flex-col gap-4">
+         <GoogleSheetSync
+            columns={EVALUATION_SHEET_COLUMNS}
+            onSave={onSaveMapping}
+            initialConnection={isConnected ? { spreadsheetUrl } : undefined}
+            onSavedStateChange={(saved) => setIsEditingSheetLink(!saved)}
+         />
+         <SyncRunTab
+            isConnected={isConnected && !isEditingSheetLink}
+            latestSync={latestSync}
+            isSyncing={isSyncing}
+            onRunSync={onRunSync}
+            onNotifyStaff={onNotifyStaff}
+         />
+      </div>
    );
 }

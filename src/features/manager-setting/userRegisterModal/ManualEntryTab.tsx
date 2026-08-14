@@ -13,7 +13,6 @@ import type { UserDraftRow, UserRole } from '../types';
 
 const ROLE_OPTIONS: UserRole[] = ['훈련생', '강사', '매니저'];
 
-// 이름/이메일/연락처/역할/삭제버튼 컬럼 너비 비율. 헤더 행과 입력 행이 항상 같은 값을 써야 열이 어긋나지 않음
 const GRID_COLUMNS =
    'grid-cols-[minmax(0,0.8fr)_minmax(0,1.8fr)_minmax(0,1.1fr)_minmax(0,0.8fr)_28px]';
 
@@ -79,8 +78,7 @@ export default function ManualEntryTab({
                         value={row.phone}
                         unmask={false}
                         onAccept={(value: string) => {
-                           // 마운트 시 react-imask가 초기값을 한 번 정규화하며 onAccept를 호출하는데,
-                           // 값이 실제로 바뀐 게 아니면 상태 업데이트를 건너뛴다 (DatePicker와 동일한 가드)
+                           
                            if (value === row.phone) return;
                            onUpdateRow(row.id, 'phone', value);
                         }}

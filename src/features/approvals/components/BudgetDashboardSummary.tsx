@@ -17,8 +17,7 @@ function StatCard({ label, value, caption }: { label: string; value: string; cap
    );
 }
 
-// 매니저(추후 강사)의 예산 관리 대시보드 - 전체 예산/사용 금액/잔여 예산 요약 + 카테고리별 현황.
-// 구글 시트 연동이 끝난 뒤에만 보여주므로, summary는 항상 값이 있다는 전제로 렌더링한다
+// 매니저(추후 강사)의 예산 관리 대시보드 - 전체 예산/사용 금액/잔여 예산 요약 + 카테고리별 현황
 export default function BudgetDashboardSummary({ summary }: { summary: BudgetSummary }) {
    const usedPercent = Math.round(summary.usageRate);
    const remainingPercent = 100 - usedPercent;

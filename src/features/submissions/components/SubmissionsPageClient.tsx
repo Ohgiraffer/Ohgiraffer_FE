@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthContext';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { hasUnsavedChanges } from '@/lib/navigationGuard';
@@ -18,6 +18,7 @@ const TABS: Array<{ key: Tab; label: string }> = [
 
 export default function SubmissionsPageClient() {
    const { role } = useAuth();
+   const router = useRouter();
    const searchParams = useSearchParams();
    const [tab, setTab] = useState<Tab>(searchParams.get('tab') === 'forms' ? 'forms' : 'boxes');
    const [isCreating, setIsCreating] = useState(false);
@@ -30,10 +31,16 @@ export default function SubmissionsPageClient() {
    const switchTab = (next: Tab) => {
       setTab(next);
       setIsCreating(false);
+      // 상세 페이지로 들어갔다가 브라우저 뒤로가기로 돌아왔을 때도 보고 있던 탭이 유지되도록,
+      // 탭을 바꿀 때마다 URL도 함께 맞춰둔다 - 제출함은 기본 탭이라 쿼리 없는 순수 경로를 쓰고,
+      // 설문·평가 폼일 때만 ?tab=forms를 붙인다(상세 페이지의 "목록으로" 링크와 동일한 방식)
+      router.replace(next === 'forms' ? '/submissions?tab=forms' : '/submissions', { scroll: false });
    };
 
    const handleTabChange = (next: Tab) => {
-      if (next === tab) return;
+      // 같은 탭이라도 생성/수정 폼이 열려 있으면(제출함 생성 중 "제출함" 탭 재클릭 등) 그걸 닫고
+      // 목록으로 돌아간다 - 폼이 안 열려 있으면 어차피 할 일이 없으니 그대로 종료
+      if (next === tab && !isCreating) return;
       if (hasUnsavedChanges()) {
          setPendingTab(next);
          return;

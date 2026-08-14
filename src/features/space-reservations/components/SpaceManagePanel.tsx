@@ -23,8 +23,7 @@ type Props = {
    onRemoveSpace: (spaceId: number) => Promise<void>;
 };
 
-// 공간 예약 우측 관리 패널 - 새 공간 추가 + 기존 공간 삭제(재실 인원 있으면 삭제 불가)
-// 셸(너비/슬라이드인·아웃 효과/타이틀 위치·크기)은 알림 패널과 SidePanelShell을 공유
+// 공간 예약 우측 관리 패널 - 새 공간 추가 + 기존 공간 삭제
 export default function SpaceManagePanel({
    open,
    onClose,
@@ -38,8 +37,8 @@ export default function SpaceManagePanel({
    const [capacityError, setCapacityError] = useState('');
    const [isSubmitting, setIsSubmitting] = useState(false);
    const isSubmittingRef = useRef(false);
-   // 삭제 확인 모달에 띄울 대상 - null이면 닫힌 상태
    const [deleteTarget, setDeleteTarget] = useState<SpaceManageRow | null>(null);
+   const [isDeleting, setIsDeleting] = useState(false);
    const isDeletingRef = useRef(false);
 
    const trimmedName = name.trim();
@@ -60,12 +59,10 @@ export default function SpaceManagePanel({
          setCapacity('');
       } catch (err) {
          if (err instanceof ApiError && err.status === 400) {
-            // 공간명 공백/100자 초과, 수용 인원 1명 미만 등 입력값 검증 실패
             setNameError(err.errors.spaceName ?? '');
             setCapacityError(err.errors.capacity ?? '');
             if (!err.errors.spaceName && !err.errors.capacity) toast.error(err.message);
          } else if (err instanceof ApiError && err.code === 'SPACE_002') {
-            // 동일한 공간명이 이미 존재 - 공간명 입력란에 오류 표시
             setNameError(err.message);
          } else {
             toast.error(
@@ -84,6 +81,7 @@ export default function SpaceManagePanel({
       if (!deleteTarget || isDeletingRef.current) return;
       const target = deleteTarget;
       isDeletingRef.current = true;
+      setIsDeleting(true);
       try {
          await onRemoveSpace(target.id);
          setDeleteTarget(null);
@@ -98,6 +96,7 @@ export default function SpaceManagePanel({
          );
       } finally {
          isDeletingRef.current = false;
+         setIsDeleting(false);
       }
    };
 
@@ -213,7 +212,8 @@ export default function SpaceManagePanel({
             title={`[${deleteTarget?.name}] 공간을 삭제하겠습니까?`}
             description="삭제하면 되돌릴 수 없습니다."
             variant="danger"
-            confirmLabel="확인"
+            confirmLabel={isDeleting ? '삭제 중...' : '확인'}
+            busy={isDeleting}
             onConfirm={handleConfirmDelete}
             onClose={() => setDeleteTarget(null)}
          />

@@ -44,6 +44,8 @@ export interface RefreshApiData {
    accessToken: string;
    role: string;
    status: string;
+   // 아직 온보딩(부트캠프 최초 설정)을 마치지 않은 계정이면 null
+   bootcampId: number | null;
 }
 
 // 동시에 여러 요청이 401을 받아도 /auth/refresh는 한 번만 나가도록 진행 중인 요청을 공유.

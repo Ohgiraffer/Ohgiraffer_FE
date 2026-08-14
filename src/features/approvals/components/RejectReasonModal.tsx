@@ -9,7 +9,6 @@ type Props = {
    isSubmitting?: boolean;
 };
 
-// ConfirmModal은 입력 필드를 지원하지 않아, 반려 사유를 필수로 받아야 하는 반려 처리는 별도 모달로 둔다
 export default function RejectReasonModal({ onClose, onSubmit, isSubmitting = false }: Props) {
    const [reason, setReason] = useState('');
 

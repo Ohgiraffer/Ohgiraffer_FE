@@ -22,7 +22,7 @@ export default function TodayScheduleModal({ items, onClose }: TodayScheduleModa
    const title = `${format(new Date(), 'M월 d일', { locale: ko })} 일정`;
 
    return (
-      <Modal onClose={onClose} ariaLabel={title} panelClassName="w-full max-w-100 min-w-85">
+      <Modal onClose={onClose} ariaLabel={title} panelClassName="w-full max-w-112 min-w-85">
          <div className="mb-4 flex items-center justify-between">
             <h2 className="text-base font-bold text-gray-900">{title}</h2>
             <button type="button" onClick={onClose} aria-label="닫기" className="cursor-pointer">
@@ -37,14 +37,16 @@ export default function TodayScheduleModal({ items, onClose }: TodayScheduleModa
                {items.map((item) => (
                   <li
                      key={item.id}
-                     className="flex items-center gap-3 rounded-sm border border-gray-200 px-3 py-2.5"
+                     className="flex items-start gap-3 rounded-xs border border-gray-200 px-3 py-2.5"
                   >
                      <span
-                        className="h-2 w-2 shrink-0 rounded-full"
+                        className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
                         style={{ backgroundColor: EVENT_TYPE_COLORS[item.type].dot }}
                      />
                      <span className="w-12 shrink-0 text-sm text-gray-500">{item.time}</span>
-                     <span className="truncate text-sm font-medium text-gray-900">{item.title}</span>
+                     <span className="min-w-0 flex-1 wrap-break-word text-sm font-medium text-gray-900">
+                        {item.title}
+                     </span>
                   </li>
                ))}
             </ul>

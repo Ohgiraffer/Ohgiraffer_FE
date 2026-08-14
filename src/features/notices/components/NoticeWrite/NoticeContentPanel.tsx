@@ -1,23 +1,25 @@
 'use client';
 
+import type { Editor } from '@tiptap/react';
 import NoticeEditor from './NoticeEditor';
 
 type Props = {
    title: string;
    onTitleChange: (title: string) => void;
-   initialContentHtml?: string;
-   onContentChange: (html: string, isEmpty: boolean) => void;
+   editor: Editor;
+   isImproving: boolean;
+   onImproveClick: () => void;
 };
 
 // 왼쪽 영역 - 제목 입력 + 본문 편집기(툴바 포함)를 하나의 카드로 묶음
 export default function NoticeContentPanel({
    title,
    onTitleChange,
-   initialContentHtml,
-   onContentChange,
+   editor,
+   isImproving,
+   onImproveClick,
 }: Props) {
    return (
-      // 제목(103px) + 에디터 툴바(47px) + 본문(375px) + 테두리(2px) 고정 합계 - 오른쪽 설정 패널이 이 높이에 맞춰 늘어나다 넘치면 내부 스크롤됨
       <div className="h-131.75 min-w-0 flex-1 rounded-sm border border-[#E5E7EB] bg-white">
          <div className="border-b border-[#E5E7EB] px-4 py-3">
             <label htmlFor="notice-title" className="text-[15px] font-semibold text-gray-900">
@@ -33,7 +35,7 @@ export default function NoticeContentPanel({
             />
          </div>
 
-         <NoticeEditor initialContentHtml={initialContentHtml} onContentChange={onContentChange} />
+         <NoticeEditor editor={editor} isImproving={isImproving} onImproveClick={onImproveClick} />
       </div>
    );
 }

@@ -28,7 +28,7 @@ type MenuItem = {
    icon: LucideIcon;
 };
 
-// 강사·매니저(운영진) 공용 메뉴 - 두 role의 사이드바 구성/라벨은 동일하고, 페이지 안의 화면 내용만 role별로 달라짐
+// 강사·매니저(운영진) 공용 메뉴
 const STAFF_MENU_ITEMS: MenuItem[] = [
    { label: '대시보드', href: '/', icon: Home },
    { label: '공지사항', href: '/notices', icon: Megaphone },
@@ -41,8 +41,7 @@ const STAFF_MENU_ITEMS: MenuItem[] = [
    { label: '평가 관리', href: '/evaluations', icon: BarChart2 },
 ];
 
-// 학생 메뉴 - 평가 관리만 제외, "출결 관리"→"훈련 현황" / "상담 이력"→"상담 신청" / "팀 관리"→"팀 현황"
-// (조회 전용 화면이라 편집 권한이 있다는 인상을 주지 않도록) 라벨만 다름 (href는 동일, 화면 내용만 role별로 다름)
+// 학생 메뉴
 const STUDENT_MENU_ITEMS: MenuItem[] = [
    { label: '대시보드', href: '/', icon: Home },
    { label: '공지사항', href: '/notices', icon: Megaphone },
@@ -54,7 +53,7 @@ const STUDENT_MENU_ITEMS: MenuItem[] = [
    { label: '전자결재', href: '/approvals', icon: FileCheck2 },
 ];
 
-// 시설 관리팀 연락처 - 하드코딩(별도 API 없음)
+// 시설 관리팀 연락처
 const FACILITY_CONTACTS = [
    { name: '김시설', role: '냉난방·전기', phone: '010-1234-5678' },
    { name: '이관리', role: '청소·비품', phone: '010-9876-5432' },

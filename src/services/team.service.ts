@@ -8,8 +8,12 @@ import type {
    UnassignedStudent,
 } from '@/features/team/types';
 
+// 여러 화면(ManagerTeamBoard, StudentTeamView, TeamHistoryPageClient)이 마지막 항목을 "현재
+// 단위기간"으로 삼는데, API 응답 순서가 보장된다는 문서가 없어 여기서 한 번 정렬해 그 가정을 보장한다
 export function getTeamPeriods() {
-   return apiFetch<{ periods: TeamPeriod[] }>('/teams/periods').then((res) => res.periods);
+   return apiFetch<{ periods: TeamPeriod[] }>('/teams/periods').then((res) =>
+      [...res.periods].sort((a, b) => a.startDate.localeCompare(b.startDate)),
+   );
 }
 
 export function createTeamPeriod(body: { startDate: string; endDate: string }) {

@@ -88,10 +88,10 @@ export default function MonthAttendanceCalendar({
                   const colorGroup = record?.status ? ATTENDANCE_DAY_STATUS_COLOR_GROUP[record.status] : null;
 
                   return (
-                     <div key={key} className="py-2.5">
+                     <div key={key} className="py-1">
                         <span
                            className={cn(
-                              'inline-flex h-7 w-7 items-center justify-center rounded-full text-gray-700',
+                              'inline-flex h-8 w-8 items-center justify-center rounded-xs text-gray-700',
                               colorGroup && COLOR_GROUP_BG_CLASSES[colorGroup],
                            )}
                         >

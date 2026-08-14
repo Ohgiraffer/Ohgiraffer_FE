@@ -468,6 +468,7 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                   description="삭제하면 수집된 응답도 함께 사라지며 복구할 수 없습니다."
                   variant="danger"
                   confirmLabel="삭제"
+                  busy={isDeleting}
                   onConfirm={handleDeleteConfirm}
                   onClose={() => setIsDeleteConfirmOpen(false)}
                />

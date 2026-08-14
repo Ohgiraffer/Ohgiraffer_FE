@@ -18,8 +18,6 @@ import {
 export type { BudgetSummary } from '@/services/budget.service';
 
 // GoogleSheetSync에 넘기는 컬럼 키가 그대로 백엔드 columnMapping의 키와 일치해야 한다
-// (category/totalAmount/usedAmount/remainingAmount) - 구매 예산 신청 폼의 카테고리 드롭다운도
-// 이 값을 그대로 쓸 예정
 export const BUDGET_SHEET_COLUMNS: GoogleSheetColumnField[] = [
    { key: 'category', label: '카테고리' },
    { key: 'totalAmount', label: '예산안' },
@@ -32,20 +30,11 @@ function notifyUnlessNotConnected(err: unknown, fallback: string) {
    toast.error(err instanceof ApiError ? err.message : fallback);
 }
 
-// GET /budgets/sheets/settings는 연동 전이면 400이 아니라 404(COMMON_006)로 내려온다 - summary
-// 쪽의 400/COMMON_001과 코드가 다르므로 별도로 판별한다
 function notifyUnlessNotFound(err: unknown, fallback: string) {
    if (err instanceof ApiError && err.status === 404 && err.code === 'COMMON_006') return;
    toast.error(err instanceof ApiError ? err.message : fallback);
 }
 
-// 매니저의 "예산 관리" 탭 상태. 페이지 진입/새로고침 시마다 먼저 시트를 다시 동기화(POST
-// /budgets/sync)한 뒤 GET /budgets/summary로 최신값을 읽어온다 - summary 조회 자체는 재동기화를
-// 하지 않으므로 sync를 안 부르면 시트를 고쳐도 화면이 갱신되지 않는다.
-// 저장된 시트 설정이 없으면(400/COMMON_001) 아직 연동 전인 정상 상태로 보고 연동 폼만 보여준다.
-// 저장된 연동 설정 자체(GET /budgets/sheets/settings)도 별도로 조회해서, 이미 연동을 마친 뒤
-// 새로고침해도 GoogleSheetSync가 "연결됨" 상태로 다시 그려지도록 한다(그동안 이 조회가 없어서
-// 저장은 됐는데 화면엔 매번 연동 폼부터 다시 보이는 문제가 있었음)
 export function useBudgetManagement() {
    const [summary, setSummary] = useState<BudgetSummary | null>(null);
    const [isLoading, setIsLoading] = useState(true);
@@ -73,7 +62,6 @@ export function useBudgetManagement() {
             await syncBudgetSheet();
          } catch (err) {
             if (!isMounted) return;
-            // sync 실패는(연동 전 제외) 알리되, summary는 마지막으로 동기화된 값이라도 계속 시도해서 보여준다
             notifyUnlessNotConnected(
                err,
                '예산 시트 동기화에 실패했습니다. 최신 데이터가 아닐 수 있습니다.',
@@ -92,10 +80,6 @@ export function useBudgetManagement() {
          }
       }
 
-      // loadSettings가 loadSummary(sync+summary 순차 호출이라 상대적으로 느림)보다 먼저 끝나버리면
-      // isConnected가 아직 false인 채로 화면이 그려져서 GoogleSheetSync가 "연결됨" 카드로 시작하지
-      // 못한다(initialConnection은 마운트 시점의 초기값으로만 쓰여서 나중에 isConnected가 true로
-      // 바뀌어도 반영 안 됨) - 두 조회가 모두 끝난 뒤에만 로딩을 해제해서 이 레이스를 없앤다
       Promise.allSettled([loadSettings(), loadSummary()]).then(() => {
          if (isMounted) setIsLoading(false);
       });
@@ -105,12 +89,6 @@ export function useBudgetManagement() {
       };
    }, []);
 
-   // 설정 저장(최초 동기화) 후 실제 집계된 요약값을 다시 조회해서 화면에 반영한다.
-   // 이 함수가 끝날 때까지 GoogleSheetSync의 "저장 중..." 상태가 유지되므로, 대시보드가 비어있는
-   // 채로 "연결됨" 카드로 먼저 바뀌는 어색한 순간이 생기지 않는다.
-   // 저장 자체의 성공/실패와 그 이후 요약 재조회의 성공/실패는 서로 다른 문제라 분리한다 - 저장은
-   // 이미 서버에 반영됐는데 요약 재조회만 실패했다고 "저장 실패"로 안내하면(그리고 연결 상태도
-   // 계속 미연동으로 남으면) 실제 서버 상태와 화면이 어긋난다
    const handleSaveMapping = async (result: GoogleSheetSaveResult) => {
       await saveBudgetSheetSettings({
          spreadsheetUrl: result.spreadsheetUrl,
@@ -122,8 +100,6 @@ export function useBudgetManagement() {
             remainingAmount: result.columnMapping.remainingAmount.columnName,
          },
       });
-      // 여기까지 왔으면 저장은 이미 성공한 것 - GoogleSheetSync가 던지는 예외로 취급되지 않도록
-      // 연결 상태는 이 시점에 바로 반영한다
       setIsConnected(true);
       setSpreadsheetUrl(result.spreadsheetUrl);
 
