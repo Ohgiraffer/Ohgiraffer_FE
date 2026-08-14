@@ -178,3 +178,25 @@ export function rejectApproval(approvalId: number, rejectionReason: string) {
 export function downloadApprovalPdf(approvalId: number) {
    return apiFetchBlob(`/approvals/${approvalId}/pdf`);
 }
+
+export type TraineeApprovalStatus = 'APPROVED' | 'COMPLETED';
+
+export interface TraineeApprovalHistoryEntry {
+   approvalId: number;
+   requestedDate: string;
+   typeName: string;
+   startDate: string;
+   endDate: string;
+   leaveDays: number;
+   // 화면 표시용으로 이미 포맷된 기간 문자열 (예: "2026-07-15 ~ 2026-07-15(1일)")
+   period: string;
+   approvedDate: string | null;
+   status: TraineeApprovalStatus;
+}
+
+// 운영진용 - 훈련생 관리 상세 페이지의 결재 탭. 현재는 승인 완료된 휴가 결재만 조회된다
+export function getTraineeApprovals(traineeId: number) {
+   return apiFetch<{ approvals: TraineeApprovalHistoryEntry[] }>(
+      `/trainees/${traineeId}/approvals`,
+   ).then((res) => res.approvals);
+}

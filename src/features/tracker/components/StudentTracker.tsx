@@ -127,7 +127,7 @@ export default function StudentTracker() {
                         onClick={() => setRateTab('month')}
                         className={`cursor-pointer ${rateTab === 'month' ? 'font-bold text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
                      >
-                        이번 달
+                        이번 단위기간
                      </button>
                      <button
                         type="button"

@@ -9,9 +9,11 @@ import {
    type AttendanceSheetColumnMapping,
 } from '@/services/attendance.service';
 
-// 출결 시트에서 매핑해야 하는 컬럼 8개 - 키는 /attendance/sheet-link의 columnMapping 필드명과 동일
+// 출결 시트에서 매핑해야 하는 컬럼 9개 - 키는 /attendance/sheet-link의 columnMapping 필드명과 동일
 export const ATTENDANCE_SHEET_COLUMNS: GoogleSheetColumnField[] = [
    { key: 'name', label: '이름' },
+   // 학생을 식별하는 칼럼이라 필수 - 이름은 중복될 수 있어 실제 매칭 기준은 이메일이다
+   { key: 'email', label: '이메일' },
    { key: 'trainingStatus', label: '훈련 상태' },
    { key: 'attendanceStatus', label: '출석 상태' },
    { key: 'checkIn', label: '입실 시간' },
@@ -39,6 +41,13 @@ export function useTrackerSheetSync() {
       getAttendanceSheetLink()
          .then((link) => {
             if (!isMounted) return;
+            // email 매핑이 필수가 되기 전에 등록된 연동은 이 필드가 비어 있을 수 있다 - 이름만으로는
+            // 학생을 특정할 수 없어 동기화를 그대로 돌리면 안 되므로, 연결된 것으로 취급하지 않고
+            // 다시 매핑하도록 유도한다(백엔드에 기존 데이터를 채워주는 마이그레이션이 없는 상태)
+            if (!link.columnMapping.email) {
+               setIsConnected(false);
+               return;
+            }
             setIsConnected(true);
             setSpreadsheetUrl(link.sheetUrl);
          })
