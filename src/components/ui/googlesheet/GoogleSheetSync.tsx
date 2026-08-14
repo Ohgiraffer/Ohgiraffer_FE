@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import {
    Select,
    SelectContent,
@@ -85,14 +85,20 @@ export default function GoogleSheetSync({
          ? { spreadsheetUrl: initialConnection.spreadsheetUrl, columnMapping: initialConnection.columnMapping ?? {} }
          : null,
    );
+   // handleVerify/handleEdit이 각자 독립적으로 validateExternalSheet를 호출할 수 있어서, 취소
+   // 없이 겹쳐 호출되면(예: handleEdit 재검증 도중 사용자가 "연결 확인"을 다시 누른 경우) 먼저
+   // 끝난 요청의 finally가 isVerifying을 꺼버려 아직 실행 중인 요청이 있는데도 저장이 활성화될
+   // 수 있다 - 매 호출마다 세대를 올리고, 응답이 왔을 때 가장 최신 요청인지 확인해 그 결과만 반영한다
+   const verifyEpochRef = useRef(0);
 
-   const canVerify = spreadsheetUrl.trim().length > 0 && !isVerifying;
+   const canVerify = spreadsheetUrl.trim().length > 0 && !isVerifying && !isSaving;
    const canSave =
       connection !== null &&
       columns.every(
          (column) => column.required === false || columnMapping[column.key] !== undefined,
       ) &&
-      !isSaving;
+      !isSaving &&
+      !isVerifying;
 
    // 같은 이름의 컬럼이 여러 개면 선택 목록에서 구분할 수 있도록 표시해준다.
    // (API가 컬럼 이름 문자열만 내려줘서, 이름이 같으면 백엔드 입장에서도 여전히 구분이 안 된다는 한계는 남아있다)
@@ -113,10 +119,14 @@ export default function GoogleSheetSync({
    };
 
    const handleVerify = async () => {
+      const epoch = ++verifyEpochRef.current;
       setIsVerifying(true);
       setVerifyError('');
       try {
          const result = await validateExternalSheet(spreadsheetUrl.trim());
+         // 이 요청이 진행되는 동안 더 최신 검증 요청이 시작됐다면(재검증이 겹친 경우) 낡은
+         // 응답이니 상태를 덮어쓰지 않는다
+         if (verifyEpochRef.current !== epoch) return;
          const firstSheet = result.sheets[0];
          setConnection({
             spreadsheetId: result.spreadsheetId,
@@ -126,6 +136,7 @@ export default function GoogleSheetSync({
          });
          setColumnMapping({});
       } catch (err) {
+         if (verifyEpochRef.current !== epoch) return;
          setConnection(null);
          setVerifyError(
             err instanceof ApiError
@@ -133,7 +144,7 @@ export default function GoogleSheetSync({
                : '연결 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
          );
       } finally {
-         setIsVerifying(false);
+         if (verifyEpochRef.current === epoch) setIsVerifying(false);
       }
    };
 
@@ -182,9 +193,11 @@ export default function GoogleSheetSync({
          setColumnMapping({});
          return;
       }
+      const epoch = ++verifyEpochRef.current;
       setIsVerifying(true);
       try {
          const result = await validateExternalSheet(savedSnapshot.spreadsheetUrl.trim());
+         if (verifyEpochRef.current !== epoch) return;
          const firstSheet = result.sheets[0];
          const columnOptions = firstSheet?.columns ?? [];
          setConnection({
@@ -200,12 +213,13 @@ export default function GoogleSheetSync({
          });
          setColumnMapping(prefilled);
       } catch {
+         if (verifyEpochRef.current !== epoch) return;
          // 재검증 자체가 실패해도 편집은 계속할 수 있어야 하므로 빈 상태로 두고,
          // 사용자가 "연결 확인"을 다시 눌러 직접 재시도하게 한다
          setConnection(null);
          setColumnMapping({});
       } finally {
-         setIsVerifying(false);
+         if (verifyEpochRef.current === epoch) setIsVerifying(false);
       }
    };
 
@@ -245,7 +259,7 @@ export default function GoogleSheetSync({
                   id={urlInputId}
                   value={spreadsheetUrl}
                   onChange={(e) => handleUrlChange(e.target.value)}
-                  disabled={isVerifying}
+                  disabled={isVerifying || isSaving}
                   placeholder="https://docs.google.com/spreadsheets/..."
                   className="h-8 flex-1 rounded-xs border border-gray-200 bg-white px-3 text-sm text-gray-900 outline-none focus:border-gray-400 disabled:bg-gray-50 disabled:text-gray-400"
                />
@@ -303,7 +317,7 @@ export default function GoogleSheetSync({
                                     [column.key]: Number(value),
                                  }));
                               }}
-                              disabled={!connection}
+                              disabled={!connection || isVerifying || isSaving}
                            >
                               <SelectTrigger
                                  id={fieldId}

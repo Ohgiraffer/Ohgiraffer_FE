@@ -16,6 +16,16 @@ export function useStudentSubmissionHistory(traineeId: number) {
    const [errorCode, setErrorCode] = useState<string | null>(null);
    const [retryKey, setRetryKey] = useState(0);
 
+   // traineeId가 바뀌면 이전 훈련생의 데이터를 먼저 비운다(useTraineeConsultations와 동일한 패턴)
+   const [trackedTraineeId, setTrackedTraineeId] = useState(traineeId);
+   if (traineeId !== trackedTraineeId) {
+      setTrackedTraineeId(traineeId);
+      setData(null);
+      setIsLoading(true);
+      setError(false);
+      setErrorCode(null);
+   }
+
    useEffect(() => {
       let isMounted = true;
       getStudentSubmissionHistory(traineeId)

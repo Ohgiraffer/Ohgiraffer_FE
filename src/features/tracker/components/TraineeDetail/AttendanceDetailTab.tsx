@@ -20,6 +20,7 @@ const STATUS_TEXT_CLASSES: Record<AttendanceColorGroup, string> = {
 };
 
 interface AttendanceDetailTabProps {
+   traineeId: number;
    overview: StudentAttendanceOverview;
    currentDate: Date;
    onMonthChange: (date: Date) => void;
@@ -28,6 +29,7 @@ interface AttendanceDetailTabProps {
 }
 
 export default function AttendanceDetailTab({
+   traineeId,
    overview,
    currentDate,
    onMonthChange,
@@ -36,6 +38,14 @@ export default function AttendanceDetailTab({
 }: AttendanceDetailTabProps) {
    // '전체'면 전체 출석률, 그 외엔 periodRates 중 해당 단위기간의 출석률을 보여준다
    const [unitPeriod, setUnitPeriod] = useState<'전체' | number>('전체');
+
+   // traineeId가 바뀌면 이전 훈련생에서 골라둔 단위기간 선택을 "전체"로 되돌린다 - 안 그러면
+   // 새 훈련생에게 없는 단위기간이 선택된 채로 남아 어떤 버튼도 활성 표시가 안 되는 어색함이 생긴다
+   const [trackedTraineeId, setTrackedTraineeId] = useState(traineeId);
+   if (traineeId !== trackedTraineeId) {
+      setTrackedTraineeId(traineeId);
+      setUnitPeriod('전체');
+   }
 
    const displayedRate =
       unitPeriod === '전체'

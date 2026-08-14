@@ -71,7 +71,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
             if (!isMounted) return;
             if (err instanceof ApiError && err.code === 'SUBMISSION_001') {
                toast.error(err.message);
-               router.replace('/submissions?tab=boxes');
+               router.replace('/submissions');
                return;
             }
             setHasError(true);
@@ -138,7 +138,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
    return (
       <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
          <Link
-            href="/submissions?tab=boxes"
+            href="/submissions"
             className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
          >
             <ChevronLeft size={16} />
