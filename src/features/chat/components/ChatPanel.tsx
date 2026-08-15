@@ -1,13 +1,13 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Bot, Plus } from 'lucide-react';
 import ChatRoomList from './ChatRoomList/ChatRoomList';
 import ChatConversation from './ChatConversation/ChatConversation';
 import NewChatModal from './ChatRoomList/NewChatModal';
 import ThreadPanel from './ChatConversation/ThreadPanel';
 import SidePanelShell from '@/components/ui/SidePanelShell';
-import { createChannel, type ChatChannel } from '@/services/chat.service';
+import { createChannel, getChatbotChannel, type ChatChannel } from '@/services/chat.service';
 import { ApiError } from '@/lib/http';
 import { getChatErrorMessage } from '../chatErrors';
 import { toast } from '@/lib/toast';
@@ -110,6 +110,26 @@ export default function ChatPanel({
       }
    };
 
+   // 백엔드가 미리 만들어둔 사용자-챗봇 채널을 열기만 하면 되므로, 다른 방과 달리
+   // 목록에 없어도 channelUrl만 받아 바로 handleSelectRoom으로 진입시킨다
+   const handleOpenChatbot = async () => {
+      try {
+         const { channelUrl } = await getChatbotChannel();
+         handleSelectRoom({
+            channelId: channelUrl,
+            name: '챗봇',
+            channelType: 'DM',
+            lastMessageContent: null,
+            lastMessageSentAt: null,
+            unreadCount: 0,
+            profileImageUrl: null,
+            isOnline: null,
+         });
+      } catch (err) {
+         toast.error(getChatErrorMessage(err, '챗봇 채널을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'));
+      }
+   };
+
    return (
       <SidePanelShell
          open={open}
@@ -154,13 +174,23 @@ export default function ChatPanel({
                         </span>
                      )}
                   </span>
-                  <button
-                     type="button"
-                     onClick={() => setIsNewChatOpen(true)}
-                     className="flex cursor-pointer items-center gap-1 rounded-xs border border-brand-green bg-white px-3 py-1.5 text-xs font-medium text-brand-green hover:bg-gray-50"
-                  >
-                     <Plus size={14} />새 채팅
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                     <button
+                        type="button"
+                        onClick={handleOpenChatbot}
+                        className="flex cursor-pointer items-center gap-1 rounded-xs border border-brand-green bg-brand-green px-3 py-1.5 text-xs font-medium text-white hover:bg-[#4D655A]"
+                     >
+                        <Bot size={14} />
+                        챗봇
+                     </button>
+                     <button
+                        type="button"
+                        onClick={() => setIsNewChatOpen(true)}
+                        className="flex cursor-pointer items-center gap-1 rounded-xs border border-brand-green bg-white px-3 py-1.5 text-xs font-medium text-brand-green hover:bg-gray-50"
+                     >
+                        <Plus size={14} />새 채팅
+                     </button>
+                  </div>
                </div>
 
                <ChatRoomList
