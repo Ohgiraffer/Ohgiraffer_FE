@@ -7,28 +7,33 @@ import GoogleSheetSync, {
 import { EVALUATION_SHEET_COLUMNS } from '../hooks/useEvaluationSheetSync';
 import SyncRunTab from './SyncRunTab';
 import type { SyncHistoryEntry } from '../types';
+import type { EvaluationSheetColumnMapping } from '@/services/evaluation.service';
 
 type Props = {
    isConnected: boolean;
    spreadsheetUrl: string;
+   columnMapping: EvaluationSheetColumnMapping | null;
    isLoading: boolean;
    loadError: boolean;
    onSaveMapping: (result: GoogleSheetSaveResult) => Promise<void>;
    latestSync: SyncHistoryEntry | null;
    isSyncing: boolean;
    onRunSync: () => Promise<void>;
+   isNotifying: boolean;
    onNotifyStaff: () => Promise<void>;
 };
 
 export default function SheetSyncTab({
    isConnected,
    spreadsheetUrl,
+   columnMapping,
    isLoading,
    loadError,
    onSaveMapping,
    latestSync,
    isSyncing,
    onRunSync,
+   isNotifying,
    onNotifyStaff,
 }: Props) {
    const [isEditingSheetLink, setIsEditingSheetLink] = useState(false);
@@ -57,7 +62,11 @@ export default function SheetSyncTab({
          <GoogleSheetSync
             columns={EVALUATION_SHEET_COLUMNS}
             onSave={onSaveMapping}
-            initialConnection={isConnected ? { spreadsheetUrl } : undefined}
+            initialConnection={
+               isConnected && columnMapping
+                  ? { spreadsheetUrl, columnMapping: columnMapping as unknown as Record<string, string> }
+                  : undefined
+            }
             onSavedStateChange={(saved) => setIsEditingSheetLink(!saved)}
          />
          <SyncRunTab
@@ -65,6 +74,7 @@ export default function SheetSyncTab({
             latestSync={latestSync}
             isSyncing={isSyncing}
             onRunSync={onRunSync}
+            isNotifying={isNotifying}
             onNotifyStaff={onNotifyStaff}
          />
       </div>
