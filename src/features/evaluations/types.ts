@@ -1,4 +1,4 @@
-import type { EvaluationSyncSkippedRow } from '@/services/evaluation.service';
+import type { EvaluationSyncSkippedRow, EvaluationSyncSummaryCard } from '@/services/evaluation.service';
 
 export type SyncHistoryEntry = {
    id: string;
@@ -6,7 +6,7 @@ export type SyncHistoryEntry = {
    syncedAt: string; // ISO
    executedByName: string;
    changedCount: number;
-   diffSummary: string;
+   summaries: EvaluationSyncSummaryCard[];
    addedCount?: number;
    updatedCount?: number;
    skipped?: EvaluationSyncSkippedRow[];

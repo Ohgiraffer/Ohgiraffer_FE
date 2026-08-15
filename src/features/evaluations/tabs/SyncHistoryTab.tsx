@@ -50,7 +50,7 @@ export default function SyncHistoryTab({ history, isLoadingHistory, historyError
                   ) : pagedHistory.length === 0 ? (
                      <tr>
                         <td colSpan={4} className="px-6 py-10 text-center text-gray-400">
-                           동기화 이력이 없습니다.
+                           아직 동기화 이력이 없습니다.
                         </td>
                      </tr>
                   ) : (

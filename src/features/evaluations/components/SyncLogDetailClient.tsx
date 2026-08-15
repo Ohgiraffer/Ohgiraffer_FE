@@ -91,10 +91,10 @@ export default function SyncLogDetailClient({ syncLogId }: SyncLogDetailClientPr
             ) : (
                <AiSyncSummaryCard
                   subtitle={`${formatSyncedAt(detail.syncedAt)} · ${
-                     detail.executedByName ?? '알 수 없음'
+                     detail.executedByName ?? '시스템'
                   }`}
                   changedCount={detail.changedCount}
-                  diffSummary={detail.diffSummary}
+                  summaries={detail.summaries}
                />
             )}
          </div>
