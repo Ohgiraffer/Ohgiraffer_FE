@@ -100,22 +100,35 @@ export default function NoticeDetailClient({ noticeId }: Props) {
       if (!notice || notice.confirmedByMe || isConfirming) return;
       setIsConfirming(true);
 
-      const previousNotice = notice;
-      setNotice({
-         ...notice,
-         confirmedByMe: true,
-         confirmationCount: notice.confirmationCount + 1,
-      });
+      // 스냅샷 전체를 되돌리면 그 사이 다른 핸들러(AI 일정 추출 완료 등)가 반영한 필드까지
+      // 덮어써버리므로, 확인 관련 필드만 함수형 업데이트로 적용/롤백한다
+      const { confirmedByMe: previousConfirmedByMe, confirmationCount: previousConfirmationCount } =
+         notice;
+      setNotice((prev) =>
+         prev ? { ...prev, confirmedByMe: true, confirmationCount: prev.confirmationCount + 1 } : prev,
+      );
 
       try {
          const result = await confirmNotice(notice.noticeId);
-         setNotice({
-            ...previousNotice,
-            confirmationCount: result.confirmationCount,
-            confirmedByMe: result.confirmedByMe,
-         });
+         setNotice((prev) =>
+            prev
+               ? {
+                    ...prev,
+                    confirmationCount: result.confirmationCount,
+                    confirmedByMe: result.confirmedByMe,
+                 }
+               : prev,
+         );
       } catch (err) {
-         setNotice(previousNotice);
+         setNotice((prev) =>
+            prev
+               ? {
+                    ...prev,
+                    confirmedByMe: previousConfirmedByMe,
+                    confirmationCount: previousConfirmationCount,
+                 }
+               : prev,
+         );
          toast.error(
             err instanceof ApiError
                ? err.message

@@ -113,6 +113,18 @@ export default function DashboardCalendar({
    // API의 month는 1~12 (Date.getMonth()는 0부터라 +1)
    const currentMonth = currentDate.getMonth() + 1;
 
+   // 마운트 시 보여주는 달(=오늘이 속한 달) - 부모가 내려준 initialEvents가 이 달의 것과
+   // 일치하는 동안에만 재사용할 수 있다. ref가 아니라 state로 두는 이유는 렌더 중에 읽고 쓸 수
+   // 있어야 해서다(react-hooks/refs 규칙상 렌더 중 ref 접근이 금지됨)
+   const [initialYearMonth] = useState({ year: currentYear, month: currentMonth });
+   const [hasHandledInitial, setHasHandledInitial] = useState(false);
+   // events state가 지금 어느 연/월 데이터인지 - 이게 currentYear/currentMonth와 다르면 재조회한다.
+   // (hasHandledInitial 자체를 재조회 가드로 쓰면 최초 달을 한 번 처리한 뒤로는 영영 true로
+   // 고정돼, 그 뒤 다른 달로 이동해도 재조회가 걸리지 않는 문제가 있었다)
+   const [loadedYearMonth, setLoadedYearMonth] = useState<{ year: number; month: number } | null>(
+      null,
+   );
+
    // 월 이동 중 등록으로 재조회가 겹치면(초기 조회가 나중에 끝나는 경우) 오래된 응답이 최신
    // 상태를 덮어쓸 수 있다 - 매 요청에 순번을 매겨 가장 마지막에 시작한 요청의 응답만 반영한다
    const latestRequestIdRef = useRef(0);
@@ -120,18 +132,15 @@ export default function DashboardCalendar({
       const requestId = ++latestRequestIdRef.current;
       fetchMappedEvents(year, month)
          .then((mapped) => {
-            if (latestRequestIdRef.current === requestId) setEvents(mapped);
+            if (latestRequestIdRef.current === requestId) {
+               setEvents(mapped);
+               setLoadedYearMonth({ year, month });
+            }
          })
          .catch(() => {
             if (latestRequestIdRef.current === requestId) toast.error('일정을 불러오지 못했습니다.');
          });
    }, []);
-
-   // 마운트 시 보여주는 달(=오늘이 속한 달) - 부모가 내려준 initialEvents가 이 달의 것과
-   // 일치하는 동안에만 재사용할 수 있다. ref가 아니라 state로 두는 이유는 렌더 중에 읽고 쓸 수
-   // 있어야 해서다(react-hooks/refs 규칙상 렌더 중 ref 접근이 금지됨)
-   const [initialYearMonth] = useState({ year: currentYear, month: currentMonth });
-   const [hasHandledInitial, setHasHandledInitial] = useState(false);
 
    const isStillInitialMonth =
       currentYear === initialYearMonth.year && currentMonth === initialYearMonth.month;
@@ -141,25 +150,21 @@ export default function DashboardCalendar({
    if (!hasHandledInitial && isStillInitialMonth && initialEventsReady && initialEvents) {
       setHasHandledInitial(true);
       setEvents(initialEvents);
+      setLoadedYearMonth({ year: currentYear, month: currentMonth });
    }
 
    // 화면에 보이는 달이 바뀔 때마다(최초 진입 포함) 그 달의 일정을 다시 불러온다 - 다만 최초
-   // 진입 달만큼은 부모가 이미 조회해둔 값을 위에서 그대로 썼다면(hasHandledInitial) 여기서
-   // 또 조회하지 않는다
+   // 진입 달만큼은 부모가 이미 조회해둔 값을 위에서 그대로 썼다면(loadedYearMonth가 이미 이
+   // 달을 가리킴) 여기서 또 조회하지 않는다
    useEffect(() => {
-      if (hasHandledInitial) return;
       if (isStillInitialMonth && !initialEventsReady) {
          return; // 부모 조회가 아직 끝나지 않았다 - initialEventsReady가 바뀌면 이 effect가 다시 돈다
       }
+      if (loadedYearMonth && loadedYearMonth.year === currentYear && loadedYearMonth.month === currentMonth) {
+         return; // 이미 이 달의 데이터를 갖고 있다
+      }
       applyFetchedEvents(currentYear, currentMonth);
-   }, [
-      currentYear,
-      currentMonth,
-      applyFetchedEvents,
-      isStillInitialMonth,
-      initialEventsReady,
-      hasHandledInitial,
-   ]);
+   }, [currentYear, currentMonth, applyFetchedEvents, isStillInitialMonth, initialEventsReady, loadedYearMonth]);
 
    useEffect(() => {
       if (currentYear in holidaysByYear) return;

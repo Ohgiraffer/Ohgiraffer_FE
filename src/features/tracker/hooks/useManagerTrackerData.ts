@@ -27,6 +27,7 @@ export function useManagerTrackerData() {
    const {
       data: users,
       isLoading: isLoadingUsers,
+      isFetching: isFetchingUsers,
       isError: isUsersError,
       refetch: refetchUsers,
    } = useQuery({
@@ -38,6 +39,7 @@ export function useManagerTrackerData() {
    const {
       data: bootcampSettings,
       isLoading: isLoadingBootcampSettings,
+      isFetching: isFetchingBootcampSettings,
       isError: isBootcampSettingsError,
       refetch: refetchBootcampSettings,
    } = useQuery({
@@ -65,7 +67,14 @@ export function useManagerTrackerData() {
       };
    }, [retryKey]);
 
-   const isLoading = isLoadingAttendance || isLoadingUsers || isLoadingBootcampSettings;
+   // retry()로 재조회하는 동안(isFetching)에도 로딩으로 보여준다 - 그렇지 않으면 재조회가 끝날
+   // 때까지 이전 에러 상태(isError)가 그대로 남아 "다시 시도"를 눌러도 에러 화면이 계속 보인다
+   const isLoading =
+      isLoadingAttendance ||
+      isLoadingUsers ||
+      isLoadingBootcampSettings ||
+      isFetchingUsers ||
+      isFetchingBootcampSettings;
    const hasError = error || isUsersError || isBootcampSettingsError;
 
    const trainees = useMemo<TraineeSummary[]>(() => {

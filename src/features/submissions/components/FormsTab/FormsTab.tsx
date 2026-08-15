@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { ExternalLink } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import { SkeletonListRow } from '@/components/ui/loading/Skeleton';
+import { Skeleton, SkeletonListRow } from '@/components/ui/loading/Skeleton';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
 import {
@@ -15,9 +15,28 @@ import {
 import FormListTable from './FormListTable';
 import type { SurveyFormDetail, SurveyFormListItem } from '../../types';
 
+// 모달 코드 자체가 로딩되는 동안 배경 클릭을 막고 자리표시자를 보여준다(Modal.tsx의 배경 스타일과 동일)
+function FormModalSkeleton() {
+   return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+         <div className="w-full max-w-md rounded-sm bg-white p-6">
+            <Skeleton width="50%" height={20} className="rounded-md" />
+            <Skeleton width="100%" height={40} className="mt-4 rounded-xs" />
+            <Skeleton width="100%" height={40} className="mt-3 rounded-xs" />
+         </div>
+      </div>
+   );
+}
+
 // 생성/수정 버튼을 눌러야만 필요한 날짜선택 모달이라 지연 로딩한다
-const FormCreateModal = dynamic(() => import('./FormCreateModal'), { ssr: false });
-const FormEditModal = dynamic(() => import('./FormEditModal'), { ssr: false });
+const FormCreateModal = dynamic(() => import('./FormCreateModal'), {
+   ssr: false,
+   loading: FormModalSkeleton,
+});
+const FormEditModal = dynamic(() => import('./FormEditModal'), {
+   ssr: false,
+   loading: FormModalSkeleton,
+});
 
 interface FormsTabProps {
    isCreating: boolean;

@@ -62,8 +62,11 @@ export default function DashboardGrid({ holidays }: DashboardGridProps) {
       };
    }, [refreshKey]);
 
-   // 캘린더에서 일정을 등록했을 때, 그리고 오늘 일정 카드의 "다시 시도" 버튼 둘 다 이걸로 재조회한다
+   // 캘린더에서 일정을 등록했을 때, 그리고 오늘 일정 카드의 "다시 시도" 버튼 둘 다 이걸로 재조회한다.
+   // 재조회를 시작하는 시점에 에러 상태를 먼저 지워야, 응답을 기다리는 동안 이전 에러 화면이
+   // 계속 보이지 않는다(effect 안에서 직접 지우면 react-hooks/set-state-in-effect 위반이라 여기서 처리)
    const refetchMonthEvents = useCallback(() => {
+      setMonthEventsError(false);
       setRefreshKey((key) => key + 1);
    }, []);
 
