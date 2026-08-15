@@ -12,6 +12,8 @@ export interface Me {
    status: string;
    notificationOn: boolean;
    bootcampId: number | null;
+   // 최초 비밀번호를 아직 재설정하지 않았는지 - 로그인 응답에만 있던 값이 이제 여기서도 내려온다
+   needResetPw: boolean;
 }
 
 export function getMe() {
