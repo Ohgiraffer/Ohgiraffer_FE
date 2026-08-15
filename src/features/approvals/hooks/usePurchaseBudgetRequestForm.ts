@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
@@ -66,6 +66,7 @@ export function usePurchaseBudgetRequestForm() {
 
    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
    const [isSubmitting, setIsSubmitting] = useState(false);
+   const isSubmittingRef = useRef(false);
 
    // "신청하기" 클릭 - 검증 통과 시 바로 제출하지 않고 확인 모달
    const submit = () => {
@@ -74,7 +75,8 @@ export function usePurchaseBudgetRequestForm() {
    };
 
    const confirmSubmit = async () => {
-      if (isSubmitting || form.category === '') return;
+      if (isSubmittingRef.current || form.category === '') return;
+      isSubmittingRef.current = true;
       setIsSubmitting(true);
 
       try {
@@ -94,6 +96,7 @@ export function usePurchaseBudgetRequestForm() {
                : '구매 예산 신청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
          );
       } finally {
+         isSubmittingRef.current = false;
          setIsSubmitting(false);
       }
    };

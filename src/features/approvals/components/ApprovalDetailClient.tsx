@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Check, ChevronLeft, Download } from 'lucide-react';
-import { differenceInCalendarDays, format } from 'date-fns';
+import { differenceInCalendarDays, isValid } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
@@ -21,14 +21,19 @@ import ApprovalStatusTimeline from './ApprovalStatusTimeline';
 import RejectReasonModal from './RejectReasonModal';
 import { useApprovalLivePolling } from '../hooks/useApprovalLivePolling';
 import { useApprovalPdfDownload } from '../hooks/useApprovalPdfDownload';
+import { formatApprovalDate } from '../formatApprovalDate';
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_TONES } from '../types';
 
 interface ApprovalDetailClientProps {
    approvalId: string;
 }
 
-function formatDate(iso: string) {
-   return format(new Date(iso), 'yyyy-MM-dd');
+// 시작·종료일이 유효한 날짜일 때만 일수를 계산 - 둘 중 하나라도 이상한 값이면 '-'
+function formatLeaveDays(startDate: string, endDate: string) {
+   const start = new Date(startDate);
+   const end = new Date(endDate);
+   if (!isValid(start) || !isValid(end)) return '-';
+   return `${differenceInCalendarDays(end, start) + 1}일`;
 }
 
 function formatAmount(amount: number) {
@@ -62,6 +67,9 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
    const [isLoading, setIsLoading] = useState(true);
    const [hasError, setHasError] = useState(false);
    const [retryKey, setRetryKey] = useState(0);
+   // 한 번이라도 정상적으로 불러온 적이 있는지 - 승인/반려/확인 직후의 조용한 재조회가 실패했을 때
+   // 이미 보여주고 있던 정상 데이터를 에러 화면으로 덮을지(최초 로드 실패) 토스트로만 알릴지 구분한다
+   const hasLoadedOnceRef = useRef(false);
 
    const silentRefetch = () => setRetryKey((key) => key + 1);
 
@@ -76,6 +84,7 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
    const isDownloadConfirmForPurchase = downloadPendingRequestType === 'PURCHASE';
    const [isApproveConfirmOpen, setIsApproveConfirmOpen] = useState(false);
    const [isApproveSubmitting, setIsApproveSubmitting] = useState(false);
+   const isApproveSubmittingRef = useRef(false);
    const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
    const [isRejectSubmitting, setIsRejectSubmitting] = useState(false);
 
@@ -85,7 +94,10 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
 
       getApprovalDetail(numericApprovalId)
          .then((data) => {
-            if (isMounted) setDetail(data);
+            if (!isMounted) return;
+            setDetail(data);
+            setHasError(false);
+            hasLoadedOnceRef.current = true;
          })
          .catch((err) => {
             if (!isMounted) return;
@@ -97,7 +109,17 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
                router.replace('/approvals?tab=history');
                return;
             }
-            setHasError(true);
+            // 이미 한 번 정상적으로 불러온 뒤라면(승인/반려/확인 직후의 조용한 재조회 등) 화면을
+            // 전부 에러로 덮지 않고 토스트로만 알린다 - 최초 로드 실패일 때만 에러 화면을 보여준다
+            if (hasLoadedOnceRef.current) {
+               toast.error(
+                  err instanceof ApiError
+                     ? err.message
+                     : '최신 결재 정보를 불러오지 못했습니다. 새로고침해주세요.',
+               );
+            } else {
+               setHasError(true);
+            }
          })
          .finally(() => {
             if (isMounted) setIsLoading(false);
@@ -122,7 +144,8 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
    );
 
    const handleApprove = async () => {
-      if (isApproveSubmitting) return;
+      if (isApproveSubmittingRef.current) return;
+      isApproveSubmittingRef.current = true;
       setIsApproveSubmitting(true);
 
       try {
@@ -137,6 +160,7 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
                : '승인 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
          );
       } finally {
+         isApproveSubmittingRef.current = false;
          setIsApproveSubmitting(false);
       }
    };
@@ -225,7 +249,7 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
                   ) : (
                      <InfoField label="신청 유형" value={detail.title} />
                   )}
-                  <InfoField label="신청일자" value={formatDate(detail.requestedAt)} />
+                  <InfoField label="신청일자" value={formatApprovalDate(detail.requestedAt)} />
 
                   {detail.requestType === 'PURCHASE' ? (
                      <>
@@ -241,18 +265,18 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
                      <>
                         <InfoField
                            label="휴가 시작일"
-                           value={detail.startDate ? formatDate(detail.startDate) : '-'}
+                           value={detail.startDate ? formatApprovalDate(detail.startDate) : '-'}
                         />
                         <InfoField
                            label="휴가 종료일"
-                           value={detail.endDate ? formatDate(detail.endDate) : '-'}
+                           value={detail.endDate ? formatApprovalDate(detail.endDate) : '-'}
                         />
                         <InfoField
                            label="총 휴가 일수"
                            valueClassName="font-semibold"
                            value={
                               detail.startDate && detail.endDate
-                                 ? `${differenceInCalendarDays(new Date(detail.endDate), new Date(detail.startDate)) + 1}일`
+                                 ? formatLeaveDays(detail.startDate, detail.endDate)
                                  : '-'
                            }
                         />
@@ -345,6 +369,7 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
                   : "PDF 서류를 다운로드 받으면 해당 결재의 담당자로 배정되고, 결재 서류의 상태가 '확인중'으로 변경됩니다."
             }
             confirmLabel={isDownloadSubmitting ? '처리 중...' : '확인'}
+            busy={isDownloadSubmitting}
             onConfirm={confirmDownload}
             onClose={closeDownloadConfirm}
          />
@@ -353,8 +378,9 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
             title="결재를 승인하시겠습니까?"
             description="승인 처리 후 신청인에게 알림이 발송됩니다."
             confirmLabel={isApproveSubmitting ? '처리 중...' : '확인'}
+            busy={isApproveSubmitting}
             onConfirm={handleApprove}
-            onClose={() => !isApproveSubmitting && setIsApproveConfirmOpen(false)}
+            onClose={() => setIsApproveConfirmOpen(false)}
          />
          {isRejectModalOpen && (
             <RejectReasonModal
