@@ -7,7 +7,6 @@ const nextConfig: NextConfig = {
    poweredByHeader: false,
    experimental: {
       authInterrupts: true,
-      optimizePackageImports: ['lucide-react', 'date-fns'],
    },
    images: {
       remotePatterns: [
