@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -70,36 +71,29 @@ export default function NoticeWriteClient({ noticeId }: Props) {
    const isEditMode = Boolean(noticeId);
    const isInvalidNoticeId = isEditMode && numericNoticeId === undefined;
 
-   const [categories, setCategories] = useState<NoticeCategory[]>([]);
-   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+   // NoticesPageClient와 같은 queryKey를 써서 캐시를 공유한다
+   const {
+      data: categories = [],
+      isLoading: isLoadingCategories,
+      error: categoriesError,
+   } = useQuery({
+      queryKey: ['noticeCategories'],
+      queryFn: getNoticeCategories,
+   });
+
+   useEffect(() => {
+      if (categoriesError) {
+         toast.error(
+            categoriesError instanceof ApiError
+               ? categoriesError.message
+               : '카테고리를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+         );
+      }
+   }, [categoriesError]);
 
    const [initialNotice, setInitialNotice] = useState<NoticeDetail | null>(null);
    const [isLoadingNotice, setIsLoadingNotice] = useState(isEditMode && !isInvalidNoticeId);
    const [hasNoticeError, setHasNoticeError] = useState(false);
-
-   useEffect(() => {
-      let isMounted = true;
-
-      getNoticeCategories()
-         .then((data) => {
-            if (isMounted) setCategories(data);
-         })
-         .catch((err) => {
-            if (!isMounted) return;
-            toast.error(
-               err instanceof ApiError
-                  ? err.message
-                  : '카테고리를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
-            );
-         })
-         .finally(() => {
-            if (isMounted) setIsLoadingCategories(false);
-         });
-
-      return () => {
-         isMounted = false;
-      };
-   }, []);
 
    useEffect(() => {
       if (!isEditMode || isInvalidNoticeId || numericNoticeId === undefined) return;

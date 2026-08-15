@@ -9,11 +9,11 @@ const dots = [
 export default function FullScreenLoader() {
    return (
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background">
-         <div className="flex items-center gap-[11px]">
+         <div className="flex items-center gap-2.75">
             {dots.map((dot) => (
                <span
                   key={dot.color}
-                  className="dot-glow h-[13px] w-[13px] rounded-full"
+                  className="dot-glow h-3.25 w-3.25 rounded-full"
                   style={
                      { backgroundColor: dot.color, '--dot-delay': dot.delay } as React.CSSProperties
                   }

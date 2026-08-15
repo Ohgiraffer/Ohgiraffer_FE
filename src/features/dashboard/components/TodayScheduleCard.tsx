@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { CalendarClock } from 'lucide-react';
-import { EVENT_TYPE_COLORS, type EventType } from '../types';
-import { isEventInDay, mapCalendarEvent } from '../calendarEventUtils';
-import { getCalendarEvents } from '@/services/calendarEvent.service';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
+import { EVENT_TYPE_COLORS, type CalendarEvent, type EventType } from '../types';
+import { isEventInDay } from '../calendarEventUtils';
 import TodayScheduleModal from './TodayScheduleModal';
 
 interface ScheduleItem {
@@ -15,47 +15,30 @@ interface ScheduleItem {
 }
 
 interface TodayScheduleCardProps {
-   // 캘린더에서 일정을 새로 등록하면 부모가 이 값을 바꿔 재조회를 트리거한다
-   refreshKey?: number;
+   // 부모(DashboardGrid)가 오늘이 속한 달의 일정을 캘린더와 함께 조회해 내려준다.
+   // null이면 아직 로딩 중이라는 뜻이다
+   events: CalendarEvent[] | null;
+   hasError: boolean;
+   onRetry: () => void;
 }
 
-export default function TodayScheduleCard({ refreshKey = 0 }: TodayScheduleCardProps) {
+export default function TodayScheduleCard({ events, hasError, onRetry }: TodayScheduleCardProps) {
    const [showModal, setShowModal] = useState(false);
-   const [items, setItems] = useState<ScheduleItem[]>([]);
-   const [isLoading, setIsLoading] = useState(true);
-   const [hasError, setHasError] = useState(false);
-   const [retryKey, setRetryKey] = useState(0);
+   const isLoading = events === null && !hasError;
 
-   useEffect(() => {
-      let isMounted = true;
+   const items = useMemo<ScheduleItem[]>(() => {
+      if (!events) return [];
       const today = new Date();
-      getCalendarEvents(today.getFullYear(), today.getMonth() + 1)
-         .then((apiItems) => {
-            if (!isMounted) return;
-            const todaySchedule = apiItems
-               .map(mapCalendarEvent)
-               .filter((event) => event !== null)
-               .filter((event) => isEventInDay(event.start, event.end, today))
-               .sort((a, b) => a.start.getTime() - b.start.getTime())
-               .map((event) => ({
-                  id: event.id,
-                  time: event.allDay ? '종일' : (event.startTime ?? ''),
-                  title: event.title,
-                  type: event.type,
-               }));
-            setItems(todaySchedule);
-            setHasError(false);
-         })
-         .catch(() => {
-            if (isMounted) setHasError(true);
-         })
-         .finally(() => {
-            if (isMounted) setIsLoading(false);
-         });
-      return () => {
-         isMounted = false;
-      };
-   }, [retryKey, refreshKey]);
+      return events
+         .filter((event) => isEventInDay(event.start, event.end, today))
+         .sort((a, b) => a.start.getTime() - b.start.getTime())
+         .map((event) => ({
+            id: event.id,
+            time: event.allDay ? '종일' : (event.startTime ?? ''),
+            title: event.title,
+            type: event.type,
+         }));
+   }, [events]);
 
    return (
       <div className="h-full rounded-xs border border-gray-200 bg-white p-6 lg:p-6">
@@ -74,17 +57,24 @@ export default function TodayScheduleCard({ refreshKey = 0 }: TodayScheduleCardP
          </div>
 
          {isLoading ? (
-            <p className="py-6 text-center text-sm text-gray-400">불러오는 중...</p>
+            <ul>
+               {[0, 1, 2].map((i) => (
+                  <li
+                     key={i}
+                     className="flex items-center gap-3 border-b border-gray-100 py-3 last:border-none last:pb-0 lg:py-2"
+                  >
+                     <Skeleton width={8} height={8} className="shrink-0 rounded-full" />
+                     <Skeleton width={40} height={12} className="shrink-0 rounded-md" />
+                     <Skeleton width="60%" height={14} className="rounded-md" />
+                  </li>
+               ))}
+            </ul>
          ) : hasError ? (
             <div className="flex flex-col items-center gap-2 py-6">
                <p className="text-sm text-gray-400">일정을 불러오지 못했습니다.</p>
                <button
                   type="button"
-                  onClick={() => {
-                     setIsLoading(true);
-                     setHasError(false);
-                     setRetryKey((key) => key + 1);
-                  }}
+                  onClick={onRetry}
                   className="cursor-pointer rounded-xs border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
                >
                   다시 시도

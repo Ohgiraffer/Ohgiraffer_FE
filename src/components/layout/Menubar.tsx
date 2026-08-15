@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import {
    Home,
    Megaphone,
@@ -21,20 +22,33 @@ import { useAuth } from '@/components/auth/AuthContext';
 import { hasUnsavedChanges } from '@/lib/navigationGuard';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/shadcn/popover';
+import { getBootcampBasicInfo } from '@/services/bootcamp.service';
+import { getNoticeCategories } from '@/services/notice.service';
+import { getTeamPeriods } from '@/services/team.service';
 
 type MenuItem = {
    label: string;
    href: string;
    icon: LucideIcon;
+   // 마우스를 올렸을 때 미리 데워둘 쿼리 - 이 메뉴를 눌렀을 때 뜨는 화면이 이미 이 쿼리 키로
+   // React Query 캐싱된 데이터를 쓰는 항목에만 넣는다(전부는 아직 캐싱 전환 전이라 제외)
+   prefetch?: (queryClient: QueryClient) => void;
 };
+
+const prefetchBootcampBasicInfo = (queryClient: QueryClient) =>
+   queryClient.prefetchQuery({ queryKey: ['bootcampBasicInfo'], queryFn: getBootcampBasicInfo });
+const prefetchNoticeCategories = (queryClient: QueryClient) =>
+   queryClient.prefetchQuery({ queryKey: ['noticeCategories'], queryFn: getNoticeCategories });
+const prefetchTeamPeriods = (queryClient: QueryClient) =>
+   queryClient.prefetchQuery({ queryKey: ['teamPeriods'], queryFn: getTeamPeriods });
 
 // 강사·매니저(운영진) 공용 메뉴
 const STAFF_MENU_ITEMS: MenuItem[] = [
-   { label: '대시보드', href: '/', icon: Home },
-   { label: '공지사항', href: '/notices', icon: Megaphone },
+   { label: '대시보드', href: '/', icon: Home, prefetch: prefetchBootcampBasicInfo },
+   { label: '공지사항', href: '/notices', icon: Megaphone, prefetch: prefetchNoticeCategories },
    { label: '훈련생 관리', href: '/tracker', icon: ClipboardList },
    { label: '상담 이력', href: '/counseling', icon: CalendarDays },
-   { label: '팀 관리', href: '/team', icon: Users },
+   { label: '팀 관리', href: '/team', icon: Users, prefetch: prefetchTeamPeriods },
    { label: '제출물 관리', href: '/submissions', icon: Upload },
    { label: '공간 예약', href: '/space-reservations', icon: Building },
    { label: '전자결재', href: '/approvals', icon: FileCheck2 },
@@ -43,11 +57,11 @@ const STAFF_MENU_ITEMS: MenuItem[] = [
 
 // 학생 메뉴
 const STUDENT_MENU_ITEMS: MenuItem[] = [
-   { label: '대시보드', href: '/', icon: Home },
-   { label: '공지사항', href: '/notices', icon: Megaphone },
+   { label: '대시보드', href: '/', icon: Home, prefetch: prefetchBootcampBasicInfo },
+   { label: '공지사항', href: '/notices', icon: Megaphone, prefetch: prefetchNoticeCategories },
    { label: '훈련 현황', href: '/tracker', icon: ClipboardList },
    { label: '상담 신청', href: '/counseling', icon: CalendarDays },
-   { label: '팀 현황', href: '/team', icon: Users },
+   { label: '팀 현황', href: '/team', icon: Users, prefetch: prefetchTeamPeriods },
    { label: '제출물 관리', href: '/submissions', icon: Upload },
    { label: '공간 예약', href: '/space-reservations', icon: Building },
    { label: '전자결재', href: '/approvals', icon: FileCheck2 },
@@ -62,6 +76,7 @@ const FACILITY_CONTACTS = [
 export default function Menubar() {
    const pathname = usePathname();
    const router = useRouter();
+   const queryClient = useQueryClient();
    const { role } = useAuth();
    const menuItems = role === 'STUDENT' ? STUDENT_MENU_ITEMS : STAFF_MENU_ITEMS;
    const [pendingHref, setPendingHref] = useState<string | null>(null);
@@ -76,7 +91,7 @@ export default function Menubar() {
    return (
       <aside className="flex h-full w-22.5 shrink-0 flex-col overflow-hidden border-r border-gray-200 bg-white p-2">
          <div className="flex flex-1 flex-col gap-[clamp(0px,0.4vh,2px)] overflow-hidden">
-            {menuItems.map(({ label, href, icon: Icon }) => {
+            {menuItems.map(({ label, href, icon: Icon, prefetch }) => {
                const isActive = href === '/' ? pathname === '/' : pathname.startsWith(href);
 
                return (
@@ -84,6 +99,7 @@ export default function Menubar() {
                      key={href}
                      href={href}
                      onClick={(e) => handleNavigate(e, href, isActive)}
+                     onMouseEnter={() => prefetch?.(queryClient)}
                      className={`flex min-h-0 cursor-pointer flex-col items-center justify-center gap-[clamp(0px,0.3vh,4px)] rounded-sm px-1.5 py-[clamp(4px,2vh,12px)] text-[11px] font-semibold transition-colors ${
                         isActive ? 'bg-brand-green text-white' : 'text-[#3B4150] hover:bg-[#F7F8FA]'
                      }`}

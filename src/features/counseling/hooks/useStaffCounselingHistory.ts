@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import type { UserRole } from '@/services/auth.service';
@@ -32,7 +33,16 @@ export function useStaffCounselingHistory() {
    const [isLoadingHistory, setIsLoadingHistory] = useState(true);
    const [hasHistoryError, setHasHistoryError] = useState(false);
 
-   const [roleByName, setRoleByName] = useState<Map<string, UserRole>>(new Map());
+   // useApplyCounseling과 같은 queryKey를 써서 캐시를 공유한다. 필터를 보조하는 정보일 뿐이라
+   // 실패해도 조용히 무시한다(목록 자체는 그대로 보여준다)
+   const { data: counselors = [] } = useQuery({
+      queryKey: ['counselors'],
+      queryFn: getCounselors,
+   });
+   const roleByName = useMemo(
+      () => new Map<string, UserRole>(counselors.map((counselor) => [counselor.name, counselor.role])),
+      [counselors],
+   );
 
    const [roleFilter, setRoleFilter] = useState<CounselorRoleFilter>('ALL');
    const [statusFilter, setStatusFilter] = useState<ConsultationStatusFilter>('ALL');
@@ -79,23 +89,6 @@ export function useStaffCounselingHistory() {
          })
          .finally(() => {
             if (isMounted) setIsLoadingHistory(false);
-         });
-
-      return () => {
-         isMounted = false;
-      };
-   }, []);
-
-   useEffect(() => {
-      let isMounted = true;
-
-      getCounselors()
-         .then((data) => {
-            if (!isMounted) return;
-            setRoleByName(new Map(data.map((counselor) => [counselor.name, counselor.role])));
-         })
-         .catch(() => {
-            // 필터를 보조하는 정보일 뿐이라 실패해도 조용히 무시(목록 자체는 그대로 보여준다)
          });
 
       return () => {

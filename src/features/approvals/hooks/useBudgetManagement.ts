@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import type {
@@ -36,6 +37,10 @@ function notifyUnlessNotFound(err: unknown, fallback: string) {
 }
 
 export function useBudgetManagement() {
+   // 여기서 새로 받아온 값은 usePurchaseBudgetRequestForm이 쓰는 ['budgetSummary'] 캐시에도
+   // 그대로 채워 넣는다 - 이 훅은 시트 동기화 직후라 항상 최신 값을 직접 조회해야 해서
+   // useQuery로 읽지 않고, 대신 결과를 캐시에 밀어 넣어 다른 화면이 최신 값을 바로 보게 한다
+   const queryClient = useQueryClient();
    const [summary, setSummary] = useState<BudgetSummary | null>(null);
    const [isLoading, setIsLoading] = useState(true);
    const [isConnected, setIsConnected] = useState(false);
@@ -71,6 +76,7 @@ export function useBudgetManagement() {
          try {
             const data = await getBudgetSummary();
             if (isMounted) setSummary(data);
+            queryClient.setQueryData(['budgetSummary'], data);
          } catch (err) {
             if (!isMounted) return;
             notifyUnlessNotConnected(
@@ -87,7 +93,7 @@ export function useBudgetManagement() {
       return () => {
          isMounted = false;
       };
-   }, []);
+   }, [queryClient]);
 
    const handleSaveMapping = async (result: GoogleSheetSaveResult) => {
       await saveBudgetSheetSettings({
@@ -106,6 +112,7 @@ export function useBudgetManagement() {
       try {
          const freshSummary = await getBudgetSummary();
          setSummary(freshSummary);
+         queryClient.setQueryData(['budgetSummary'], freshSummary);
       } catch (err) {
          notifyUnlessNotConnected(
             err,

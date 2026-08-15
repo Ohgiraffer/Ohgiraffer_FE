@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/shadcn/select';
 import Pagination from '@/components/ui/Pagination';
 import SearchInput from '@/components/ui/SearchInput';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import StatusBadge from '@/features/submissions/components/StatusBadge';
 import { useManagerTrackerData } from '../hooks/useManagerTrackerData';
 import { TRAINEE_RISK_LABELS, TRAINEE_RISK_TONES, type TraineeRiskStatus } from '../types';
@@ -36,6 +37,54 @@ const OVERVIEW_STATS = [
    { label: '위기 훈련생', valueKey: 'atRiskStudents', suffix: '명', caption: '경고·제적위험' },
    { label: '중도 이탈', valueKey: 'dropoutStudents', suffix: '명', caption: '수강 철회' },
 ] as const;
+
+function StatusTabSkeleton() {
+   return (
+      <div>
+         <div className="grid grid-cols-7 divide-x divide-gray-100 rounded-xs border border-gray-200 bg-white">
+            {OVERVIEW_STATS.map((stat) => (
+               <div key={stat.label} className="flex flex-col items-center gap-1.5 py-4">
+                  <Skeleton width={48} height={11} className="rounded-md" />
+                  <Skeleton width={36} height={20} className="rounded-md" />
+                  <Skeleton width={40} height={10} className="rounded-md" />
+               </div>
+            ))}
+         </div>
+
+         <div className="mt-6 rounded-xs border border-gray-200 bg-white p-6">
+            <div className="mb-4 flex items-center justify-between">
+               <Skeleton width={80} height={16} className="rounded-md" />
+               <Skeleton width={140} height={36} className="rounded-xs" />
+            </div>
+            <Skeleton width="100%" height={180} className="rounded-md" />
+         </div>
+
+         <div className="mt-6 flex flex-wrap items-center gap-2">
+            <Skeleton width={128} height={36} className="rounded-xs" />
+            <Skeleton width={128} height={36} className="rounded-xs" />
+            <Skeleton width={112} height={36} className="rounded-xs" />
+            <Skeleton width={256} height={36} className="ml-auto rounded-xs" />
+         </div>
+
+         <div className="mt-4 overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
+            {[0, 1, 2, 3, 4].map((i) => (
+               <div
+                  key={i}
+                  className="flex items-center gap-4 border-b border-[#F3F4F6] px-6 py-4 last:border-none"
+               >
+                  <Skeleton width="18%" height={14} className="rounded-md" />
+                  <Skeleton width="24%" height={6} className="rounded-full" />
+                  <Skeleton width="8%" height={14} className="rounded-md" />
+                  <Skeleton width="8%" height={14} className="rounded-md" />
+                  <Skeleton width="8%" height={14} className="rounded-md" />
+                  <Skeleton width="8%" height={14} className="rounded-md" />
+                  <Skeleton width={64} height={22} className="ml-auto rounded-xs" />
+               </div>
+            ))}
+         </div>
+      </div>
+   );
+}
 
 interface StatusTabProps {
    onGoToSheetSync: () => void;
@@ -88,7 +137,7 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
    );
 
    if (isLoading) {
-      return <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>;
+      return <StatusTabSkeleton />;
    }
 
    if (error || !stats) {

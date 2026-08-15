@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { ExternalLink } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { SkeletonListRow } from '@/components/ui/loading/Skeleton';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
 import {
@@ -10,10 +12,12 @@ import {
    getSurveyFormDetail,
    getSurveyForms,
 } from '@/services/surveyForm.service';
-import FormCreateModal from './FormCreateModal';
-import FormEditModal from './FormEditModal';
 import FormListTable from './FormListTable';
 import type { SurveyFormDetail, SurveyFormListItem } from '../../types';
+
+// 생성/수정 버튼을 눌러야만 필요한 날짜선택 모달이라 지연 로딩한다
+const FormCreateModal = dynamic(() => import('./FormCreateModal'), { ssr: false });
+const FormEditModal = dynamic(() => import('./FormEditModal'), { ssr: false });
 
 interface FormsTabProps {
    isCreating: boolean;
@@ -140,7 +144,11 @@ export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps
          )}
 
          {isLoading ? (
-            <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+            <div className="mt-4 overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
+               {[0, 1, 2, 3].map((i) => (
+                  <SkeletonListRow key={i} index={i} />
+               ))}
+            </div>
          ) : hasError ? (
             <div className="flex flex-col items-center gap-3 py-16">
                <p className="text-sm text-gray-400">

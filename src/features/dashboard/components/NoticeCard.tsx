@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Megaphone, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { getNoticeSummary, type NoticeSummaryItem } from '@/services/notice.service';
 
 export default function NoticeCard() {
@@ -44,7 +45,14 @@ export default function NoticeCard() {
          </div>
 
          {isLoading ? (
-            <p className="py-6 text-center text-sm text-gray-400">불러오는 중...</p>
+            <ul className="flex flex-col gap-1">
+               {[0, 1, 2].map((i) => (
+                  <li key={i} className="flex items-center justify-between gap-3 py-2 lg:py-3">
+                     <Skeleton width="65%" height={14} className="rounded-md" />
+                     <Skeleton width={48} height={12} className="rounded-md" />
+                  </li>
+               ))}
+            </ul>
          ) : hasError ? (
             <div className="flex flex-col items-center gap-2 py-6">
                <p className="text-sm text-gray-400">공지사항을 불러오지 못했습니다.</p>

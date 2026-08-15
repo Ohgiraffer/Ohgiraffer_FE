@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ChevronRight, TriangleAlert } from 'lucide-react';
 import { getSubmissionBoxes } from '@/services/submissionBox.service';
 import { getSurveyForms } from '@/services/surveyForm.service';
+import { SkeletonListRow } from '@/components/ui/loading/Skeleton';
 import StatusBadge from './StatusBadge';
 import { formatDateTime, formatDday } from '../formatSubmissionDate';
 
@@ -111,7 +112,11 @@ export default function StudentSubmissionsPageClient() {
             </div>
 
             {items === null && !hasError ? (
-               <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+               <>
+                  {[0, 1, 2, 3].map((i) => (
+                     <SkeletonListRow key={i} index={i} />
+                  ))}
+               </>
             ) : hasError ? (
                <div className="flex flex-col items-center gap-3 py-16">
                   <p className="text-sm text-gray-400">목록을 불러오지 못했습니다.</p>

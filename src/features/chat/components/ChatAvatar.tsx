@@ -7,9 +7,17 @@ import { API_BASE_URL } from '@/lib/http';
 
 // 채팅 프로필 사진은 절대 URL이 아니라 "/profileImg/55" 같은 상대 경로로 내려온다(콘솔에서
 // http://localhost:3000/profileImg/55 404로 확인됨 - 프론트 origin 기준으로 요청되고 있었음).
-// 백엔드 origin을 앞에 붙여줘야 실제 이미지 서버로 요청이 간다
-function resolveImageUrl(url: string) {
-   return url.startsWith('/') ? `${API_BASE_URL}${url}` : url;
+// 백엔드 origin을 앞에 붙여줘야 실제 이미지 서버로 요청이 간다. 이렇게 만든 값이 그래도 올바른
+// URL이 아니면(예상 못한 형식) next/image가 렌더링 시점에 바로 터지므로, 여기서 미리 검증해서
+// 실패하면 null을 돌려주고 기본 아이콘으로 대체한다
+function resolveImageUrl(url: string): string | null {
+   const resolved = url.startsWith('/') ? `${API_BASE_URL}${url}` : url;
+   try {
+      new URL(resolved);
+      return resolved;
+   } catch {
+      return null;
+   }
 }
 
 interface ChatAvatarProps {
@@ -52,7 +60,8 @@ export default function ChatAvatar({
    // 이미지 URL이 있어도 로드가 실패하면(권한 없는 S3 경로, 잘못된 URL 등) 브라우저 기본
    // 깨진 이미지 아이콘 대신 기본 아이콘으로 대체한다. url이 바뀌면 다시 시도할 수 있게 초기화
    const [failedUrl, setFailedUrl] = useState<string | null>(null);
-   const showImage = imageUrl && imageUrl !== failedUrl;
+   const resolvedUrl = imageUrl ? resolveImageUrl(imageUrl) : null;
+   const showImage = resolvedUrl !== null && resolvedUrl !== failedUrl;
 
    return (
       <span className="relative inline-flex shrink-0">
@@ -61,11 +70,11 @@ export default function ChatAvatar({
          >
             {showImage ? (
                <Image
-                  src={resolveImageUrl(imageUrl)}
+                  src={resolvedUrl}
                   alt={name ?? ''}
                   fill
                   sizes={size === 'sm' ? '28px' : '44px'}
-                  onError={() => setFailedUrl(imageUrl)}
+                  onError={() => setFailedUrl(resolvedUrl)}
                   className="object-cover"
                />
             ) : (

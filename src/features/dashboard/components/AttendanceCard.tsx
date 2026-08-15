@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ClipboardCheck, TriangleAlert } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import {
    getAttendanceDashboardSummary,
    getMyAttendanceSummary,
@@ -50,7 +51,20 @@ function LoadingOrError({ hasError, onRetry }: { hasError: boolean; onRetry: () 
          </div>
       );
    }
-   return <p className="py-6 text-center text-sm text-gray-400">불러오는 중...</p>;
+   return (
+      <div>
+         <Skeleton width={90} height={28} className="mb-1.5 rounded-md" />
+         <Skeleton width="100%" height={6} className="mb-4 rounded-full lg:mb-2" />
+         <ul className="flex flex-col gap-2 lg:gap-1">
+            {[0, 1, 2, 3].map((i) => (
+               <li key={i} className="flex items-center gap-2">
+                  <Skeleton width={8} height={8} className="shrink-0 rounded-full" />
+                  <Skeleton width="55%" height={14} className="rounded-md" />
+               </li>
+            ))}
+         </ul>
+      </div>
+   );
 }
 
 function StatDotList({ stats }: { stats: StatDot[] }) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import {
    Calendar,
    dateFnsLocalizer,
@@ -14,8 +15,10 @@ import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import CreateEventModal from './CreateEventModal';
 import DayAgendaModal from './DayAgendaModal';
+
+// 일정 등록을 누를 때만 필요한 날짜선택 모달이라 지연 로딩한다
+const CreateEventModal = dynamic(() => import('./CreateEventModal'), { ssr: false });
 import { EVENT_TYPE_COLORS, type CalendarEvent, type EventType } from '../types';
 import { isEventInDay, mapCalendarEvent } from '../calendarEventUtils';
 import { deleteCalendarEvent, getCalendarEvents } from '@/services/calendarEvent.service';
@@ -81,12 +84,19 @@ function CalendarToolbar({ label, onNavigate }: ToolbarProps<CalendarEvent, obje
 
 interface DashboardCalendarProps {
    holidays?: Holiday[];
+   // 부모(DashboardGrid)가 오늘이 속한 달의 일정을 오늘 일정 카드와 공유하려고 미리 한 번
+   // 조회해 내려준다 - 마운트 시 같은 달을 또 조회하지 않고 이 값을 그대로 쓴다. initialEventsReady는
+   // 부모의 조회가 끝났는지(성공/실패 무관) 나타낸다 - 끝나기 전까지는 기다렸다가 한 번만 소비한다
+   initialEvents?: CalendarEvent[] | null;
+   initialEventsReady?: boolean;
    // 일정 등록 성공 시 대시보드의 다른 카드(오늘 일정 등)도 함께 갱신하도록 알려준다
    onEventCreated?: () => void;
 }
 
 export default function DashboardCalendar({
    holidays: initialHolidays = [],
+   initialEvents,
+   initialEventsReady = false,
    onEventCreated,
 }: DashboardCalendarProps) {
    const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -117,10 +127,39 @@ export default function DashboardCalendar({
          });
    }, []);
 
-   // 화면에 보이는 달이 바뀔 때마다(최초 진입 포함) 그 달의 일정을 다시 불러온다
+   // 마운트 시 보여주는 달(=오늘이 속한 달) - 부모가 내려준 initialEvents가 이 달의 것과
+   // 일치하는 동안에만 재사용할 수 있다. ref가 아니라 state로 두는 이유는 렌더 중에 읽고 쓸 수
+   // 있어야 해서다(react-hooks/refs 규칙상 렌더 중 ref 접근이 금지됨)
+   const [initialYearMonth] = useState({ year: currentYear, month: currentMonth });
+   const [hasHandledInitial, setHasHandledInitial] = useState(false);
+
+   const isStillInitialMonth =
+      currentYear === initialYearMonth.year && currentMonth === initialYearMonth.month;
+
+   // effect 안에서 setState를 직접 호출할 수 없어(react-hooks/set-state-in-effect), 부모가 내려준
+   // initialEvents를 그대로 쓰는 이 부분만 렌더 중에 처리한다(TeamWorkspaceLink.tsx 등과 같은 패턴)
+   if (!hasHandledInitial && isStillInitialMonth && initialEventsReady && initialEvents) {
+      setHasHandledInitial(true);
+      setEvents(initialEvents);
+   }
+
+   // 화면에 보이는 달이 바뀔 때마다(최초 진입 포함) 그 달의 일정을 다시 불러온다 - 다만 최초
+   // 진입 달만큼은 부모가 이미 조회해둔 값을 위에서 그대로 썼다면(hasHandledInitial) 여기서
+   // 또 조회하지 않는다
    useEffect(() => {
+      if (hasHandledInitial) return;
+      if (isStillInitialMonth && !initialEventsReady) {
+         return; // 부모 조회가 아직 끝나지 않았다 - initialEventsReady가 바뀌면 이 effect가 다시 돈다
+      }
       applyFetchedEvents(currentYear, currentMonth);
-   }, [currentYear, currentMonth, applyFetchedEvents]);
+   }, [
+      currentYear,
+      currentMonth,
+      applyFetchedEvents,
+      isStillInitialMonth,
+      initialEventsReady,
+      hasHandledInitial,
+   ]);
 
    useEffect(() => {
       if (currentYear in holidaysByYear) return;
