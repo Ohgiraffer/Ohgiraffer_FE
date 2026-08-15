@@ -1,13 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { getUserList, type UserListItem } from '@/services/user.service';
-import { getBootcampSettings, type BootcampSettingsPeriod } from '@/services/bootcampSettings.service';
+import { getBootcampSettings } from '@/services/bootcampSettings.service';
 import {
    getAttendanceDashboardSummary,
    getAttendanceList,
    getPresentAbsentCount,
    type AttendanceDashboardSummary,
+   type AttendanceListItem,
    type PresentAbsentCountPoint,
 } from '@/services/attendance.service';
 import { mapRiskLevel, type TraineeSummary } from '../types';
@@ -16,60 +18,91 @@ import { mapRiskLevel, type TraineeSummary } from '../types';
 // 같은 userId의 훈련생을 찾아 teamName을 채운다
 export function useManagerTrackerData() {
    const [stats, setStats] = useState<AttendanceDashboardSummary | null>(null);
-   const [trainees, setTrainees] = useState<TraineeSummary[]>([]);
-   const [periods, setPeriods] = useState<BootcampSettingsPeriod[]>([]);
-   const [isLoading, setIsLoading] = useState(true);
+   const [attendanceList, setAttendanceList] = useState<AttendanceListItem[] | null>(null);
+   const [isLoadingAttendance, setIsLoadingAttendance] = useState(true);
    const [error, setError] = useState(false);
    const [retryKey, setRetryKey] = useState(0);
 
+   // useUserList/useStudentDirectory/NewChatModal과 같은 queryKey를 써서 캐시를 공유한다
+   const {
+      data: users,
+      isLoading: isLoadingUsers,
+      isFetching: isFetchingUsers,
+      isError: isUsersError,
+      refetch: refetchUsers,
+   } = useQuery({
+      queryKey: ['users', 'list'],
+      queryFn: getUserList,
+   });
+
+   // useOrgAttendanceSettings/TeamPeriodAddModal과 같은 queryKey를 써서 캐시를 공유한다
+   const {
+      data: bootcampSettings,
+      isLoading: isLoadingBootcampSettings,
+      isFetching: isFetchingBootcampSettings,
+      isError: isBootcampSettingsError,
+      refetch: refetchBootcampSettings,
+   } = useQuery({
+      queryKey: ['bootcampSettings'],
+      queryFn: getBootcampSettings,
+   });
+   const periods = useMemo(() => bootcampSettings?.periods ?? [], [bootcampSettings]);
+
    useEffect(() => {
       let isMounted = true;
-      Promise.all([
-         getAttendanceDashboardSummary(),
-         getAttendanceList(),
-         getUserList(),
-         getBootcampSettings(),
-      ])
-         .then(([summary, list, users, bootcampSettings]) => {
+      Promise.all([getAttendanceDashboardSummary(), getAttendanceList()])
+         .then(([summary, list]) => {
             if (!isMounted) return;
             setStats(summary);
-            setPeriods(bootcampSettings.periods);
-
-            const studentsById = new Map<number, UserListItem>();
-            users
-               .filter((user) => user.role === 'STUDENT')
-               .forEach((user) => {
-                  studentsById.set(user.userId, user);
-               });
-
-            setTrainees(
-               list.map((item) => {
-                  const matched = studentsById.get(item.userId);
-                  return {
-                     traineeId: item.userId,
-                     name: item.name,
-                     email: matched?.email ?? null,
-                     teamName: matched?.teamName ?? null,
-                     attendanceRate: item.attendanceRate,
-                     lateCount: item.lateCount,
-                     earlyLeaveCount: item.earlyLeaveCount,
-                     outingCount: item.outingCount,
-                     absentCount: item.absentDays,
-                     riskStatus: mapRiskLevel(item.status),
-                  };
-               }),
-            );
+            setAttendanceList(list);
          })
          .catch(() => {
             if (isMounted) setError(true);
          })
          .finally(() => {
-            if (isMounted) setIsLoading(false);
+            if (isMounted) setIsLoadingAttendance(false);
          });
       return () => {
          isMounted = false;
       };
    }, [retryKey]);
+
+   // retry()로 재조회하는 동안(isFetching)에도 로딩으로 보여준다 - 그렇지 않으면 재조회가 끝날
+   // 때까지 이전 에러 상태(isError)가 그대로 남아 "다시 시도"를 눌러도 에러 화면이 계속 보인다
+   const isLoading =
+      isLoadingAttendance ||
+      isLoadingUsers ||
+      isLoadingBootcampSettings ||
+      isFetchingUsers ||
+      isFetchingBootcampSettings;
+   const hasError = error || isUsersError || isBootcampSettingsError;
+
+   const trainees = useMemo<TraineeSummary[]>(() => {
+      if (!attendanceList || !users) return [];
+
+      const studentsById = new Map<number, UserListItem>();
+      users
+         .filter((user) => user.role === 'STUDENT')
+         .forEach((user) => {
+            studentsById.set(user.userId, user);
+         });
+
+      return attendanceList.map((item) => {
+         const matched = studentsById.get(item.userId);
+         return {
+            traineeId: item.userId,
+            name: item.name,
+            email: matched?.email ?? null,
+            teamName: matched?.teamName ?? null,
+            attendanceRate: item.attendanceRate,
+            lateCount: item.lateCount,
+            earlyLeaveCount: item.earlyLeaveCount,
+            outingCount: item.outingCount,
+            absentCount: item.absentDays,
+            riskStatus: mapRiskLevel(item.status),
+         };
+      });
+   }, [attendanceList, users]);
 
    // 단위기간 추이 그래프 - null이면 백엔드 기본값(오늘이 속한 단위기간)을 그대로 쓴다
    const [selectedPeriodId, setSelectedPeriodId] = useState<number | null>(null);
@@ -97,10 +130,12 @@ export function useManagerTrackerData() {
    }, [selectedPeriodId, trendRetryKey]);
 
    const retry = useCallback(() => {
-      setIsLoading(true);
+      setIsLoadingAttendance(true);
       setError(false);
       setRetryKey((key) => key + 1);
-   }, []);
+      refetchUsers();
+      refetchBootcampSettings();
+   }, [refetchUsers, refetchBootcampSettings]);
 
    const changePeriod = useCallback((periodId: number | null) => {
       setIsLoadingTrend(true);
@@ -119,7 +154,7 @@ export function useManagerTrackerData() {
       trainees,
       periods,
       isLoading,
-      error,
+      error: hasError,
       retry,
       trend,
       isLoadingTrend,

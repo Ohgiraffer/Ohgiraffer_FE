@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { format, isToday } from 'date-fns';
 import { ChevronRight, ListChecks } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import type { UserRole } from '@/services/auth.service';
 import { getTodoSummary, type TodoItem, type TodoSourceDomain } from '@/services/todo.service';
 
@@ -78,7 +79,17 @@ export default function TodoCard() {
          </div>
 
          {isLoading ? (
-            <p className="py-6 text-center text-sm text-gray-400">불러오는 중...</p>
+            <ul>
+               {[0, 1, 2].map((i) => (
+                  <li
+                     key={i}
+                     className="flex items-center justify-between gap-3 border-b border-gray-100 py-2 last:border-none lg:py-3"
+                  >
+                     <Skeleton width="55%" height={14} className="rounded-md" />
+                     <Skeleton width={40} height={18} className="rounded-xs" />
+                  </li>
+               ))}
+            </ul>
          ) : hasError ? (
             <div className="flex flex-col items-center gap-2 py-6">
                <p className="text-sm text-gray-400">할 일을 불러오지 못했습니다.</p>

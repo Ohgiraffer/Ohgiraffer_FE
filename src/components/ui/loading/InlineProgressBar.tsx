@@ -11,8 +11,8 @@ export default function InlineProgressBar({ fullWidth = false, className }: Inli
    return (
       <div
          className={cn(
-            'relative h-[5px] overflow-hidden rounded-full bg-muted',
-            fullWidth ? 'w-full' : 'w-[120px]',
+            'relative h-1.25 overflow-hidden rounded-full bg-muted',
+            fullWidth ? 'w-full' : 'w-30',
             className,
          )}
       >

@@ -3,6 +3,7 @@
 import { ChevronDown, LogOut, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthContext';
 import { ROLE_LABELS } from '@/services/auth.service';
@@ -83,10 +84,9 @@ export default function ProfileDropdown() {
                isMenuOpen ? 'bg-[#4D655A]' : ''
             }`}
          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-gray-600">
+            <span className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-gray-600">
                {profileImageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- 동적 S3 URL이라 next/image 설정 없이 바로 사용
-                  <img src={profileImageUrl} alt="" className="h-full w-full object-cover" />
+                  <Image src={profileImageUrl} alt="" fill sizes="28px" className="object-cover" />
                ) : (
                   <User size={16} />
                )}

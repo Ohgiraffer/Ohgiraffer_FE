@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ChevronLeft, Pencil, Pin, Sparkles, Trash2, User, CalendarDays } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
@@ -18,12 +19,16 @@ import {
 import { formatNoticeDate } from '../../formatNoticeDate';
 import { parseNoticeId } from '../../parseNoticeId';
 import { useAiScheduleExtraction } from '../../hooks/useAiScheduleExtraction';
-import AiScheduleExtractionModal from './AiScheduleExtractionModal';
 import NoticeAttachmentList from './NoticeAttachmentList';
 
 type Props = {
    noticeId: string;
 };
+
+// AI 일정 추출 버튼을 눌러야만 필요한 날짜선택 모달이라 지연 로딩한다
+const AiScheduleExtractionModal = dynamic(() => import('./AiScheduleExtractionModal'), {
+   ssr: false,
+});
 
 // 공지사항 상세 조회 페이지 - 뒤로가기 + 카드(배지/제목/본문/첨부파일) + AI 일정추출 배너 조립
 export default function NoticeDetailClient({ noticeId }: Props) {
@@ -89,19 +94,41 @@ export default function NoticeDetailClient({ noticeId }: Props) {
       setRetryKey((key) => key + 1);
    };
 
-   // 공지 확인 처리
+   // 공지 확인 처리 - 취소 API가 없어 항상 true로만 가는 단방향 액션이라, 응답을 기다리지 않고
+   // 먼저 체크된 상태로 보여준 뒤 실패하면 원래 상태로 되돌린다
    const handleConfirm = async () => {
       if (!notice || notice.confirmedByMe || isConfirming) return;
       setIsConfirming(true);
 
+      // 스냅샷 전체를 되돌리면 그 사이 다른 핸들러(AI 일정 추출 완료 등)가 반영한 필드까지
+      // 덮어써버리므로, 확인 관련 필드만 함수형 업데이트로 적용/롤백한다
+      const { confirmedByMe: previousConfirmedByMe, confirmationCount: previousConfirmationCount } =
+         notice;
+      setNotice((prev) =>
+         prev ? { ...prev, confirmedByMe: true, confirmationCount: prev.confirmationCount + 1 } : prev,
+      );
+
       try {
          const result = await confirmNotice(notice.noticeId);
-         setNotice({
-            ...notice,
-            confirmationCount: result.confirmationCount,
-            confirmedByMe: result.confirmedByMe,
-         });
+         setNotice((prev) =>
+            prev
+               ? {
+                    ...prev,
+                    confirmationCount: result.confirmationCount,
+                    confirmedByMe: result.confirmedByMe,
+                 }
+               : prev,
+         );
       } catch (err) {
+         setNotice((prev) =>
+            prev
+               ? {
+                    ...prev,
+                    confirmedByMe: previousConfirmedByMe,
+                    confirmationCount: previousConfirmationCount,
+                 }
+               : prev,
+         );
          toast.error(
             err instanceof ApiError
                ? err.message

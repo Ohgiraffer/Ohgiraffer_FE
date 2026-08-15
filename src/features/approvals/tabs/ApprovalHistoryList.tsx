@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import StatusBadge from '@/features/submissions/components/StatusBadge';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { useApprovalList } from '../hooks/useApprovalList';
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_TONES } from '../types';
 
@@ -25,11 +26,15 @@ export default function ApprovalHistoryList() {
             </thead>
             <tbody>
                {isLoading ? (
-                  <tr>
-                     <td colSpan={5} className="px-6 py-10 text-center text-gray-400">
-                        불러오는 중...
-                     </td>
-                  </tr>
+                  [0, 1, 2, 3, 4].map((i) => (
+                     <tr key={i} className="border-b border-[#F3F4F6] last:border-b-0">
+                        <td className="px-8 py-3"><Skeleton width={16} height={14} className="mx-auto rounded-md" /></td>
+                        <td className="px-15 py-3"><Skeleton width="60%" height={14} className="rounded-md" /></td>
+                        <td className="px-6 py-3"><Skeleton width="50%" height={14} className="rounded-md" /></td>
+                        <td className="px-6 py-3"><Skeleton width={56} height={22} className="mx-auto rounded-xs" /></td>
+                        <td className="px-6 py-3"><Skeleton width={72} height={14} className="mx-auto rounded-md" /></td>
+                     </tr>
+                  ))
                ) : hasError ? (
                   <tr>
                      <td colSpan={5} className="px-6 py-16">

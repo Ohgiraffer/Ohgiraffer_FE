@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Plus, TriangleAlert } from 'lucide-react';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { useAttendanceOverview } from '../hooks/useAttendanceOverview';
 import {
    ATTENDANCE_DAY_STATUS_COLOR_GROUP,
@@ -42,7 +43,37 @@ export default function StudentTracker() {
    if (isLoadingOverview) {
       return (
          <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
-            <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+            <div className="flex items-center justify-between">
+               <Skeleton width={140} height={28} className="rounded-md" />
+               <Skeleton width={110} height={38} className="rounded-xs" />
+            </div>
+
+            <div className="mt-5 grid grid-cols-[1fr_2fr] divide-x divide-gray-100 rounded-sm border border-gray-200 bg-white">
+               <div className="p-6">
+                  <Skeleton width={90} height={13} className="rounded-md" />
+                  <Skeleton width={70} height={24} className="mt-2 rounded-xs" />
+                  <Skeleton width={120} height={22} className="mt-3 rounded-md" />
+                  <div className="mt-3 flex gap-2">
+                     <Skeleton width={90} height={24} className="rounded-xs" />
+                     <Skeleton width={90} height={24} className="rounded-xs" />
+                  </div>
+               </div>
+               <div className="min-w-0 p-6">
+                  <Skeleton width={90} height={13} className="rounded-md" />
+                  <Skeleton width={90} height={28} className="mt-2 rounded-xs" />
+                  <Skeleton width="100%" height={8} className="mt-4 rounded-full" />
+               </div>
+            </div>
+
+            <div className="mt-5 flex gap-3 rounded-sm border border-gray-200 bg-white p-6">
+               {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+                  <Skeleton key={i} width="100%" height={40} className="rounded-md" />
+               ))}
+            </div>
+
+            <div className="mt-5 rounded-sm border border-gray-200 bg-white p-6">
+               <Skeleton width="100%" height={320} className="rounded-md" />
+            </div>
          </div>
       );
    }

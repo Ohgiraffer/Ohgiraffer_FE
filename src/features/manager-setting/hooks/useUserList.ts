@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http';
 import { ROLE_LABELS } from '@/services/auth.service';
 import { getUserList, type UserListItem, type UserStatus } from '@/services/user.service';
@@ -35,43 +35,27 @@ function toManagerSettingUser(item: UserListItem): ManagerSettingUser {
    };
 }
 
+// 사용자 목록(/user/list)은 useStudentDirectory/useManagerTrackerData/NewChatModal도 같은
+// queryKey로 조회한다 - 화면을 오가도 재요청 없이 캐시를 공유한다
 export function useUserList() {
-   const [users, setUsers] = useState<ManagerSettingUser[]>([]);
-   const [isLoading, setIsLoading] = useState(true);
-   const [loadError, setLoadError] = useState<string | null>(null);
-   const [reloadKey, setReloadKey] = useState(0);
+   const {
+      data,
+      isLoading,
+      error,
+      refetch: refetchQuery,
+   } = useQuery({
+      queryKey: ['users', 'list'],
+      queryFn: getUserList,
+   });
 
-   useEffect(() => {
-      let isMounted = true;
-
-      getUserList()
-         .then((data) => {
-            if (!isMounted) return;
-            setUsers(data.map(toManagerSettingUser));
-         })
-         .catch((err) => {
-            if (!isMounted) return;
-            setLoadError(
-               getApiErrorMessage(
-                  err,
-                  '사용자 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
-               ),
-            );
-         })
-         .finally(() => {
-            if (isMounted) setIsLoading(false);
-         });
-
-      return () => {
-         isMounted = false;
-      };
-   }, [reloadKey]);
+   const users = (data ?? []).map(toManagerSettingUser);
+   const loadError = error
+      ? getApiErrorMessage(error, '사용자 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
+      : null;
 
    // 사용자 등록 성공 후 최신 목록 다시 조회
    const refetch = () => {
-      setIsLoading(true);
-      setLoadError(null);
-      setReloadKey((key) => key + 1);
+      refetchQuery();
    };
 
    return { users, isLoading, loadError, refetch };

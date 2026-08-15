@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
             hostname: 'be.campflow.co.kr',
             pathname: '/**',
          },
+         {
+            protocol: 'https',
+            hostname: 'ohgiraffer-media.s3.ap-northeast-2.amazonaws.com',
+            pathname: '/**',
+         },
       ],
    },
    async headers() {

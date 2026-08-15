@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Pin, Settings } from 'lucide-react';
@@ -9,6 +10,7 @@ import SearchInput from '@/components/ui/SearchInput';
 import Pagination from '@/components/ui/Pagination';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import {
    createNoticeCategory,
    deleteNoticeCategory,
@@ -24,33 +26,42 @@ const PAGE_SIZE = 6;
 
 export default function NoticesPageClient() {
    const router = useRouter();
+   const queryClient = useQueryClient();
    const { role } = useAuth();
    const canManageCategories = role === 'INSTRUCTOR' || role === 'MANAGER';
    const canWriteNotice = role === 'INSTRUCTOR' || role === 'MANAGER';
-   const [categories, setCategories] = useState<NoticeCategory[]>([]);
+   // NoticeWriteClient와 같은 queryKey를 써서 캐시를 공유한다
+   const {
+      data: categories = [],
+      isLoading: isLoadingCategories,
+      isError: isCategoriesError,
+   } = useQuery({
+      queryKey: ['noticeCategories'],
+      queryFn: getNoticeCategories,
+   });
    const [notices, setNotices] = useState<NoticeListItem[]>([]);
-   const [isLoading, setIsLoading] = useState(true);
-   const [hasError, setHasError] = useState(false);
+   const [isLoadingNotices, setIsLoadingNotices] = useState(true);
+   const [hasNoticesError, setHasNoticesError] = useState(false);
    const [activeCategoryId, setActiveCategoryId] = useState<number | 'all'>('all');
    const [keyword, setKeyword] = useState('');
    const [currentPage, setCurrentPage] = useState(1);
    const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
 
+   const isLoading = isLoadingNotices || isLoadingCategories;
+   const hasError = hasNoticesError || isCategoriesError;
+
    useEffect(() => {
       let isMounted = true;
 
-      Promise.all([getNoticeCategories(), getNotices()])
-         .then(([categoryList, noticeList]) => {
-            if (!isMounted) return;
-            setCategories(categoryList);
-            setNotices(noticeList);
+      getNotices()
+         .then((noticeList) => {
+            if (isMounted) setNotices(noticeList);
          })
          .catch(() => {
-            if (!isMounted) return;
-            setHasError(true);
+            if (isMounted) setHasNoticesError(true);
          })
          .finally(() => {
-            if (isMounted) setIsLoading(false);
+            if (isMounted) setIsLoadingNotices(false);
          });
 
       return () => {
@@ -102,7 +113,10 @@ export default function NoticesPageClient() {
    const addCategory = async (name: string) => {
       try {
          const created = await createNoticeCategory(name);
-         setCategories((prev) => [...prev, created]);
+         queryClient.setQueryData<NoticeCategory[]>(['noticeCategories'], (prev = []) => [
+            ...prev,
+            created,
+         ]);
       } catch (err) {
          toast.error(
             err instanceof ApiError
@@ -128,7 +142,9 @@ export default function NoticesPageClient() {
          }
       }
 
-      setCategories((prev) => prev.filter((category) => category.categoryId !== id));
+      queryClient.setQueryData<NoticeCategory[]>(['noticeCategories'], (prev = []) =>
+         prev.filter((category) => category.categoryId !== id),
+      );
       if (activeCategoryId === id) {
          setActiveCategoryId('all');
          setCurrentPage(1);
@@ -212,11 +228,17 @@ export default function NoticesPageClient() {
                </thead>
                <tbody>
                   {isLoading ? (
-                     <tr>
-                        <td colSpan={7} className="px-6 py-10 text-center text-gray-400">
-                           불러오는 중...
-                        </td>
-                     </tr>
+                     [0, 1, 2, 3, 4, 5].map((i) => (
+                        <tr key={i} className="border-b border-[#F3F4F6] last:border-b-0">
+                           <td className="px-6 py-4"><Skeleton width={16} height={14} className="mx-auto rounded-md" /></td>
+                           <td className="px-6 py-4" />
+                           <td className="px-6 py-4"><Skeleton width="70%" height={14} className="rounded-md" /></td>
+                           <td className="px-6 py-4"><Skeleton width={36} height={14} className="mx-auto rounded-md" /></td>
+                           <td className="px-6 py-4"><Skeleton width={48} height={14} className="mx-auto rounded-md" /></td>
+                           <td className="px-6 py-4"><Skeleton width={48} height={14} className="mx-auto rounded-md" /></td>
+                           <td className="px-6 py-4"><Skeleton width={64} height={14} className="mx-auto rounded-md" /></td>
+                        </tr>
+                     ))
                   ) : hasError ? (
                      <tr>
                         <td colSpan={7} className="px-6 py-16">

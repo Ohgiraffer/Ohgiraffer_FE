@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { format, isValid, parse } from 'date-fns';
 import { X } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
@@ -45,24 +46,15 @@ export default function TeamPeriodAddModal({
    const [startDate, setStartDate] = useState(editTarget?.startDate ?? '');
    const [endDate, setEndDate] = useState(editTarget?.endDate ?? '');
    const [isSubmitting, setIsSubmitting] = useState(false);
-   // 부트캠프 전체 기간 - 조회 권한이 없거나(강사 등) 실패하면 그냥 이 검증만 건너뛴다(치명적이지 않은 보조 검증)
-   const [bootcampRange, setBootcampRange] = useState<{ startDate: string; endDate: string } | null>(
-      null,
-   );
-
-   useEffect(() => {
-      let isMounted = true;
-      getBootcampSettings()
-         .then((data) => {
-            if (isMounted) setBootcampRange({ startDate: data.startDate, endDate: data.endDate });
-         })
-         .catch(() => {
-            // 부트캠프 기간 조회 실패는 조용히 무시 - 이 검증만 못 하고 나머지는 그대로 진행
-         });
-      return () => {
-         isMounted = false;
-      };
-   }, []);
+   // 부트캠프 전체 기간 - useOrgAttendanceSettings/useManagerTrackerData와 같은 queryKey를 써서
+   // 캐시를 공유한다. 조회 권한이 없거나(강사 등) 실패하면 그냥 이 검증만 건너뛴다(치명적이지 않은 보조 검증)
+   const { data: bootcampSettings } = useQuery({
+      queryKey: ['bootcampSettings'],
+      queryFn: getBootcampSettings,
+   });
+   const bootcampRange = bootcampSettings
+      ? { startDate: bootcampSettings.startDate, endDate: bootcampSettings.endDate }
+      : null;
 
    const isStartDateComplete = isCompleteDate(startDate);
    const isEndDateComplete = isCompleteDate(endDate);

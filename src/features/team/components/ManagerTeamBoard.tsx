@@ -1,9 +1,12 @@
 'use client';
 
 import { useMemo, useRef, useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Clock, Plus } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
 import { useLeaveGuard } from '@/lib/hooks/useLeaveGuard';
@@ -18,7 +21,6 @@ import TeamCard from './TeamCard';
 import UnassignedPanel from './UnassignedPanel';
 import TeamAddCard from './TeamAddCard';
 import TeamPeriodTabs from './TeamPeriodTabs';
-import TeamPeriodAddModal from './TeamPeriodAddModal';
 import type {
    DraftTeam,
    Team,
@@ -36,11 +38,27 @@ interface MemberInfo {
    originalTeamId: number | null;
 }
 
+// 기간 추가/수정 버튼을 누를 때만 필요한 날짜선택 모달이라 지연 로딩한다
+const TeamPeriodAddModal = dynamic(() => import('./TeamPeriodAddModal'), { ssr: false });
+
 export default function ManagerTeamBoard() {
-   const [periods, setPeriods] = useState<TeamPeriod[]>([]);
-   const [isLoadingPeriods, setIsLoadingPeriods] = useState(true);
-   const [periodsError, setPeriodsError] = useState(false);
+   const queryClient = useQueryClient();
+   // StudentTeamView/TeamHistoryPageClient와 같은 queryKey를 써서 캐시를 공유한다
+   const {
+      data: periods = [],
+      isLoading: isLoadingPeriods,
+      isError: periodsError,
+   } = useQuery({
+      queryKey: ['teamPeriods'],
+      queryFn: getTeamPeriods,
+   });
    const [activePeriodId, setActivePeriodId] = useState<number | null>(null);
+   // 기간 목록이 도착하면 마지막(최신) 기간을 기본 선택한다 - 한 번만 시딩한다
+   const [hasSeededActivePeriod, setHasSeededActivePeriod] = useState(false);
+   if (!hasSeededActivePeriod && periods.length > 0) {
+      setHasSeededActivePeriod(true);
+      setActivePeriodId(periods[periods.length - 1].teamPeriodId);
+   }
    const [isPeriodAddOpen, setIsPeriodAddOpen] = useState(false);
    const [editingPeriod, setEditingPeriod] = useState<TeamPeriod | null>(null);
    const [deletingPeriod, setDeletingPeriod] = useState<TeamPeriod | null>(null);
@@ -66,26 +84,6 @@ export default function ManagerTeamBoard() {
    const [isSaving, setIsSaving] = useState(false);
    const isSavingRef = useRef(false);
    const [isDeletingPeriod, setIsDeletingPeriod] = useState(false);
-
-   // 1) 편성 기간 목록 - 최초 1회만 조회, 없으면 마지막(최신) 기간을 기본 선택
-   useEffect(() => {
-      let isMounted = true;
-      getTeamPeriods()
-         .then((result) => {
-            if (!isMounted) return;
-            setPeriods(result);
-            setActivePeriodId(result.length > 0 ? result[result.length - 1].teamPeriodId : null);
-         })
-         .catch(() => {
-            if (isMounted) setPeriodsError(true);
-         })
-         .finally(() => {
-            if (isMounted) setIsLoadingPeriods(false);
-         });
-      return () => {
-         isMounted = false;
-      };
-   }, []);
 
    // 2) 선택된 기간의 팀/미배정 목록 - 기간이 바뀌거나 저장 성공(reloadKey) 후 다시 불러오고,
    // 매번 초안을 서버 값으로 완전히 리셋한다(개별 API가 없어져 "초안 유지한 채 일부만 갱신"할 일이 없음)
@@ -262,7 +260,7 @@ export default function ManagerTeamBoard() {
       setIsPeriodAddOpen(false);
       const wasEditing = !!editingPeriod;
       setEditingPeriod(null);
-      setPeriods((prev) => {
+      queryClient.setQueryData<TeamPeriod[]>(['teamPeriods'], (prev = []) => {
          const exists = prev.some((p) => p.teamPeriodId === period.teamPeriodId);
          return exists
             ? prev.map((p) => (p.teamPeriodId === period.teamPeriodId ? period : p))
@@ -305,7 +303,7 @@ export default function ManagerTeamBoard() {
          const deletedId = deletingPeriod.teamPeriodId;
          const remaining = periods.filter((p) => p.teamPeriodId !== deletedId);
          setDeletingPeriod(null);
-         setPeriods(remaining);
+         queryClient.setQueryData(['teamPeriods'], remaining);
          if (deletedId === activePeriodId) {
             if (remaining.length > 0) {
                switchPeriod(remaining[remaining.length - 1].teamPeriodId);
@@ -384,7 +382,25 @@ export default function ManagerTeamBoard() {
    if (isLoadingPeriods) {
       return (
          <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
-            <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+            <div className="flex items-center justify-between">
+               <Skeleton width={100} height={28} className="rounded-md" />
+               <div className="flex items-center gap-2">
+                  <Skeleton width={90} height={36} className="rounded-xs" />
+                  <Skeleton width={64} height={36} className="rounded-xs" />
+               </div>
+            </div>
+            <div className="mt-5 flex gap-4 border-b border-gray-200 pb-3">
+               <Skeleton width={64} height={20} className="rounded-md" />
+               <Skeleton width={64} height={20} className="rounded-md" />
+            </div>
+            <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
+               <Skeleton width="100%" height={280} className="rounded-xs" />
+               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {[0, 1, 2].map((i) => (
+                     <Skeleton key={i} width="100%" height={220} className="rounded-xs" />
+                  ))}
+               </div>
+            </div>
          </div>
       );
    }
@@ -457,7 +473,14 @@ export default function ManagerTeamBoard() {
                </div>
 
                {isLoading ? (
-                  <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+                  <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
+                     <Skeleton width="100%" height={280} className="rounded-xs" />
+                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        {[0, 1, 2].map((i) => (
+                           <Skeleton key={i} width="100%" height={220} className="rounded-xs" />
+                        ))}
+                     </div>
+                  </div>
                ) : hasError ? (
                   <div className="flex flex-col items-center gap-3 py-16">
                      <p className="text-sm text-gray-400">팀 정보를 불러오지 못했습니다.</p>

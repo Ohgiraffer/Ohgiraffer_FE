@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import SearchInput from '@/components/ui/SearchInput';
 import ChatAvatar from '../ChatAvatar';
@@ -17,8 +18,6 @@ interface NewChatModalProps {
 
 export default function NewChatModal({ onClose, onCreate }: NewChatModalProps) {
    const { me } = useAuth();
-   const [allUsers, setAllUsers] = useState<UserListItem[]>([]);
-   const [isLoading, setIsLoading] = useState(true);
    const [query, setQuery] = useState('');
    const [selectedUsers, setSelectedUsers] = useState<UserListItem[]>([]);
    const [roomName, setRoomName] = useState('');
@@ -32,23 +31,22 @@ export default function NewChatModal({ onClose, onCreate }: NewChatModalProps) {
       return () => document.removeEventListener('keydown', handleKeyDown);
    }, [onClose]);
 
-   // 목록 전체가 크지 않아(수십 명) 한 번만 불러온 뒤 검색어는 클라이언트에서 바로 필터링한다
+   // useUserList/useStudentDirectory/useManagerTrackerData와 같은 queryKey를 써서 캐시를 공유한다 -
+   // 목록 전체가 크지 않아(수십 명) 검색어는 클라이언트에서 바로 필터링한다
+   const {
+      data: allUsers = [],
+      isLoading,
+      error,
+   } = useQuery({
+      queryKey: ['users', 'list'],
+      queryFn: getUserList,
+   });
+
    useEffect(() => {
-      let isMounted = true;
-      getUserList()
-         .then((users) => {
-            if (isMounted) setAllUsers(users);
-         })
-         .catch((err) => {
-            toast.error(getChatErrorMessage(err, '사용자 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'));
-         })
-         .finally(() => {
-            if (isMounted) setIsLoading(false);
-         });
-      return () => {
-         isMounted = false;
-      };
-   }, []);
+      if (error) {
+         toast.error(getChatErrorMessage(error, '사용자 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'));
+      }
+   }, [error]);
 
    const results = useMemo(() => {
       const q = query.trim().toLowerCase();

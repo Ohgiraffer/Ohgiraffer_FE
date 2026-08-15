@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import { useQueryClient } from '@tanstack/react-query';
 import { getSessionEpoch, setAccessTokenForNewSession, subscribeAccessToken } from '@/lib/auth/token-store';
 import * as authService from '@/services/auth.service';
 import type { UserRole } from '@/services/auth.service';
@@ -40,6 +41,7 @@ interface LoginResult {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+   const queryClient = useQueryClient();
    const [accessToken, setAccessTokenState] = useState<string | null>(null);
    const [role, setRole] = useState<UserRole | null>(null);
    const [status, setStatus] = useState<string | null>(null);
@@ -61,9 +63,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setBootcampId(null);
             setMe(null);
             setNeedResetPw(false);
+            // 회원목록/부트캠프설정 등 세션 캐싱된 React Query 데이터가 다음 로그인 계정에
+            // 그대로 노출되지 않도록 로그아웃 시 캐시를 전부 비운다
+            queryClient.clear();
          }
       }
-   }, []);
+   }, [queryClient]);
 
    const verifyAndSetMe = useCallback(
       async (expectedRole: UserRole, expectedEpoch: number) => {
@@ -152,6 +157,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    const login = useCallback(
       async (emailInput: string, password: string): Promise<LoginResult> => {
          const data = await authService.login({ email: emailInput, password });
+         // 같은 브라우저 탭에서 다른 계정으로 로그인하는 경우, 이전 계정의 회원목록/부트캠프설정 등
+         // 캐시된 응답이 새 계정 화면에 그대로 노출되지 않도록 새 세션을 만들기 전에 캐시를 비운다
+         queryClient.clear();
          setRole(data.role);
          setStatus(data.status);
          setBootcampId(data.bootcampId);
@@ -169,7 +177,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: meData.name,
          };
       },
-      [verifyAndSetMe],
+      [verifyAndSetMe, queryClient],
    );
 
    const updateProfileImageUrl = useCallback((url: string | null) => {
