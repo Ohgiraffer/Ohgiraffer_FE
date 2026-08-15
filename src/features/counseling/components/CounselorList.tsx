@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { User } from 'lucide-react';
 import { ROLE_LABELS } from '@/services/auth.service';
 import type { Counselor } from '@/services/counseling.service';
@@ -15,12 +16,14 @@ function CounselorAvatar({ name, profileImgUrl }: AvatarProps) {
    const showImage = Boolean(profileImgUrl) && profileImgUrl !== failedUrl;
 
    return (
-      <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-100 text-gray-500">
+      <span className="relative flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-100 text-gray-500">
          {showImage ? (
-            <img
-               src={profileImgUrl ?? undefined}
+            <Image
+               src={profileImgUrl ?? ''}
                alt=""
-               className="h-full w-full object-cover"
+               fill
+               sizes="28px"
+               className="object-cover"
                onError={() => setFailedUrl(profileImgUrl ?? null)}
             />
          ) : (

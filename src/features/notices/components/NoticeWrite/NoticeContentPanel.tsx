@@ -1,24 +1,16 @@
 'use client';
 
-import type { Editor } from '@tiptap/react';
-import NoticeEditor from './NoticeEditor';
+import type { ReactNode } from 'react';
 
 type Props = {
    title: string;
    onTitleChange: (title: string) => void;
-   editor: Editor;
-   isImproving: boolean;
-   onImproveClick: () => void;
+   children: ReactNode;
 };
 
-// 왼쪽 영역 - 제목 입력 + 본문 편집기(툴바 포함)를 하나의 카드로 묶음
-export default function NoticeContentPanel({
-   title,
-   onTitleChange,
-   editor,
-   isImproving,
-   onImproveClick,
-}: Props) {
+// 왼쪽 영역 - 제목 입력 + 본문 편집기(툴바 포함)를 하나의 카드로 묶음. 편집기 자체는
+// Tiptap 로딩 여부와 무관하게 제목 입력이 바로 보이도록 children으로 받는다
+export default function NoticeContentPanel({ title, onTitleChange, children }: Props) {
    return (
       <div className="h-131.75 min-w-0 flex-1 rounded-sm border border-[#E5E7EB] bg-white">
          <div className="border-b border-[#E5E7EB] px-4 py-3">
@@ -35,7 +27,7 @@ export default function NoticeContentPanel({
             />
          </div>
 
-         <NoticeEditor editor={editor} isImproving={isImproving} onImproveClick={onImproveClick} />
+         {children}
       </div>
    );
 }

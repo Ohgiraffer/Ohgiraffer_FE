@@ -1,12 +1,35 @@
 'use client';
 
 import { useState } from 'react';
-import DashboardCalendar from './DashboardCalendar';
+import dynamic from 'next/dynamic';
 import TodayScheduleCard from './TodayScheduleCard';
 import AttendanceCard from './AttendanceCard';
 import NoticeCard from './NoticeCard';
 import TodoCard from './TodoCard';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import type { Holiday } from '@/services/holiday.service';
+
+// react-big-calendar는 대시보드 첫 화면에서만 쓰이는 무거운 라이브러리라, 초기 파싱과
+// 분리되도록 지연 로딩한다
+const DashboardCalendar = dynamic(() => import('./DashboardCalendar'), {
+   ssr: false,
+   loading: () => <DashboardCalendarSkeleton />,
+});
+
+function DashboardCalendarSkeleton() {
+   return (
+      <div className="rounded-xs border border-gray-200 bg-white p-6">
+         <div className="mb-4 flex items-center justify-between">
+            <Skeleton width={120} height={22} className="rounded-md" />
+            <div className="flex gap-1">
+               <Skeleton width={28} height={28} className="rounded-xs" />
+               <Skeleton width={28} height={28} className="rounded-xs" />
+            </div>
+         </div>
+         <Skeleton width="100%" height={600} className="rounded-md" />
+      </div>
+   );
+}
 
 interface DashboardGridProps {
    holidays: Holiday[];

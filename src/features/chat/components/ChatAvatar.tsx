@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { User } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/http';
 
@@ -56,15 +57,16 @@ export default function ChatAvatar({
    return (
       <span className="relative inline-flex shrink-0">
          <span
-            className={`flex items-center justify-center overflow-hidden rounded-full text-gray-500 ${bgClassName} ${borderClassName} ${sizeClassName ?? SIZE_CLASSES[size]}`}
+            className={`relative flex items-center justify-center overflow-hidden rounded-full text-gray-500 ${bgClassName} ${borderClassName} ${sizeClassName ?? SIZE_CLASSES[size]}`}
          >
             {showImage ? (
-               // eslint-disable-next-line @next/next/no-img-element -- 외부(S3) 원본 URL, next/image 도메인 화이트리스트 불필요
-               <img
+               <Image
                   src={resolveImageUrl(imageUrl)}
                   alt={name ?? ''}
+                  fill
+                  sizes={size === 'sm' ? '28px' : '44px'}
                   onError={() => setFailedUrl(imageUrl)}
-                  className="h-full w-full object-cover"
+                  className="object-cover"
                />
             ) : (
                <User size={iconSize ?? ICON_SIZES[size]} />

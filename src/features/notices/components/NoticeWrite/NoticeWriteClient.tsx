@@ -3,8 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import type { Editor } from '@tiptap/react';
 import { ChevronLeft } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import {
@@ -19,9 +22,29 @@ import AiSentenceImprovePanel from './AiSentenceImprovePanel';
 import NoticeContentPanel from './NoticeContentPanel';
 import NoticeSettingsPanel from './NoticeSettingsPanel';
 import { useAiSentenceImprove } from '../../hooks/useAiSentenceImprove';
-import { useNoticeEditor } from '../../hooks/useNoticeEditor';
 import { useNoticeWriteForm } from '../../hooks/useNoticeWriteForm';
 import { parseNoticeId } from '../../parseNoticeId';
+
+// Tiptap(@tiptap/*)은 공지 작성/수정 화면에만 필요한 무거운 에디터라, 다른 페이지 번들에
+// 섞이지 않도록 여기서만 지연 로딩한다
+const NoticeEditorArea = dynamic(() => import('./NoticeEditorArea'), {
+   ssr: false,
+   loading: () => <NoticeEditorAreaSkeleton />,
+});
+
+function NoticeEditorAreaSkeleton() {
+   return (
+      <div>
+         <div className="flex items-center gap-3 border-b border-[#E5E7EB] bg-[#F9FAFB] px-4 py-1.5">
+            <Skeleton width={140} height={28} className="rounded-xs" />
+            <Skeleton width={100} height={28} className="rounded-xs" />
+         </div>
+         <div className="px-6 py-5">
+            <Skeleton width="100%" height={375} className="rounded-md" />
+         </div>
+      </div>
+   );
+}
 
 function escapeHtml(text: string) {
    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -156,7 +179,7 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
    const router = useRouter();
    const isEditMode = Boolean(noticeId);
    const form = useNoticeWriteForm(noticeId, initialNotice);
-   const editor = useNoticeEditor(initialNotice?.content, form.setContent);
+   const [editor, setEditor] = useState<Editor | null>(null);
    const {
       isImproving,
       suggestions,
@@ -226,12 +249,14 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
       }
    };
 
-   if (!editor) return null;
-
-   const handleImproveClick = () => improve(editor.getText());
+   const handleImproveClick = () => {
+      if (!editor) return;
+      improve(editor.getText());
+   };
 
    // 전체 적용 - 개선된 텍스트로 본문을 통째로 교체
    const handleApplyAllSuggestions = (text: string) => {
+      if (!editor) return;
       editor.commands.setContent(plainTextToHtml(text));
       closeImproveSuggestions();
    };
@@ -243,13 +268,15 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
          </h1>
 
          <div className="mt-5 flex items-stretch gap-5">
-            <NoticeContentPanel
-               title={form.title}
-               onTitleChange={form.setTitle}
-               editor={editor}
-               isImproving={isImproving}
-               onImproveClick={handleImproveClick}
-            />
+            <NoticeContentPanel title={form.title} onTitleChange={form.setTitle}>
+               <NoticeEditorArea
+                  initialContentHtml={initialNotice?.content}
+                  onContentChange={form.setContent}
+                  isImproving={isImproving}
+                  onImproveClick={handleImproveClick}
+                  onEditorReady={setEditor}
+               />
+            </NoticeContentPanel>
             <NoticeSettingsPanel
                category={form.category}
                onCategoryChange={form.setCategory}
