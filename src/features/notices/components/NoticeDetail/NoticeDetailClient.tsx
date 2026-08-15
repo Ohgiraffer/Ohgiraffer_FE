@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -25,7 +25,6 @@ type Props = {
    noticeId: string;
 };
 
-// AI 일정 추출 버튼을 눌러야만 필요한 날짜선택 모달이라 지연 로딩한다
 const AiScheduleExtractionModal = dynamic(() => import('./AiScheduleExtractionModal'), {
    ssr: false,
 });
@@ -44,6 +43,7 @@ export default function NoticeDetailClient({ noticeId }: Props) {
    const [retryKey, setRetryKey] = useState(0);
    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
    const [isDeleting, setIsDeleting] = useState(false);
+   const isDeletingRef = useRef(false);
    const [isConfirming, setIsConfirming] = useState(false);
 
    const aiSchedule = useAiScheduleExtraction(numericNoticeId ?? -1, () => {
@@ -94,14 +94,10 @@ export default function NoticeDetailClient({ noticeId }: Props) {
       setRetryKey((key) => key + 1);
    };
 
-   // 공지 확인 처리 - 취소 API가 없어 항상 true로만 가는 단방향 액션이라, 응답을 기다리지 않고
-   // 먼저 체크된 상태로 보여준 뒤 실패하면 원래 상태로 되돌린다
    const handleConfirm = async () => {
       if (!notice || notice.confirmedByMe || isConfirming) return;
       setIsConfirming(true);
 
-      // 스냅샷 전체를 되돌리면 그 사이 다른 핸들러(AI 일정 추출 완료 등)가 반영한 필드까지
-      // 덮어써버리므로, 확인 관련 필드만 함수형 업데이트로 적용/롤백한다
       const { confirmedByMe: previousConfirmedByMe, confirmationCount: previousConfirmationCount } =
          notice;
       setNotice((prev) =>
@@ -140,7 +136,8 @@ export default function NoticeDetailClient({ noticeId }: Props) {
    };
 
    const handleDelete = async () => {
-      if (isDeleting || numericNoticeId === undefined) return;
+      if (isDeletingRef.current || numericNoticeId === undefined) return;
+      isDeletingRef.current = true;
       setIsDeleting(true);
 
       try {
@@ -155,6 +152,7 @@ export default function NoticeDetailClient({ noticeId }: Props) {
                : '공지 삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
          );
       } finally {
+         isDeletingRef.current = false;
          setIsDeleting(false);
       }
    };
@@ -325,8 +323,9 @@ export default function NoticeDetailClient({ noticeId }: Props) {
             }
             confirmLabel={isDeleting ? '삭제 중' : '확인'}
             variant="danger"
+            busy={isDeleting}
             onConfirm={handleDelete}
-            onClose={() => !isDeleting && setIsDeleteConfirmOpen(false)}
+            onClose={() => setIsDeleteConfirmOpen(false)}
          />
 
          {aiSchedule.isModalOpen && (

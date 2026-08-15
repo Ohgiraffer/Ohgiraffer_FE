@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import {
@@ -39,16 +39,19 @@ function toEditableCandidate(candidate: ExtractedScheduleCandidate): EditableSch
    };
 }
 
-// 공지 상세의 "AI 일정 추출" 박스 + 모달 상태 전체 관리 훅
+// 공지 상세의 "AI 일정 추출" 컴포넌트 + 모달 상태 전체 관리 훅
 export function useAiScheduleExtraction(noticeId: number, onRegistered: () => void) {
    const [isExtracting, setIsExtracting] = useState(false);
+   const isExtractingRef = useRef(false);
    const [isModalOpen, setIsModalOpen] = useState(false);
    const [candidates, setCandidates] = useState<EditableScheduleCandidate[]>([]);
    const [currentIndex, setCurrentIndex] = useState(0);
    const [isSubmitting, setIsSubmitting] = useState(false);
+   const isSubmittingRef = useRef(false);
 
    const runExtraction = async () => {
-      if (isExtracting) return;
+      if (isExtractingRef.current) return;
+      isExtractingRef.current = true;
       setIsExtracting(true);
 
       try {
@@ -67,12 +70,13 @@ export function useAiScheduleExtraction(noticeId: number, onRegistered: () => vo
                : '일정 추출 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
          );
       } finally {
+         isExtractingRef.current = false;
          setIsExtracting(false);
       }
    };
 
    const closeModal = () => {
-      if (isSubmitting) return;
+      if (isSubmittingRef.current) return;
       setIsModalOpen(false);
    };
 
@@ -93,7 +97,8 @@ export function useAiScheduleExtraction(noticeId: number, onRegistered: () => vo
    const selectedCount = includedCandidates.length;
 
    const confirmRegister = async () => {
-      if (isSubmitting || selectedCount === 0) return;
+      if (isSubmittingRef.current || selectedCount === 0) return;
+      isSubmittingRef.current = true;
       setIsSubmitting(true);
 
       try {
@@ -123,6 +128,7 @@ export function useAiScheduleExtraction(noticeId: number, onRegistered: () => vo
                : '일정 등록 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
          );
       } finally {
+         isSubmittingRef.current = false;
          setIsSubmitting(false);
       }
    };

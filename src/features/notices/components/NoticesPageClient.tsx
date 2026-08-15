@@ -30,7 +30,7 @@ export default function NoticesPageClient() {
    const { role } = useAuth();
    const canManageCategories = role === 'INSTRUCTOR' || role === 'MANAGER';
    const canWriteNotice = role === 'INSTRUCTOR' || role === 'MANAGER';
-   // NoticeWriteClient와 같은 queryKey를 써서 캐시를 공유한다
+   
    const {
       data: categories = [],
       isLoading: isLoadingCategories,
