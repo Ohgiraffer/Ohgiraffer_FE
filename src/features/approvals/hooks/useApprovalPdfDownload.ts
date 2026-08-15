@@ -27,6 +27,7 @@ function triggerBlobDownload(blob: Blob, filename: string | null) {
 export function useApprovalPdfDownload({ onAssigned }: Options = {}) {
    const [pending, setPending] = useState<PendingRequest>(null);
    const [isSubmitting, setIsSubmitting] = useState(false);
+   const isSubmittingRef = useRef(false);
 
    const assignedApprovalIdRef = useRef<number | null>(null);
 
@@ -34,14 +35,15 @@ export function useApprovalPdfDownload({ onAssigned }: Options = {}) {
       setPending({ approvalId, requestType });
 
    const closeConfirm = () => {
-      if (isSubmitting) return;
+      if (isSubmittingRef.current) return;
       setPending(null);
       assignedApprovalIdRef.current = null;
    };
 
    const confirmDownload = async () => {
-      if (pending === null || isSubmitting) return;
+      if (pending === null || isSubmittingRef.current) return;
       const { approvalId, requestType } = pending;
+      isSubmittingRef.current = true;
       setIsSubmitting(true);
 
       try {
@@ -76,6 +78,7 @@ export function useApprovalPdfDownload({ onAssigned }: Options = {}) {
             );
          }
       } finally {
+         isSubmittingRef.current = false;
          setIsSubmitting(false);
       }
    };

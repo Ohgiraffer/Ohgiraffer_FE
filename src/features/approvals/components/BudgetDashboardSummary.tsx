@@ -1,7 +1,7 @@
 'use client';
 
-import { format } from 'date-fns';
 import type { BudgetSummary } from '@/services/budget.service';
+import { formatApprovalDateTime } from '../formatApprovalDate';
 
 function formatCurrency(amount: number) {
    return `₩${amount.toLocaleString('ko-KR')}`;
@@ -46,7 +46,7 @@ export default function BudgetDashboardSummary({ summary }: { summary: BudgetSum
             <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-4">
                <h3 className="text-sm font-bold text-gray-900">카테고리별 예산 현황</h3>
                <span className="text-xs text-gray-400">
-                  마지막 동기화 {format(new Date(summary.lastSyncedAt), 'yyyy-MM-dd HH:mm')}
+                  마지막 동기화 {formatApprovalDateTime(summary.lastSyncedAt)}
                </span>
             </div>
             <table className="w-full table-fixed text-left text-sm">

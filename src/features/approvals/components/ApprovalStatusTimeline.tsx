@@ -1,9 +1,9 @@
 'use client';
 
 import { Check, X } from 'lucide-react';
-import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { ApprovalStatus } from '@/services/approval.service';
+import { formatApprovalDate, formatApprovalDateTime } from '../formatApprovalDate';
 
 type Props = {
    status: ApprovalStatus;
@@ -21,7 +21,7 @@ const FINAL_STEP_LABEL: Record<ApprovalStatus, string> = {
 };
 
 function formatStepDate(iso: string, withTime: boolean) {
-   return format(new Date(iso), withTime ? 'yyyy-MM-dd HH:mm' : 'yyyy-MM-dd');
+   return withTime ? formatApprovalDateTime(iso) : formatApprovalDate(iso);
 }
 
 // 결재 이력 상세 상단의 4단계 진행바 - 신청 완료 → 대기 → 확인 중 → 승인/반려

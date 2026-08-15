@@ -1,13 +1,13 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
 import { Check, Download } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
 import StatusBadge from '@/features/submissions/components/StatusBadge';
 import { useApprovalList } from '../hooks/useApprovalList';
 import { useApprovalPdfDownload } from '../hooks/useApprovalPdfDownload';
+import { formatApprovalDate } from '../formatApprovalDate';
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_TONES } from '../types';
 import type { ApprovalSummary } from '@/services/approval.service';
 
@@ -123,7 +123,7 @@ export default function ApprovalProcessingList() {
                                  </div>
                               </td>
                               <td className="px-6 py-4 text-center text-gray-500">
-                                 {format(new Date(approval.requestedAt), 'yyyy-MM-dd')}
+                                 {formatApprovalDate(approval.requestedAt)}
                               </td>
                               <td className="px-6 py-4">
                                  {isActionable && (
@@ -172,6 +172,7 @@ export default function ApprovalProcessingList() {
                   : "PDF 서류를 다운로드 받으면 해당 결재의 담당자로 배정되고, 결재 서류의 상태가 '확인중'으로 변경됩니다."
             }
             confirmLabel={isSubmitting ? '처리 중...' : '확인'}
+            busy={isSubmitting}
             onConfirm={confirmDownload}
             onClose={closeConfirm}
          />

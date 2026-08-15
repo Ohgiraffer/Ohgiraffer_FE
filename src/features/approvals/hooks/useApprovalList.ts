@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from '@/lib/toast';
 import {
    getApprovals,
    type ApprovalScope,
@@ -13,6 +14,9 @@ export function useApprovalList(scope: ApprovalScope) {
    const [isLoading, setIsLoading] = useState(true);
    const [hasError, setHasError] = useState(false);
    const [refetchKey, setRefetchKey] = useState(0);
+   // 한 번이라도 정상적으로 불러온 적이 있는지 - 확인/다운로드 처리 직후의 조용한 재조회(refetch)가
+   // 실패했을 때 이미 보여주고 있던 정상 목록을 에러 화면으로 덮을지 토스트로만 알릴지 구분한다
+   const hasLoadedOnceRef = useRef(false);
 
    useEffect(() => {
       let isMounted = true;
@@ -21,12 +25,16 @@ export function useApprovalList(scope: ApprovalScope) {
          .then((data) => {
             if (!isMounted) return;
             setApprovals(data.approvals);
-            
             setHasError(false);
+            hasLoadedOnceRef.current = true;
          })
          .catch(() => {
             if (!isMounted) return;
-            setHasError(true);
+            if (hasLoadedOnceRef.current) {
+               toast.error('최신 결재 목록을 불러오지 못했습니다. 새로고침해주세요.');
+            } else {
+               setHasError(true);
+            }
          })
          .finally(() => {
             if (isMounted) setIsLoading(false);

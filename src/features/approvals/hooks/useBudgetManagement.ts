@@ -13,6 +13,7 @@ import {
    getBudgetSummary,
    saveBudgetSheetSettings,
    syncBudgetSheet,
+   type BudgetSheetColumnMapping,
    type BudgetSummary,
 } from '@/services/budget.service';
 
@@ -45,6 +46,7 @@ export function useBudgetManagement() {
    const [isLoading, setIsLoading] = useState(true);
    const [isConnected, setIsConnected] = useState(false);
    const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
+   const [columnMapping, setColumnMapping] = useState<BudgetSheetColumnMapping | null>(null);
 
    useEffect(() => {
       let isMounted = true;
@@ -55,6 +57,7 @@ export function useBudgetManagement() {
             if (isMounted) {
                setIsConnected(true);
                setSpreadsheetUrl(settings.spreadsheetUrl);
+               setColumnMapping(settings.columnMapping);
             }
          } catch (err) {
             if (!isMounted) return;
@@ -96,18 +99,21 @@ export function useBudgetManagement() {
    }, [queryClient]);
 
    const handleSaveMapping = async (result: GoogleSheetSaveResult) => {
+      const mapping: BudgetSheetColumnMapping = {
+         category: result.columnMapping.category.columnName,
+         totalAmount: result.columnMapping.totalAmount.columnName,
+         usedAmount: result.columnMapping.usedAmount.columnName,
+         remainingAmount: result.columnMapping.remainingAmount.columnName,
+      };
+
       await saveBudgetSheetSettings({
          spreadsheetUrl: result.spreadsheetUrl,
          sheetName: result.sheetName,
-         columnMapping: {
-            category: result.columnMapping.category.columnName,
-            totalAmount: result.columnMapping.totalAmount.columnName,
-            usedAmount: result.columnMapping.usedAmount.columnName,
-            remainingAmount: result.columnMapping.remainingAmount.columnName,
-         },
+         columnMapping: mapping,
       });
       setIsConnected(true);
       setSpreadsheetUrl(result.spreadsheetUrl);
+      setColumnMapping(mapping);
 
       try {
          const freshSummary = await getBudgetSummary();
@@ -121,5 +127,5 @@ export function useBudgetManagement() {
       }
    };
 
-   return { summary, isLoading, isConnected, spreadsheetUrl, handleSaveMapping };
+   return { summary, isLoading, isConnected, spreadsheetUrl, columnMapping, handleSaveMapping };
 }

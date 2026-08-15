@@ -1,10 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
 import StatusBadge from '@/features/submissions/components/StatusBadge';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { useApprovalList } from '../hooks/useApprovalList';
+import { formatApprovalDate } from '../formatApprovalDate';
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_TONES } from '../types';
 
 // 훈련생(휴가)/강사(구매 예산) 공용 "결재 이력" 탭 - 내가 신청한 결재 목록(REQUESTED)만 조회
@@ -76,7 +76,7 @@ export default function ApprovalHistoryList() {
                            </div>
                         </td>
                         <td className="px-6 py-3 text-center text-gray-500">
-                           {format(new Date(approval.requestedAt), 'yyyy-MM-dd')}
+                           {formatApprovalDate(approval.requestedAt)}
                         </td>
                      </tr>
                   ))
