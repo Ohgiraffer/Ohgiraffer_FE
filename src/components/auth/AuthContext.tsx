@@ -21,8 +21,8 @@ interface AuthContextValue {
    updateBootcampId: (bootcampId: number) => void;
    isAuthenticated: boolean;
    isInitializing: boolean;
-   // 최초 로그인 시 강제 비밀번호 변경이 필요한지 - /auth/refresh 응답엔 이 값이 없어서
-   // (백엔드 미지원) 새로고침/재방문 시에는 복구되지 않고 로그인 시점에만 정확하다는 한계가 있음
+   // 최초 로그인 시 강제 비밀번호 변경이 필요한지 - /user/me가 이 값을 내려주므로
+   // verifyAndSetMe가 호출될 때마다(로그인/새로고침/토큰 자동갱신) 항상 최신 값으로 복구된다
    needResetPw: boolean;
    // 비밀번호 재설정을 마쳤거나(또는 이미 완료된 계정이라는 걸 확인했을 때) 이 상태를 끈다
    clearNeedResetPw: () => void;
@@ -88,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
          }
          setMe(meData);
          setBootcampId(meData.bootcampId);
+         setNeedResetPw(meData.needResetPw);
          return meData;
       },
       [logout],
