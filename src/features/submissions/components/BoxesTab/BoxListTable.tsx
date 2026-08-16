@@ -21,7 +21,7 @@ export default function BoxListTable({ boxes, onEdit, onDelete, hideManage }: Bo
 
    return (
       <>
-         <div className="mt-4 divide-y divide-[#F3F4F6] overflow-hidden rounded-sm border border-[#E5E7EB] bg-white sm:hidden">
+         <div className="mt-4 divide-y divide-[#F3F4F6] overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:hidden">
             {boxes.map((box, index) => (
                <div
                   key={box.submissionBoxId}
@@ -89,7 +89,7 @@ export default function BoxListTable({ boxes, onEdit, onDelete, hideManage }: Bo
             ))}
          </div>
 
-         <div className="mt-4 hidden overflow-hidden rounded-sm border border-[#E5E7EB] bg-white sm:block">
+         <div className="mt-4 hidden overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:block">
          <table className="w-full table-fixed text-left text-sm">
             <thead>
                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
@@ -119,31 +119,32 @@ export default function BoxListTable({ boxes, onEdit, onDelete, hideManage }: Bo
                            <Link
                               href={`/submissions/boxes/${box.submissionBoxId}`}
                               onClick={(e) => e.stopPropagation()}
-                              className="group-hover:font-bold group-hover:underline"
+                              title={box.projectName}
+                              className="block truncate group-hover:font-bold group-hover:underline"
                            >
                               {box.projectName}
                            </Link>
                         </td>
                         <td className="px-6 py-4 text-center text-gray-500">
-                           <div className="flex flex-col items-center leading-tight lg:flex-row lg:justify-center lg:gap-1 lg:leading-normal">
+                           <div className="flex flex-col items-center leading-tight xl:flex-row xl:justify-center xl:gap-1 xl:leading-normal">
                               <span className="whitespace-nowrap">{startDate}</span>
                               <span className="whitespace-nowrap">{startTime}</span>
                            </div>
                         </td>
                         <td className="px-6 py-4 text-center text-gray-500">
-                           <div className="flex flex-col items-center leading-tight lg:flex-row lg:justify-center lg:gap-1 lg:leading-normal">
+                           <div className="flex flex-col items-center leading-tight xl:flex-row xl:justify-center xl:gap-1 xl:leading-normal">
                               <span className="whitespace-nowrap">{dueDate}</span>
                               <span className="whitespace-nowrap">{dueTime}</span>
                            </div>
                         </td>
                         <td className="px-6 py-4">
-                           <div className="flex flex-col items-center gap-1 lg:flex-row lg:justify-center lg:gap-2">
+                           <div className="flex flex-col items-center gap-1 xl:flex-row xl:justify-center xl:gap-2">
                               <ProgressBar
                                  value={box.submittedCount ?? 0}
                                  max={box.targetCount ?? 0}
-                                 className="w-24 lg:w-35"
+                                 className="w-24 xl:w-42 lg:w-35"
                               />
-                              <span className="whitespace-nowrap text-xs text-gray-700 lg:text-sm">
+                              <span className="whitespace-nowrap text-xs text-gray-700 md:text-sm">
                                  {box.submittedCount ?? 0}/{box.targetCount ?? 0}{' '}
                                  {box.targetScope === 'TEAM' ? '팀 제출' : '명 제출'}
                               </span>
@@ -158,14 +159,14 @@ export default function BoxListTable({ boxes, onEdit, onDelete, hideManage }: Bo
                         </td>
                         {!hideManage && (
                            <td className="px-6 py-4">
-                              <div className="flex flex-col items-center gap-1.5 text-sm lg:flex-row lg:justify-center lg:gap-2">
+                              <div className="flex flex-col items-center gap-1.5 text-sm xl:flex-row xl:justify-center xl:gap-2">
                                  <button
                                     type="button"
                                     onClick={(e) => {
                                        e.stopPropagation();
                                        onEdit(box);
                                     }}
-                                    className="flex w-full cursor-pointer items-center justify-center gap-1 rounded-xs border border-gray-200 px-2 py-1 text-[#6B7280] hover:bg-[#E5E7EB] lg:w-auto"
+                                    className="flex w-full cursor-pointer items-center justify-center gap-1 rounded-xs border border-gray-200 px-2 py-1 text-[#6B7280] hover:bg-[#E5E7EB] xl:w-auto"
                                  >
                                     <Pencil size={14} />
                                     수정
@@ -176,7 +177,7 @@ export default function BoxListTable({ boxes, onEdit, onDelete, hideManage }: Bo
                                        e.stopPropagation();
                                        onDelete(box);
                                     }}
-                                    className="flex w-full cursor-pointer items-center justify-center gap-1 rounded-xs border border-gray-200 px-2 py-1 text-brand-maroon hover:bg-[#E5E7EB] lg:w-auto"
+                                    className="flex w-full cursor-pointer items-center justify-center gap-1 rounded-xs border border-gray-200 px-2 py-1 text-brand-maroon hover:bg-[#E5E7EB] xl:w-auto"
                                  >
                                     <Trash2 size={14} />
                                     삭제

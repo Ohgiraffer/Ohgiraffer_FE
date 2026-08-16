@@ -260,16 +260,16 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
          ) : (
             <>
                <div className="mt-5 rounded-sm border border-[#E5E7EB] bg-white p-6">
-                  <div className="flex items-start justify-between">
-                     <div>
-                        <h2 className="text-lg font-bold text-gray-900">{detail.title}</h2>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                     <div className="min-w-0">
+                        <h2 className="truncate text-lg font-bold text-gray-900">{detail.title}</h2>
                         <div className="mt-2 flex items-center gap-2">
                            <StatusBadge tone={detail.status === 'PUBLISHED' ? 'success' : 'neutral'}>
                               {FORM_STATUS_LABEL[detail.status]}
                            </StatusBadge>
                         </div>
                      </div>
-                     <div className="flex flex-col items-end gap-3">
+                     <div className="flex shrink-0 flex-col items-start gap-3 sm:items-end">
                         <p className="text-sm text-gray-500">
                            마감일:{' '}
                            <span className="font-medium text-gray-900">
@@ -299,7 +299,7 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                </div>
 
                {pendingEditUrl && (
-                  <div className="mt-4 flex items-center justify-between rounded-sm border border-[#F3DFA0] bg-[#FFF9EC] px-4 py-3 text-sm text-gray-700">
+                  <div className="mt-4 flex flex-col items-start gap-2 rounded-sm border border-[#F3DFA0] bg-[#FFF9EC] px-4 py-3 text-sm text-gray-700 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                      <span>팝업이 차단되어 Google Form 편집 창이 자동으로 열리지 않았습니다.</span>
                      <button
                         type="button"
@@ -391,12 +391,44 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                      </p>
                   ) : (
                      <>
-                        <table className="w-full table-fixed text-left text-sm">
+                        <div className="divide-y divide-[#F3F4F6] border-t border-[#E5E7EB] sm:hidden">
+                           {responses.students.map((student) => (
+                              <div key={student.userId} className="p-4">
+                                 <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                       <p
+                                          className="truncate text-sm font-medium text-gray-900"
+                                          title={student.name}
+                                       >
+                                          {student.name}
+                                       </p>
+                                       <p
+                                          className="truncate text-xs text-gray-400"
+                                          title={student.email}
+                                       >
+                                          {student.email}
+                                       </p>
+                                    </div>
+                                    <StatusBadge
+                                       tone={student.responded ? 'success' : 'muted'}
+                                       className="shrink-0"
+                                    >
+                                       {student.responded ? '응답완료' : '미응답'}
+                                    </StatusBadge>
+                                 </div>
+                                 <p className="mt-1 text-xs text-gray-400">
+                                    응답 시각 {formatDateTime(student.submittedAt)}
+                                 </p>
+                              </div>
+                           ))}
+                        </div>
+
+                        <table className="hidden w-full table-fixed text-left text-sm sm:table">
                            <thead>
                               <tr className="border-y border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
-                                 <th className="w-[36%] px-6 py-3 font-medium">이름</th>
-                                 <th className="w-[28%] px-6 py-3 font-medium text-center">응답 여부</th>
-                                 <th className="w-[36%] px-6 py-3 font-medium text-center">응답 시각</th>
+                                 <th className="w-[45%] px-6 py-3 font-medium">이름</th>
+                                 <th className="w-[20%] px-6 py-3 font-medium text-center">응답 여부</th>
+                                 <th className="w-[35%] px-6 py-3 font-medium text-center">응답 시각</th>
                               </tr>
                            </thead>
                            <tbody>
@@ -407,10 +439,16 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                                  >
                                     <td className="px-6 py-4">
                                        <div className="min-w-0">
-                                          <p className="truncate font-medium text-gray-900">
+                                          <p
+                                             className="truncate font-medium text-gray-900"
+                                             title={student.name}
+                                          >
                                              {student.name}
                                           </p>
-                                          <p className="truncate text-xs text-gray-400">
+                                          <p
+                                             className="truncate text-xs text-gray-400"
+                                             title={student.email}
+                                          >
                                              {student.email}
                                           </p>
                                        </div>

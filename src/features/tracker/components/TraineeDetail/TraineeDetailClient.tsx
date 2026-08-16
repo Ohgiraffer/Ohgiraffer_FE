@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
+import ChatAvatar from '@/features/chat/components/ChatAvatar';
 import { useAttendanceOverview } from '../../hooks/useAttendanceOverview';
 import { useStudentDirectory } from '../../hooks/useStudentDirectory';
 import AttendanceDetailTab from './AttendanceDetailTab';
@@ -104,21 +105,35 @@ export default function TraineeDetailClient({ traineeId }: TraineeDetailClientPr
          {backLink}
 
          <div className="mt-3 flex items-center gap-3 rounded-sm border border-gray-200 bg-white px-6 py-5">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-100 text-base font-semibold text-gray-600">
-               {student.name.charAt(0)}
-            </span>
-            <div>
-               <p className="text-base font-bold text-gray-900">
+            <ChatAvatar
+               name={student.name}
+               imageUrl={student.profileImgUrl}
+               size="md"
+               bgClassName="bg-gray-100"
+               iconClassName="text-gray-600"
+            />
+            <div className="min-w-0">
+               <p className="truncate text-base font-bold text-gray-900">
                   {student.name}
                   {student.teamName && (
                      <span className="ml-2 text-sm font-normal text-gray-400">{student.teamName}</span>
                   )}
                </p>
-               <p className="mt-0.5 text-sm text-gray-400">
-                  전체 출석률 <span className="font-semibold text-gray-700">{overview.attendanceRate}%</span> · 잔여
-                  휴가 <span className="font-semibold text-gray-700">{overview.remainingVacation}회</span> · 잔여
-                  병결 <span className="font-semibold text-gray-700">{overview.remainingSickLeave}회</span>
-               </p>
+               <div className="mt-0.5 flex flex-wrap gap-x-1.5 text-sm text-gray-400">
+                  <span className="whitespace-nowrap">
+                     전체 출석률 <span className="font-semibold text-gray-700">{overview.attendanceRate}%</span>
+                  </span>
+                  <span className="flex flex-wrap gap-x-1.5">
+                     <span className="whitespace-nowrap">
+                        · 잔여 휴가{' '}
+                        <span className="font-semibold text-gray-700">{overview.remainingVacation}회</span>
+                     </span>
+                     <span className="whitespace-nowrap">
+                        · 잔여 병결{' '}
+                        <span className="font-semibold text-gray-700">{overview.remainingSickLeave}회</span>
+                     </span>
+                  </span>
+               </div>
             </div>
          </div>
 
