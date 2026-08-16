@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -181,6 +181,9 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
    } = useAiSentenceImprove();
    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
    const [isSubmitting, setIsSubmitting] = useState(false);
+   // isSubmitting(state)만으로는 연타를 못 막는다 - state 반영 전(같은 tick)에 두 번째 클릭이
+   // 새어나갈 수 있어서 그 사이에도 항상 최신값인 ref로 먼저 막는다
+   const isSubmittingRef = useRef(false);
 
    // 수정 모드는 실질적인 변경이 있어야 저장 가능
    const canSave = isEditMode ? form.isSubmitEnabled && form.hasChanges : form.isSubmitEnabled;
@@ -191,7 +194,8 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
    };
 
    const handleConfirmRegister = async () => {
-      if (isSubmitting || form.category === '') return;
+      if (isSubmittingRef.current || form.category === '') return;
+      isSubmittingRef.current = true;
       setIsSubmitting(true);
 
       try {
@@ -236,6 +240,7 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
                  : '공지 등록 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
          );
       } finally {
+         isSubmittingRef.current = false;
          setIsSubmitting(false);
       }
    };
@@ -337,8 +342,9 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
                   : '등록 즉시 설정한 공개 대상에게 공개됩니다.'
             }
             confirmLabel={isSubmitting ? '처리 중' : '확인'}
+            busy={isSubmitting}
             onConfirm={handleConfirmRegister}
-            onClose={() => !isSubmitting && setIsConfirmOpen(false)}
+            onClose={() => setIsConfirmOpen(false)}
          />
       </div>
    );
