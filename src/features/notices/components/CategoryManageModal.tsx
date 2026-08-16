@@ -64,7 +64,7 @@ export default function CategoryManageModal({
          await onAddCategory(trimmed);
          setNewCategoryName('');
       } catch {
-         // 에러 토스트는 상위에서 이미 띄워줌
+         // 에러 토스트는 상위에서 띄워줌
       } finally {
          setIsAdding(false);
       }
@@ -77,7 +77,7 @@ export default function CategoryManageModal({
       try {
          await onRemoveCategory(id);
       } catch {
-         // 에러 토스트는 상위에서 이미 띄워줌
+         // 에러 토스트는 상위에서 띄워줌
       } finally {
          setDeletingId(null);
       }

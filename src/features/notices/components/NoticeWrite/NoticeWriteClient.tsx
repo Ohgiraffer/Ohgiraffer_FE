@@ -26,8 +26,6 @@ import { useAiSentenceImprove } from '../../hooks/useAiSentenceImprove';
 import { useNoticeWriteForm } from '../../hooks/useNoticeWriteForm';
 import { parseNoticeId } from '../../parseNoticeId';
 
-// Tiptap(@tiptap/*)은 공지 작성/수정 화면에만 필요한 무거운 에디터라, 다른 페이지 번들에
-// 섞이지 않도록 여기서만 지연 로딩한다
 const NoticeEditorArea = dynamic(() => import('./NoticeEditorArea'), {
    ssr: false,
    loading: () => <NoticeEditorAreaSkeleton />,
@@ -71,7 +69,6 @@ export default function NoticeWriteClient({ noticeId }: Props) {
    const isEditMode = Boolean(noticeId);
    const isInvalidNoticeId = isEditMode && numericNoticeId === undefined;
 
-   // NoticesPageClient와 같은 queryKey를 써서 캐시를 공유한다
    const {
       data: categories = [],
       isLoading: isLoadingCategories,
@@ -253,6 +250,7 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
       if (!editor) return;
       editor.commands.setContent(plainTextToHtml(text));
       closeImproveSuggestions();
+      toast.success('전체 문장 적용이 완료되었습니다.');
    };
 
    return (
@@ -261,16 +259,28 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
             {isEditMode ? '공지 수정' : '공지 작성'}
          </h1>
 
-         <div className="mt-5 flex items-stretch gap-5">
-            <NoticeContentPanel title={form.title} onTitleChange={form.setTitle}>
-               <NoticeEditorArea
-                  initialContentHtml={initialNotice?.content}
-                  onContentChange={form.setContent}
-                  isImproving={isImproving}
-                  onImproveClick={handleImproveClick}
-                  onEditorReady={setEditor}
-               />
-            </NoticeContentPanel>
+         <div className="flex items-stretch gap-5">
+            <div className="flex min-w-0 flex-1 flex-col">
+               <NoticeContentPanel title={form.title} onTitleChange={form.setTitle}>
+                  <NoticeEditorArea
+                     initialContentHtml={initialNotice?.content}
+                     onContentChange={form.setContent}
+                     isImproving={isImproving}
+                     onImproveClick={handleImproveClick}
+                     onEditorReady={setEditor}
+                  />
+               </NoticeContentPanel>
+
+               {suggestions.length > 0 && (
+                  <AiSentenceImprovePanel
+                     suggestions={suggestions}
+                     improvedFullText={improvedFullText}
+                     onCopySuggestion={copySuggestion}
+                     onApplyAll={handleApplyAllSuggestions}
+                     onClose={closeImproveSuggestions}
+                  />
+               )}
+            </div>
             <NoticeSettingsPanel
                category={form.category}
                onCategoryChange={form.setCategory}
@@ -293,18 +303,6 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
                onFileRemove={form.removeFile}
             />
          </div>
-
-         {suggestions.length > 0 && (
-            <div className="mt-5">
-               <AiSentenceImprovePanel
-                  suggestions={suggestions}
-                  improvedFullText={improvedFullText}
-                  onCopySuggestion={copySuggestion}
-                  onApplyAll={handleApplyAllSuggestions}
-                  onClose={closeImproveSuggestions}
-               />
-            </div>
-         )}
 
          <div className="mt-5 flex justify-end gap-2">
             <button
