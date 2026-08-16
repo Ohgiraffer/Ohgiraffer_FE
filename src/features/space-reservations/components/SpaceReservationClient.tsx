@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Building, LayoutGrid, List, TriangleAlert } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
 import SearchInput from '@/components/ui/SearchInput';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import SpaceGridView from './SpaceGridView';
 import SpaceListView from './SpaceListView';
 import SpaceManagePanel from './SpaceManagePanel';
@@ -105,7 +106,65 @@ export default function SpaceReservationClient() {
 
          <div className="mt-4">
             {isLoading ? (
-               <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+               viewMode === 'grid' ? (
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                     {[0, 1].map((i) => (
+                        <div key={i} className="rounded-sm border border-[#E5E7EB] bg-white p-5">
+                           <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                 <Skeleton width={36} height={36} className="rounded-sm" />
+                                 <div className="flex flex-col gap-2">
+                                    <Skeleton width={100} height={14} className="rounded-md" />
+                                    <Skeleton width={64} height={12} className="rounded-md" />
+                                 </div>
+                              </div>
+                              <Skeleton width={80} height={14} className="rounded-md" />
+                           </div>
+
+                           <div className="mt-3 grid grid-cols-3 gap-3">
+                              {[0, 1, 2].map((j) => (
+                                 <Skeleton key={j} width="100%" height={80} className="rounded-xs" />
+                              ))}
+                           </div>
+
+                           <div className="mt-4">
+                              <Skeleton width="100%" height={6} className="rounded-full" />
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               ) : (
+                  <div className="rounded-sm border border-[#E5E7EB] bg-white">
+                     <div className="grid w-full grid-cols-[1fr_1fr_1fr] items-center border-b border-[#E5E7EB] px-6 py-3">
+                        <Skeleton width={32} height={12} className="rounded-md" />
+                        <Skeleton width={32} height={12} className="rounded-md" />
+                        <Skeleton width={32} height={12} className="rounded-md" />
+                     </div>
+
+                     {[0, 1].map((i) => (
+                        <div key={i} className="border-b border-[#E5E7EB] last:border-b-0">
+                           <div className="flex items-center gap-2 border-t border-[#E5E7EB] bg-[#F9FAFB] px-6 py-2.5">
+                              <Skeleton width={16} height={16} className="rounded-xs" />
+                              <Skeleton width={120} height={14} className="rounded-md" />
+                           </div>
+
+                           {[0, 1].map((j) => (
+                              <div
+                                 key={j}
+                                 className="grid w-full grid-cols-[1fr_1fr_1fr] items-center border-t-[0.5px] border-b-[0.5px] border-[#E5E7EB] px-6 py-3"
+                              >
+                                 <div className="flex items-center gap-2">
+                                    <Skeleton width={36} height={36} className="rounded-full" />
+                                    <Skeleton width={80} height={14} className="rounded-md" />
+                                 </div>
+                                 <Skeleton width={80} height={14} className="rounded-md" />
+                                 <Skeleton width={60} height={14} className="rounded-md" />
+                              </div>
+                           ))}
+                        </div>
+                     ))}
+                  </div>
+               )
             ) : hasError ? (
                <div className="flex flex-col items-center gap-3 py-16">
                   <p className="text-sm text-gray-400">공간 정보를 불러오지 못했습니다.</p>

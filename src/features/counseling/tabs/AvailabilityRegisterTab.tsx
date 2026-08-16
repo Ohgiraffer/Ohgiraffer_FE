@@ -2,6 +2,7 @@
 
 import { CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import CounselingCalendar from '../components/CounselingCalendar';
 import TimeSlotGrid from '../components/TimeSlotGrid';
 import { useAvailabilityRegister } from '../hooks/useAvailabilityRegister';
@@ -38,7 +39,14 @@ export default function AvailabilityRegisterTab() {
                      날짜를 선택해주세요
                   </div>
                ) : isLoadingTimes ? (
-                  <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+                  <>
+                     <Skeleton width={160} height={16} className="rounded-md" />
+                     <div className="mt-4 grid grid-cols-7 gap-2">
+                        {Array.from({ length: 21 }).map((_, i) => (
+                           <Skeleton key={i} width="100%" height={40} className="rounded-sm" />
+                        ))}
+                     </div>
+                  </>
                ) : (
                   <>
                      <h3 className="text-[15px] font-semibold text-gray-900">

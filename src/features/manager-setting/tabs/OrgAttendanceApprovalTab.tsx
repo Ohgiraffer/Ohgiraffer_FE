@@ -2,7 +2,62 @@
 
 import OrgInfoFields from '@/features/bootcamp-settings/components/OrgInfoFields';
 import AttendanceUnitPeriodsFields from '@/features/bootcamp-settings/components/AttendanceUnitPeriodsFields';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { useOrgAttendanceSettings } from '../hooks/useOrgAttendanceSettings';
+
+function OrgAttendanceApprovalTabSkeleton() {
+   return (
+      <div className="flex flex-col gap-4">
+         <div className="rounded-sm border border-[#E5E7EB] bg-white px-8 py-6">
+            <Skeleton width={120} height={20} className="rounded-md" />
+            <div className="mt-3 grid grid-cols-2 gap-6">
+               {[0, 1, 2, 3].map((i) => (
+                  <div key={i}>
+                     <Skeleton width={100} height={16} className="rounded-md" />
+                     <Skeleton width="100%" height={42} className="mt-2 rounded-sm" />
+                  </div>
+               ))}
+            </div>
+         </div>
+
+         <div className="rounded-sm border border-[#E5E7EB] bg-white px-8 py-6">
+            <Skeleton width={160} height={18} className="rounded-md" />
+            <Skeleton width={360} height={14} className="mt-2 rounded-md" />
+
+            <div className="mt-2 flex flex-col gap-3">
+               {[0, 1].map((i) => (
+                  <div key={i} className="rounded-sm border border-gray-200 p-4">
+                     <Skeleton width={72} height={14} className="rounded-md" />
+                     <div className="mt-1 grid grid-cols-2 gap-4">
+                        <div>
+                           <Skeleton width={48} height={13} className="rounded-md" />
+                           <Skeleton width="100%" height={42} className="mt-1 rounded-sm" />
+                        </div>
+                        <div>
+                           <Skeleton width={48} height={13} className="rounded-md" />
+                           <Skeleton width="100%" height={42} className="mt-1 rounded-sm" />
+                        </div>
+                     </div>
+                  </div>
+               ))}
+            </div>
+
+            <Skeleton width="100%" height={44} className="mt-3 rounded-xs" />
+
+            <div className="mt-7">
+               <Skeleton width={140} height={14} className="rounded-md" />
+               <Skeleton width="100%" height={44} className="mt-2 rounded-xs" />
+            </div>
+
+            <Skeleton width="100%" height={56} className="mt-4 rounded-xs" />
+         </div>
+
+         <div className="flex justify-end">
+            <Skeleton width={80} height={40} className="rounded-sm" />
+         </div>
+      </div>
+   );
+}
 
 export default function OrgAttendanceApprovalTab() {
    const {
@@ -20,11 +75,7 @@ export default function OrgAttendanceApprovalTab() {
    } = useOrgAttendanceSettings();
 
    if (isLoading) {
-      return (
-         <div className="rounded-sm border border-[#E5E7EB] bg-white px-8 py-10 text-center text-sm text-gray-400">
-            불러오는 중...
-         </div>
-      );
+      return <OrgAttendanceApprovalTabSkeleton />;
    }
 
    if (loadError) {

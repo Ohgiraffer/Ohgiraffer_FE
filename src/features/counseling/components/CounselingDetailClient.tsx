@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import CounselingStatusBadge from './CounselingStatusBadge';
 import CounselorNoteSection from './CounselorNoteSection';
 import { useCounselingDetail } from '../hooks/useCounselingDetail';
@@ -47,7 +48,41 @@ export default function CounselingDetailClient({ consultationId }: Props) {
          <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
             <div className="mx-auto w-full max-w-3xl">
                <BackLink />
-               <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+
+               <div className="mt-4 rounded-sm border border-[#E5E7EB] bg-white px-8 py-6">
+                  <div className="flex items-center gap-3">
+                     <Skeleton width="40%" height={22} className="rounded-md" />
+                     <Skeleton width={48} height={22} className="rounded-xs" />
+                  </div>
+
+                  <hr className="mt-4 border-[#F3F4F6]" />
+
+                  <div className="mt-5 grid grid-cols-2 gap-4">
+                     <div>
+                        <Skeleton width={40} height={12} className="rounded-md" />
+                        <Skeleton width="60%" height={15} className="mt-2 rounded-md" />
+                     </div>
+                     <div>
+                        <Skeleton width={40} height={12} className="rounded-md" />
+                        <Skeleton width="60%" height={15} className="mt-2 rounded-md" />
+                     </div>
+                  </div>
+
+                  <div className="mt-4">
+                     <Skeleton width={24} height={12} className="rounded-md" />
+                     <Skeleton width="35%" height={15} className="mt-2 rounded-md" />
+                  </div>
+
+                  <div className="mt-5">
+                     <Skeleton width={64} height={14} className="rounded-md" />
+                     <Skeleton width="100%" height={64} className="mt-2 rounded-xs" />
+                  </div>
+
+                  <div className="mt-5 border-t border-[#F3F4F6] pt-5">
+                     <Skeleton width={64} height={14} className="rounded-md" />
+                     <Skeleton width="100%" height={96} className="mt-2 rounded-xs" />
+                  </div>
+               </div>
             </div>
          </div>
       );

@@ -11,6 +11,7 @@ import {
    SelectTrigger,
    SelectValue,
 } from '@/components/ui/shadcn/select';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import { updateUserStatus, type UserStatus } from '@/services/user.service';
@@ -96,8 +97,57 @@ export default function UserPermissionTab() {
 
    if (isLoading) {
       return (
-         <div className="rounded-sm border border-[#E5E7EB] bg-white px-8 py-10 text-center text-sm text-gray-400">
-            불러오는 중...
+         <div>
+            <div className="flex items-center justify-between gap-3">
+               <div className="flex items-center gap-2">
+                  <Skeleton width={288} height={40} className="rounded-xs" />
+                  <Skeleton width={96} height={40} className="rounded-xs" />
+               </div>
+               <Skeleton width={120} height={40} className="rounded-sm" />
+            </div>
+
+            <div className="mt-4 overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
+               <table className="w-full table-fixed text-center text-sm">
+                  <thead>
+                     <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
+                        <th className="w-[6%] px-6 py-3 font-medium">#</th>
+                        <th className="w-[14%] px-6 py-3 font-medium">이름</th>
+                        <th className="w-[26%] px-6 py-3 font-medium">이메일</th>
+                        <th className="w-[14%] px-6 py-3 font-medium">역할</th>
+                        <th className="w-[14%] px-6 py-3 font-medium">현재 팀</th>
+                        <th className="w-[14%] px-6 py-3 font-medium">상태</th>
+                        <th className="w-[12%] px-6 py-3 font-medium" />
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {[0, 1, 2, 3, 4].map((i) => (
+                        <tr key={i} className="border-b border-[#F3F4F6] last:border-b-0">
+                           <td className="px-6 py-4">
+                              <Skeleton width={16} height={14} className="mx-auto rounded-md" />
+                           </td>
+                           <td className="px-6 py-4">
+                              <Skeleton width="60%" height={14} className="mx-auto rounded-md" />
+                           </td>
+                           <td className="px-6 py-4">
+                              <Skeleton width="70%" height={14} className="mx-auto rounded-md" />
+                           </td>
+                           <td className="px-6 py-4">
+                              <Skeleton width={56} height={22} className="mx-auto rounded-xs" />
+                           </td>
+                           <td className="px-6 py-4">
+                              <Skeleton width="50%" height={14} className="mx-auto rounded-md" />
+                           </td>
+                           <td className="px-6 py-4">
+                              <Skeleton width={48} height={14} className="mx-auto rounded-md" />
+                           </td>
+                           <td className="px-6 py-4">
+                              <Skeleton width={16} height={16} className="mx-auto rounded-xs" />
+                           </td>
+                        </tr>
+                     ))}
+                  </tbody>
+               </table>
+            </div>
          </div>
       );
    }
