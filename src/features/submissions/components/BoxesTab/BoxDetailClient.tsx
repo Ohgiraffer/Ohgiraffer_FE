@@ -102,15 +102,21 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
 
    const handleDownload = async (value: SubmissionItemValue) => {
       try {
-         // 더 이상 302로 파일을 직접 안 내려주고, 매 클릭마다 새로 발급받은 임시 URL로만 이동한다
+         // 더 이상 302로 파일을 직접 안 내려주고, 매 클릭마다 새로 발급받은 임시 URL로만 이동한다.
+         // presigned URL은 교차 출처라 a.download가 무시될 수 있어, blob으로 받아와야
+         // originalFileName이 실제 저장 파일명으로 보장된다
          const { downloadUrl, originalFileName } = await downloadSubmissionItem(
             value.submissionItemValueId,
          );
+         const res = await fetch(downloadUrl);
+         if (!res.ok) throw new Error('파일 다운로드에 실패했습니다.');
+         const blob = await res.blob();
+         const objectUrl = URL.createObjectURL(blob);
          const a = document.createElement('a');
-         a.href = downloadUrl;
+         a.href = objectUrl;
          a.download = originalFileName ?? '다운로드';
-         a.rel = 'noopener';
          a.click();
+         URL.revokeObjectURL(objectUrl);
       } catch (err) {
          toast.error(
             err instanceof ApiError
