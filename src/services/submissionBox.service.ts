@@ -1,4 +1,4 @@
-import { apiFetch, apiFetchBlob } from '@/lib/http';
+import { apiFetch } from '@/lib/http';
 import type {
    SubmissionBoxDetailForStudent,
    SubmissionBoxListItem,
@@ -86,9 +86,20 @@ export function getSubmissionItemPreview(submissionItemValueId: number) {
    );
 }
 
-// 302 redirect로 내려오는 바이너리라 apiFetch(JSON 파싱)로는 못 받는다
+export interface SubmissionDownloadResponse {
+   submissionItemValueId: number;
+   originalFileName: string;
+   contentType: string;
+   fileSize: number;
+   // 임시 presigned URL - 저장하거나 재사용하지 않고 매번 새로 요청해서 받은 값만 바로 써야 한다
+   downloadUrl: string;
+}
+
+// 더 이상 302로 S3에 리다이렉트하지 않고, 실제 다운로드에 쓸 presigned URL을 JSON으로 내려준다
 export function downloadSubmissionItem(submissionItemValueId: number) {
-   return apiFetchBlob(`/submissions/items/${submissionItemValueId}/download`);
+   return apiFetch<SubmissionDownloadResponse>(
+      `/submissions/items/${submissionItemValueId}/download`,
+   );
 }
 
 export interface SubmitItemInput {
@@ -134,8 +145,15 @@ export function updateMySubmission(
    items: SubmitItemInput[],
    files: File[],
 ) {
+   // 수정 스펙은 items에 itemType을 보내면 안 된다(이미 정해진 항목이라 불필요) - 호출부는
+   // 생성과 같은 SubmitItemInput(itemType 포함)을 그대로 넘기고, 여기서 요청 직전에 벗겨낸다
+   const updateItems = items.map(({ submissionBoxItemId, fileIndex, externalUrl }) => ({
+      submissionBoxItemId,
+      fileIndex,
+      externalUrl,
+   }));
    return apiFetch<SubmissionUpdateResponse>(`/submissions/${submissionId}`, {
       method: 'PATCH',
-      body: buildSubmissionFormData({ items }, files),
+      body: buildSubmissionFormData({ items: updateItems }, files),
    });
 }
