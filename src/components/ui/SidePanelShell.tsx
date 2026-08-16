@@ -107,7 +107,7 @@ export function PanelHeaderBar({
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="cursor-pointer rounded-sm p-1 text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+            className="cursor-pointer rounded-xs p-1 text-gray-400 hover:bg-gray-50 hover:text-gray-700"
          >
             <X size={20} />
          </button>

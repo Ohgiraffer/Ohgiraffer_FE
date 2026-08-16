@@ -17,7 +17,7 @@ export default function GoogleSheetConnectedCard({
    extra,
 }: GoogleSheetConnectedCardProps) {
    return (
-      <div className="rounded-xs border border-gray-200 bg-white p-5">
+      <div className="rounded-sm border border-gray-200 bg-white p-5">
          <h3 className="text-sm font-bold text-gray-900">Google Sheet 연동</h3>
          <div className="mt-4 flex items-center justify-between gap-3">
             <div className="min-w-0">

@@ -102,7 +102,7 @@ export default function StudentTracker() {
       rateFilter === 'ALL'
          ? overview.attendanceRate
          : (overview.periodRates.find((period) => period.periodNo === rateFilter)?.attendanceRate ??
-            overview.attendanceRate);
+           overview.attendanceRate);
 
    return (
       <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
@@ -121,7 +121,9 @@ export default function StudentTracker() {
             <div className="mt-5 flex items-start gap-3 rounded-sm border border-[#F0C9C2] bg-[#FBEEEC] px-5 py-4">
                <TriangleAlert size={20} className="mt-0.5 shrink-0 text-brand-maroon" />
                <div>
-                  <p className="text-sm font-bold text-brand-maroon">{TRAINEE_RISK_LABELS[overview.riskStatus]} 단계</p>
+                  <p className="text-sm font-bold text-brand-maroon">
+                     {TRAINEE_RISK_LABELS[overview.riskStatus]} 단계
+                  </p>
                   <p className="mt-0.5 text-sm text-brand-maroon/80">{warningMessage}</p>
                </div>
             </div>
@@ -133,7 +135,9 @@ export default function StudentTracker() {
                {overview.todayStatus ? (
                   <span
                      className={`mt-2 inline-block rounded-xs px-2.5 py-1 text-xs font-medium ${
-                        TODAY_STATUS_BADGE_CLASSES[ATTENDANCE_DAY_STATUS_COLOR_GROUP[overview.todayStatus]]
+                        TODAY_STATUS_BADGE_CLASSES[
+                           ATTENDANCE_DAY_STATUS_COLOR_GROUP[overview.todayStatus]
+                        ]
                      }`}
                   >
                      {ATTENDANCE_DAY_STATUS_LABELS[overview.todayStatus]}
@@ -144,14 +148,22 @@ export default function StudentTracker() {
                   </span>
                )}
                <p className="mt-3 text-lg font-bold text-gray-900">
-                  {overview.checkInTime ? `입실 ${overview.checkInTime.slice(0, 5)}` : '입실 기록 없음'}
+                  {overview.checkInTime
+                     ? `입실 ${overview.checkInTime.slice(0, 5)}`
+                     : '입실 기록 없음'}
                </p>
                <div className="mt-3 flex gap-2">
                   <span className="rounded-xs bg-gray-100 px-2 py-1 text-xs text-gray-600">
-                     잔여 휴가 <span className="font-semibold text-gray-900">{overview.remainingVacation}회</span>
+                     잔여 휴가{' '}
+                     <span className="font-semibold text-gray-900">
+                        {overview.remainingVacation}회
+                     </span>
                   </span>
                   <span className="rounded-xs bg-gray-100 px-2 py-1 text-xs text-gray-600">
-                     잔여 병결 <span className="font-semibold text-gray-900">{overview.remainingSickLeave}회</span>
+                     잔여 병결{' '}
+                     <span className="font-semibold text-gray-900">
+                        {overview.remainingSickLeave}회
+                     </span>
                   </span>
                </div>
             </div>
@@ -216,7 +228,9 @@ export default function StudentTracker() {
 
          <div className="mt-5 rounded-sm border border-gray-200 bg-white p-6">
             {recordsError ? (
-               <p className="py-10 text-center text-sm text-gray-400">달력 정보를 불러오지 못했습니다.</p>
+               <p className="py-10 text-center text-sm text-gray-400">
+                  달력 정보를 불러오지 못했습니다.
+               </p>
             ) : (
                <MonthAttendanceCalendar
                   currentDate={currentDate}

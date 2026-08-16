@@ -202,13 +202,14 @@ export function getUnreadCount() {
 }
 
 export interface ChatbotChannelResponse {
-   channelUrl: string;
+   channel_url: string;
 }
 
 // 사용자-챗봇 간 1:1 채널 - 백엔드가 미리 만들어둔 sendbird 채널 URL을 그대로 내려준다.
-// 이 값은 그대로 ChatChannel.channelId로 써서 기존 채널 열기(handleSelectRoom) 흐름을 그대로 탄다
+// 이 값은 그대로 ChatChannel.channelId로 써서 기존 채널 열기(handleSelectRoom) 흐름을 그대로 탄다.
+// 실제 배포된 경로/응답 필드가 스펙 문서(/chat/channel, channelUrl)와 달라 라이브 OpenAPI 기준으로 맞춤
 export function getChatbotChannel() {
-   return apiFetch<ChatbotChannelResponse>('/chat/channel');
+   return apiFetch<ChatbotChannelResponse>('/chatbot/channel');
 }
 
 export interface SendbirdSessionTokenResponse {

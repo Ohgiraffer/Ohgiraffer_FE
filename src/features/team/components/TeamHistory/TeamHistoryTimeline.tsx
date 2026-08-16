@@ -57,7 +57,7 @@ export default function TeamHistoryTimeline({ entries }: TeamHistoryTimelineProp
                      className="relative flex items-start pl-6"
                   >
                      <span className={cn('absolute top-2 left-0 h-1.5 w-1.5 shrink-0 rounded-full', meta.dot)} />
-                     <div className="flex-1 rounded-xs border border-[#E5E7EB] bg-white px-4 py-4">
+                     <div className="flex-1 rounded-sm border border-[#E5E7EB] bg-white px-4 py-4">
                         <div className="flex items-center justify-between mb-3">
                            <span className="flex items-center gap-1.5">
                               <ChatAvatar name={entry.userName} imageUrl={entry.profileImgUrl} size="sm" />

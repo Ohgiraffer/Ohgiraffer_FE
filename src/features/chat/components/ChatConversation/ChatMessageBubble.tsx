@@ -1,4 +1,4 @@
-import { CornerDownRight, FileText } from 'lucide-react';
+import { Bot, CornerDownRight, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ChatAvatar from '../ChatAvatar';
 import MessageActionMenu from './MessageActionMenu';
@@ -18,6 +18,8 @@ function isImageAttachment(url: string) {
 
 interface ChatMessageBubbleProps {
    message: ChatMessage;
+   // 챗봇 채널인지 - 상대방 아바타를 로봇 아이콘으로, 이름을 "챗봇"으로 고정해서 보여준다
+   isChatbot?: boolean;
    showSenderName: boolean;
    replyCount: number;
    isSearchActive: boolean;
@@ -36,6 +38,7 @@ interface ChatMessageBubbleProps {
 
 export default function ChatMessageBubble({
    message,
+   isChatbot = false,
    showSenderName,
    replyCount,
    isSearchActive,
@@ -54,14 +57,26 @@ export default function ChatMessageBubble({
       >
          {!message.isMine && (
             <div className="mr-2 w-7 shrink-0">
-               {showSenderName && (
-                  <ChatAvatar name={message.senderName} imageUrl={message.senderProfileImageUrl} size="sm" />
-               )}
+               {showSenderName &&
+                  (isChatbot ? (
+                     <ChatAvatar
+                        name="AI 비서"
+                        imageUrl={null}
+                        size="sm"
+                        icon={Bot}
+                        bgClassName="bg-brand-green/10"
+                        iconClassName="text-brand-green"
+                     />
+                  ) : (
+                     <ChatAvatar name={message.senderName} imageUrl={message.senderProfileImageUrl} size="sm" />
+                  ))}
             </div>
          )}
          <div className={cn('flex flex-col', message.isMine ? 'items-end' : 'items-start')}>
             {showSenderName && !message.isMine && (
-               <span className="mb-1 text-xs font-medium text-gray-500">{message.senderName}</span>
+               <span className="mb-1 text-xs font-medium text-gray-500">
+                  {isChatbot ? 'AI 비서' : message.senderName}
+               </span>
             )}
             {message.replyToPreview && !message.isDeleted && showReplyQuote && (
                <div className="mb-1 max-w-64 truncate border-l-2 border-brand-green pl-2 text-xs text-brand-green">

@@ -63,7 +63,7 @@ export default function NotificationPanel({
 
          <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-3">
             <div className="flex items-center gap-3">
-               <label className="flex cursor-pointer rounded-sm items-center gap-2 text-sm px-2.5 py-1.5 border border-[#E5E7EB] text-gray-700">
+               <label className="flex cursor-pointer rounded-xs items-center gap-2 text-sm px-2.5 py-1.5 border border-[#E5E7EB] text-gray-700">
                   <input
                      type="checkbox"
                      checked={isAllSelected}
@@ -77,7 +77,7 @@ export default function NotificationPanel({
                   type="button"
                   onClick={removeSelected}
                   disabled={selectedIds.length === 0}
-                  className={`flex items-center gap-1 rounded-sm px-2.5 py-1.5 text-sm font-medium ${
+                  className={`flex items-center gap-1 rounded-xs px-2.5 py-1.5 text-sm font-medium ${
                      selectedIds.length > 0
                         ? 'cursor-pointer border border-brand-maroon text-brand-maroon hover:bg-[#FEF2F2]'
                         : 'bg-[#F3F4F6] text-[#9CA3AF]'
@@ -149,7 +149,7 @@ export default function NotificationPanel({
                            removeOne(item.id);
                         }}
                         aria-label={`${item.title} 알림 삭제`}
-                        className="shrink-0 cursor-pointer rounded-sm p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                        className="shrink-0 cursor-pointer rounded-xs p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
                      >
                         <X size={14} />
                      </button>

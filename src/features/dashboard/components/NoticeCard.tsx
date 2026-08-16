@@ -33,7 +33,7 @@ export default function NoticeCard() {
    }, [retryKey]);
 
    return (
-      <div className="h-full rounded-xs border border-gray-200 bg-white p-6 lg:p-6">
+      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-6">
          <div className="mb-4 flex items-center justify-between lg:mb-4">
             <h2 className="flex items-center gap-1.5 -ml-1 text-sm font-bold text-gray-900">
                <Megaphone size={16} className="text-gray-400" />

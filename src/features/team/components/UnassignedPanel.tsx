@@ -55,7 +55,7 @@ export default function UnassignedPanel({
             if (Number.isSafeInteger(userId) && userId > 0) onDropUser(userId);
          }}
          className={cn(
-            'h-fit rounded-xs border bg-white p-4 transition-colors',
+            'h-fit rounded-sm border bg-white p-4 transition-colors',
             isDragOver ? 'border-brand-green bg-[#F0F4F2]' : 'border-[#E5E7EB]',
          )}
       >

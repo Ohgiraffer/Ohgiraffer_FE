@@ -15,8 +15,7 @@ interface ScheduleItem {
 }
 
 interface TodayScheduleCardProps {
-   // 부모(DashboardGrid)가 오늘이 속한 달의 일정을 캘린더와 함께 조회해 내려준다.
-   // null이면 아직 로딩 중이라는 뜻이다
+   // null이면 아직 로딩 중이라는 뜻
    events: CalendarEvent[] | null;
    hasError: boolean;
    onRetry: () => void;
@@ -41,7 +40,7 @@ export default function TodayScheduleCard({ events, hasError, onRetry }: TodaySc
    }, [events]);
 
    return (
-      <div className="h-full rounded-xs border border-gray-200 bg-white p-6 lg:p-6">
+      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-6">
          <div className="mb-4 flex items-center justify-between lg:mb-4">
             <h2 className="flex items-center gap-1.5 -ml-1 text-sm font-bold text-gray-900">
                <CalendarClock size={16} className="text-gray-400" />
