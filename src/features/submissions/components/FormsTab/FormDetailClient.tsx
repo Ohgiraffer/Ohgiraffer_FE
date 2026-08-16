@@ -259,7 +259,7 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
             </div>
          ) : (
             <>
-               <div className="mt-5 rounded-xs border border-[#E5E7EB] bg-white p-6">
+               <div className="mt-5 rounded-sm border border-[#E5E7EB] bg-white p-6">
                   <div className="flex items-start justify-between">
                      <div>
                         <h2 className="text-lg font-bold text-gray-900">{detail.title}</h2>
@@ -269,7 +269,7 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                            </StatusBadge>
                         </div>
                      </div>
-                     <div className="flex flex-col items-end gap-2">
+                     <div className="flex flex-col items-end gap-3">
                         <p className="text-sm text-gray-500">
                            마감일:{' '}
                            <span className="font-medium text-gray-900">
@@ -280,7 +280,7 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                            <button
                               type="button"
                               onClick={() => setIsEditOpen(true)}
-                              className="flex cursor-pointer items-center gap-1 rounded-xs border border-gray-200 px-3 py-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                              className="flex cursor-pointer items-center gap-1 rounded-xs border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
                            >
                               <Pencil size={12} />
                               수정
@@ -288,7 +288,7 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                            <button
                               type="button"
                               onClick={() => setIsDeleteConfirmOpen(true)}
-                              className="flex cursor-pointer items-center gap-1 rounded-xs border border-gray-200 px-3 py-2.5 text-xs font-medium text-brand-maroon hover:bg-gray-50"
+                              className="flex cursor-pointer items-center gap-1 rounded-xs border border-gray-200 px-3 py-1.5 text-xs font-medium text-brand-maroon hover:bg-gray-50"
                            >
                               <Trash2 size={12} />
                               삭제
@@ -299,7 +299,7 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                </div>
 
                {pendingEditUrl && (
-                  <div className="mt-4 flex items-center justify-between rounded-xs border border-[#F3DFA0] bg-[#FFF9EC] px-4 py-3 text-sm text-gray-700">
+                  <div className="mt-4 flex items-center justify-between rounded-sm border border-[#F3DFA0] bg-[#FFF9EC] px-4 py-3 text-sm text-gray-700">
                      <span>팝업이 차단되어 Google Form 편집 창이 자동으로 열리지 않았습니다.</span>
                      <button
                         type="button"
@@ -315,7 +315,7 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                   </div>
                )}
 
-               <div className="mt-4 flex items-start gap-2 rounded-xs bg-[#F5DFDC] px-4 py-3 text-xs text-brand-maroon">
+               <div className="mt-4 flex items-start gap-2 rounded-sm bg-[#F5DFDC] px-4 py-3 text-xs text-brand-maroon">
                   <TriangleAlert size={14} className="mt-0.5 shrink-0" />
                   <div>
                      <p>Google Forms에서 이메일 주소 수집(확인됨)과 응답 횟수 1회로 제한을 반드시 활성화해 주세요.</p>
@@ -323,7 +323,7 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                   </div>
                </div>
 
-               <div className="mt-6 rounded-xs border border-[#E5E7EB] bg-white">
+               <div className="mt-6 rounded-sm border border-[#E5E7EB] bg-white">
                   <div className="flex flex-wrap items-center justify-between gap-3 p-5">
                      <div className="flex items-center gap-3">
                         <span className="shrink-0 text-sm font-bold whitespace-nowrap text-gray-900">
@@ -394,9 +394,9 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                         <table className="w-full table-fixed text-left text-sm">
                            <thead>
                               <tr className="border-y border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
-                                 <th className="w-[46%] px-6 py-3 font-medium">이름</th>
-                                 <th className="w-[22%] px-6 py-3 font-medium">응답 여부</th>
-                                 <th className="w-[32%] px-6 py-3 font-medium">응답 시각</th>
+                                 <th className="w-[36%] px-6 py-3 font-medium">이름</th>
+                                 <th className="w-[28%] px-6 py-3 font-medium text-center">응답 여부</th>
+                                 <th className="w-[36%] px-6 py-3 font-medium text-center">응답 시각</th>
                               </tr>
                            </thead>
                            <tbody>
@@ -415,12 +415,12 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                                           </p>
                                        </div>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-6 py-4 mt-1.5 flex justify-center">
                                        <StatusBadge tone={student.responded ? 'success' : 'muted'}>
                                           {student.responded ? '응답완료' : '미응답'}
                                        </StatusBadge>
                                     </td>
-                                    <td className="px-6 py-4 text-gray-500">
+                                    <td className="px-6 py-4 text-gray-500 text-center">
                                        {formatDateTime(student.submittedAt)}
                                     </td>
                                  </tr>

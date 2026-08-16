@@ -161,7 +161,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
             </div>
          ) : (
             <>
-               <div className="mt-5 rounded-xs border border-[#E5E7EB] bg-white p-6">
+               <div className="mt-5 rounded-sm border border-[#E5E7EB] bg-white p-6">
                   <div className="flex items-start justify-between">
                      <div>
                         <h2 className="text-lg font-bold text-gray-900">{detail.projectName}</h2>
@@ -201,7 +201,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                   </div>
                </div>
 
-               <div className="mt-6 rounded-xs border border-[#E5E7EB] bg-white">
+               <div className="mt-6 rounded-sm border border-[#E5E7EB] bg-white">
                   <div className="flex flex-wrap items-center justify-between gap-3 p-5">
                      <div className="flex items-center gap-3">
                         <span className="text-sm font-bold text-gray-900">

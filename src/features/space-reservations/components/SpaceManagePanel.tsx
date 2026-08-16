@@ -151,7 +151,7 @@ export default function SpaceManagePanel({
                         type="button"
                         onClick={handleAdd}
                         disabled={!isAddEnabled}
-                        className={`ml-auto flex shrink-0 items-center gap-1 rounded-sm px-3 py-2 text-sm font-semibold ${
+                        className={`ml-auto flex shrink-0 items-center gap-1 rounded-xs px-3.5 py-2 text-sm font-semibold ${
                            isAddEnabled
                               ? 'cursor-pointer bg-brand-green text-white hover:bg-[#4D655A]'
                               : 'cursor-not-allowed bg-[#E5E7EB] text-gray-400'
@@ -174,7 +174,7 @@ export default function SpaceManagePanel({
                      {spaces.map((space) => (
                         <div
                            key={space.id}
-                           className="flex items-center justify-between gap-2 rounded-sm border border-[#E5E7EB] px-4 py-3"
+                           className="flex items-center justify-between gap-2 rounded-xs border border-[#E5E7EB] px-4 py-3"
                         >
                            <div className="flex items-center gap-3">
                               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-gray-100 text-gray-500">

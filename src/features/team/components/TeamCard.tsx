@@ -95,7 +95,7 @@ export default function TeamCard({
             if (Number.isSafeInteger(userId) && userId > 0) onDropUser(userId);
          }}
          className={cn(
-            'rounded-xs border bg-white p-4 transition-colors',
+            'rounded-sm border bg-white p-4 transition-colors',
             isDragOver ? 'border-brand-green bg-[#F0F4F2]' : 'border-[#E5E7EB]',
          )}
       >

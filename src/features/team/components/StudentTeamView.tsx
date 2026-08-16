@@ -76,7 +76,9 @@ export default function StudentTeamView() {
    if (periodsError) {
       return (
          <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
-            <p className="py-16 text-center text-sm text-gray-400">기간 정보를 불러오지 못했습니다.</p>
+            <p className="py-16 text-center text-sm text-gray-400">
+               기간 정보를 불러오지 못했습니다.
+            </p>
          </div>
       );
    }
@@ -125,7 +127,10 @@ export default function StudentTeamView() {
                ) : (
                   <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                      {teams.map((team) => (
-                        <div key={team.teamId} className="rounded-xs border border-[#E5E7EB] bg-white p-4">
+                        <div
+                           key={team.teamId}
+                           className="rounded-xs border border-[#E5E7EB] bg-white p-4"
+                        >
                            <div className="flex items-center justify-between">
                               <span className="text-sm font-bold text-gray-900">{team.name}</span>
                               <span className="rounded-xs bg-[#EAF3EC] px-2 py-0.5 text-xs font-medium text-brand-green">
@@ -138,7 +143,9 @@ export default function StudentTeamView() {
 
                            <div className="mt-3 flex flex-col gap-1.5">
                               {team.members.length === 0 ? (
-                                 <p className="py-4 text-center text-xs text-gray-300">배정된 팀원이 없습니다</p>
+                                 <p className="py-4 text-center text-xs text-gray-300">
+                                    배정된 팀원이 없습니다
+                                 </p>
                               ) : (
                                  team.members.map((member) => (
                                     <div
@@ -146,14 +153,14 @@ export default function StudentTeamView() {
                                        className="flex items-center gap-2 rounded-xs border border-gray-100 bg-[#F9FAFB] px-2.5 py-2"
                                     >
                                        <ChatAvatar
-                                       name={member.userName}
-                                       imageUrl={member.profileImgUrl}
-                                       size="sm"
-                                       sizeClassName="h-8.5 w-8.5"
-                                       bgClassName="bg-white"
-                                       iconSize={16}
-                                       borderClassName="border border-gray-200"
-                                    />
+                                          name={member.userName}
+                                          imageUrl={member.profileImgUrl}
+                                          size="sm"
+                                          sizeClassName="h-8.5 w-8.5"
+                                          bgClassName="bg-white"
+                                          iconSize={16}
+                                          borderClassName="border border-gray-200"
+                                       />
                                        <span className="truncate text-sm text-gray-700">
                                           {member.userName || '이름 없음'}
                                        </span>

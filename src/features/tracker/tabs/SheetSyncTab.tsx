@@ -26,11 +26,11 @@ const RESULT_BADGE: Partial<
    PARTIAL: { tone: 'gold', label: '부분 성공' },
    FAIL: { tone: 'danger', label: '실패' },
 };
-// 문서에 없는 값이 오거나 result가 비어있는 경우를 위한 방어용 기본값 - 몰라도 화면이 죽으면 안 된다
+// 문서에 없는 값이 오거나 result가 비어있는 경우를 위한 방어용 기본값 - 몰라도 화면이 죽으면 안 됨
 const DEFAULT_RESULT_BADGE = { tone: 'muted' as const, label: '알 수 없음' };
 
 // apiFetch 응답은 런타임 날짜 검증이 없어, 잘못된 문자열이 오면 parseISO가 Invalid Date를
-// 반환하고 format이 RangeError를 던져 전체 이력 테이블 렌더링이 중단될 수 있다
+// 반환하고 format이 RangeError를 던져 전체 이력 테이블 렌더링이 중단될 수 있음
 function formatSyncedAt(value: string) {
    const date = parseISO(value);
    return isValid(date) ? format(date, 'yyyy.MM.dd HH:mm') : '—';
@@ -40,8 +40,7 @@ export default function SheetSyncTab() {
    const { isConnected, spreadsheetUrl, columnMapping, isLoading, loadError, handleSaveMapping } =
       useTrackerSheetSync();
    const { history, isLoadingHistory, historyError, isSyncing, runSync } = useTrackerSyncHistory(isConnected);
-   // 서버가 최근 5일치 이력만 내려주므로(5일 지난 이력은 매일 자정 직후 자동 삭제), 이 필터는
-   // 그 범위 안에서만 날짜를 고를 수 있다
+   // 서버가 최근 5일치 이력만 내려주므로(5일 지난 이력은 매일 자정 직후 자동 삭제), 이 필터는 그 범위 안에서만 날짜를 고르기 가능
    const [dateFilter, setDateFilter] = useState('ALL');
    const [currentPage, setCurrentPage] = useState(1);
 
@@ -63,8 +62,8 @@ export default function SheetSyncTab() {
    }, [history, dateFilter]);
 
    const totalPages = Math.max(1, Math.ceil(filteredHistory.length / PAGE_SIZE));
-   // 서버가 5일 지난 이력을 자정마다 자동 삭제해 목록이 줄어들 수 있어, currentPage가
-   // 이미 지난 페이지를 가리키고 있으면 범위 안으로 되돌린다
+   // 서버가 5일 지난 이력을 자정마다 자동 삭제해 목록이 줄어들 수 있어, 
+   // currentPage가 이미 지난 페이지를 가리키고 있으면 범위 안으로 되돌린다
    const safePage = Math.min(currentPage, totalPages);
    const pagedHistory = filteredHistory.slice(
       (safePage - 1) * PAGE_SIZE,
@@ -104,7 +103,7 @@ export default function SheetSyncTab() {
 
          {isConnected && (
             <>
-               <div className="flex items-center justify-between gap-4 rounded-xs border border-[#E5E7EB] bg-white p-6">
+               <div className="flex items-center justify-between gap-4 rounded-sm border border-[#E5E7EB] bg-white p-6">
                   <div>
                      <h3 className="text-sm font-bold text-gray-900">동기화 실행</h3>
                      <p className="mt-1 text-sm text-gray-500">

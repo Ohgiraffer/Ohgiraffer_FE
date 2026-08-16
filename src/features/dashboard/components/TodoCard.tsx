@@ -19,8 +19,6 @@ const DOMAIN_META: Record<TodoSourceDomain, { href: string; badgeClassName: stri
 // 문서에 없는 sourceDomain이 내려올 때(훈련생/강사에서 확인됨) 링크가 깨지지 않도록 두는 기본값
 const DEFAULT_DOMAIN_META = { href: '/', badgeClassName: 'bg-gray-400' };
 
-// 서버가 내려주는 문구 대신 화면에서 더 명확하게 바꿔 보여주는 라벨 - APPROVAL은 role마다
-// 실제로 처리하는 결재 종류가 달라서(훈련생: 휴가, 강사: 예산, 매니저: 결재 처리 전반) role별로 다르게 둔다
 const LABEL_OVERRIDES: Partial<Record<UserRole, Partial<Record<TodoSourceDomain, string>>>> = {
    STUDENT: {
       APPROVAL: '휴가 처리 대기',
@@ -34,7 +32,7 @@ const LABEL_OVERRIDES: Partial<Record<UserRole, Partial<Record<TodoSourceDomain,
    },
 };
 
-// 오늘이면 시각(HH:mm), 오늘이 아니면 날짜(M/d)로 표시한다
+// 오늘이면 시각(HH:mm), 오늘이 아니면 날짜(M/d)로 표시
 function formatDueLabel(dueTimeIso: string) {
    const due = new Date(dueTimeIso);
    return isToday(due) ? format(due, 'HH:mm') : format(due, 'M/d');
@@ -65,12 +63,11 @@ export default function TodoCard() {
       };
    }, [retryKey]);
 
-   // 0건인 항목은 굳이 보여줄 필요가 없어 목록에서 뺀다. EVALUATION은 화면에서 안 쓰기로
-   // 했는데 백엔드는 여전히 내려줄 수 있어(문서상 sourceDomain enum에 남아 있음) role 불문 완전히 숨긴다
+   // 0건인 항목은 굳이 보여줄 필요가 없어 목록에서 제외
    const visibleTodos = todos.filter((todo) => todo.sourceDomain !== 'EVALUATION' && todo.count > 0);
 
    return (
-      <div className="h-full rounded-xs border border-gray-200 bg-white p-6 lg:p-6">
+      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-6">
          <div className="mb-4 flex items-center justify-between lg:mb-4">
             <h2 className="flex items-center gap-1.5 -ml-1 text-sm font-bold text-gray-900">
                <ListChecks size={16} className="text-gray-400" />

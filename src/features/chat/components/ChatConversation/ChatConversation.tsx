@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { isSameDay } from 'date-fns';
 import { GroupChannelHandler } from '@sendbird/chat/groupChannel';
-import { ChevronLeft, Paperclip, Search, Send, Users, X } from 'lucide-react';
+import { Bot, ChevronLeft, Paperclip, Search, Send, Users, X } from 'lucide-react';
 import ChatMessageBubble from './ChatMessageBubble';
+import ChatAvatar from '../ChatAvatar';
 import MessageSearchBar from './MessageSearchBar';
 import MentionDropdown from './MentionDropdown';
 import ReplyPreview from './ReplyPreview';
@@ -65,8 +66,14 @@ async function fetchReplyCounts(messageIds: string[]): Promise<[string, number][
    return entries;
 }
 
+// 챗봇 응답을 기다리는 동안 로딩 말풍선을 계속 보여줄 최대 시간 - 챗봇이 응답 자체를 실패해도
+// 무한정 로딩 상태로 남지 않도록 하는 안전장치
+const CHATBOT_REPLY_TIMEOUT_MS = 60000;
+
 interface ChatConversationProps {
    room: ChatChannel;
+   // 챗봇 채널인지 - 입력창 문구를 다르게 보여주고, 보낸 뒤 응답 대기 말풍선을 띄우는 데 쓴다
+   isChatbot?: boolean;
    replyCounts: Record<string, number>;
    onReplySent: (rootId: string) => void;
    onOpenThread: (message: ChatMessage) => void;
@@ -84,6 +91,7 @@ interface ChatConversationProps {
 
 export default function ChatConversation({
    room,
+   isChatbot = false,
    replyCounts,
    onReplySent,
    onOpenThread,
@@ -117,6 +125,20 @@ export default function ChatConversation({
       );
    }
    const [isLoadingMessages, setIsLoadingMessages] = useState(true);
+   // 챗봇에게 메시지를 보낸 뒤 응답이 도착하기 전까지 로딩 말풍선을 보여줄지. 실시간 수신/폴링
+   // 갱신 둘 다 messages를 새로 채워 넣으므로, 마지막 메시지가 내가 보낸 게 아니게 되는 순간이
+   // 곧 응답 도착이다(react-hooks/set-state-in-effect 규칙상 effect가 아니라 렌더 중에 처리한다)
+   const [isWaitingForBotReply, setIsWaitingForBotReply] = useState(false);
+   // 응답 대기가 타임아웃까지 갔는데도 답이 없으면(최종 확인까지 마친 뒤) 로딩 점 대신
+   // 지연 안내 말풍선으로 바꿔서 보여준다
+   const [botReplyTimedOut, setBotReplyTimedOut] = useState(false);
+   if (isWaitingForBotReply || botReplyTimedOut) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && !lastMessage.isMine) {
+         setIsWaitingForBotReply(false);
+         setBotReplyTimedOut(false);
+      }
+   }
    const [draft, setDraft] = useState('');
    const [isPartnerOnline, setIsPartnerOnline] = useState<boolean | null>(null);
    const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
@@ -138,6 +160,26 @@ export default function ChatConversation({
    const fileInputRef = useRef<HTMLInputElement>(null);
    const isSubmittingRef = useRef(false);
    const isDeletingRef = useRef(false);
+   const messagesContainerRef = useRef<HTMLDivElement>(null);
+   // 스크롤이 바닥 근처에 있을 때만 새 메시지가 오면 자동으로 따라 내려간다 - 위로 올려 이전
+   // 내용을 보고 있을 땐 방해하지 않는다. 기본값 true라 방에 처음 들어왔을 때도 바닥부터 보여준다
+   const shouldAutoScrollRef = useRef(true);
+
+   const handleMessagesScroll = () => {
+      const el = messagesContainerRef.current;
+      if (!el) return;
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      shouldAutoScrollRef.current = distanceFromBottom < 80;
+   };
+
+   // 메시지 목록이 바뀔 때(방 진입, 새 메시지 수신, 내가 보냄, 챗봇 응답 대기 표시 등) 바닥 근처에
+   // 있었다면 다시 바닥으로 내려준다. useLayoutEffect라 DOM이 반영된 직후, 화면이 그려지기 전에
+   // 스크롤을 맞춰 깜빡임 없이 자연스럽다
+   useLayoutEffect(() => {
+      const el = messagesContainerRef.current;
+      if (!el || !shouldAutoScrollRef.current) return;
+      el.scrollTop = el.scrollHeight;
+   }, [messages, isWaitingForBotReply, botReplyTimedOut]);
 
    // 1:1 채팅방의 room.name은 생성 시점에 만든 사람 기준으로 정해진 고정 문구라(예: 상대방이
    // 봐도 똑같은 문구로 보임) 상대방 입장에선 이름이 잘못 보인다. 채널 상세로 받은 멤버 목록에서
@@ -148,7 +190,8 @@ export default function ChatConversation({
       if (room.channelType !== 'DM' || myUserId == null) return null;
       return members.find((member) => member.userId !== myUserId)?.memberName ?? null;
    }, [room.channelType, members, myUserId]);
-   const title = partnerName ?? room.name;
+   // AI 비서 채널은 실제 멤버 이름(백엔드 계정명)이 아니라 항상 "AI 비서"로 고정해서 보여준다
+   const title = isChatbot ? 'AI 비서' : (partnerName ?? room.name);
    const subtitle = room.channelType === 'DM' ? '1:1 채팅' : '단체 채팅';
 
    // 채널 상세(멤버 목록)와 메시지 이력을 함께 받아온다. 멤버 목록은 GROUP 메시지 발신자 이름과
@@ -272,6 +315,24 @@ export default function ChatConversation({
       const interval = setInterval(refreshMessages, MESSAGE_POLL_INTERVAL_MS);
       return () => clearInterval(interval);
    }, [sendbirdStatus, refreshMessages]);
+
+   // 챗봇이 응답을 못 주는 경우까지 대비해, 일정 시간이 지나면 로딩 점 대신 지연 안내로 바꾼다.
+   // 실시간 수신/폴링이 늦게 반영됐을 뿐 실제로는 이미 응답이 와있을 수 있어, 지연 안내를
+   // 띄우기 직전에 채널을 한 번 더 직접 확인해 오탐(이미 왔는데 지연됐다고 잘못 알리는 것)을 줄인다
+   useEffect(() => {
+      if (!isWaitingForBotReply) return;
+      const timer = setTimeout(() => {
+         refreshMessages().then(() => {
+            // 방금 refreshMessages가 반영한 최신 messages 기준으로도 여전히 대기 중이라면
+            // (=진짜 응답이 없었다면) 그때만 지연 안내로 전환한다
+            setIsWaitingForBotReply((stillWaiting) => {
+               if (stillWaiting) setBotReplyTimedOut(true);
+               return false;
+            });
+         });
+      }, CHATBOT_REPLY_TIMEOUT_MS);
+      return () => clearTimeout(timer);
+   }, [isWaitingForBotReply, refreshMessages]);
 
    // 검색어가 바뀔 때마다(디바운스 후) 서버 검색 API로 채널 전체 이력에서 매치를 찾는다.
    // 검색 결과가 여러 페이지에 걸쳐 있을 수 있어 마지막 페이지까지 전부 모아온다.
@@ -516,10 +577,16 @@ export default function ChatConversation({
                mentionedUserIds,
             });
             setMessages((prev) => [...prev, mapMessageDto(dto, mapCtx)]);
+            if (isChatbot) {
+               setIsWaitingForBotReply(true);
+               setBotReplyTimedOut(false);
+            }
          }
          setDraft('');
          setPendingAttachment(null);
          setMentionedUsers([]);
+         // 내가 방금 보낸 메시지는 스크롤이 어디 있었든 항상 바로 보이게 한다
+         shouldAutoScrollRef.current = true;
          // 방금 보낸/수정한 메시지가 채널의 마지막 메시지가 되므로, 채널 목록의 미리보기·시각도
          // 다음 폴링/푸시를 기다리지 않고 바로 최신화한다
          onMessagesRead?.();
@@ -617,7 +684,11 @@ export default function ChatConversation({
             />
          )}
 
-         <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
+         <div
+            ref={messagesContainerRef}
+            onScroll={handleMessagesScroll}
+            className="flex flex-1 flex-col gap-3 overflow-y-auto p-4"
+         >
             {isLoadingMessages ? (
                <p className="py-6 text-center text-sm text-gray-400">불러오는 중...</p>
             ) : messages.length === 0 ? (
@@ -641,6 +712,7 @@ export default function ChatConversation({
                         )}
                         <ChatMessageBubble
                            message={message}
+                           isChatbot={isChatbot}
                            showSenderName={showSenderName}
                            replyCount={replyCounts[message.id] ?? 0}
                            isSearchActive={isSearchOpen && message.id === activeSearchMessageId}
@@ -653,6 +725,48 @@ export default function ChatConversation({
                      </div>
                   );
                })
+            )}
+            {isWaitingForBotReply && (
+               <div className="flex justify-start">
+                  <div className="mr-2 w-7 shrink-0">
+                     <ChatAvatar
+                        name="AI 비서"
+                        imageUrl={null}
+                        size="sm"
+                        icon={Bot}
+                        bgClassName="bg-brand-green/10"
+                        iconClassName="text-brand-green"
+                     />
+                  </div>
+                  <div className="flex flex-col items-start">
+                     <span className="mb-1 text-xs font-medium text-gray-500">AI 비서</span>
+                     <div className="flex items-center gap-1 rounded-sm rounded-tl-none bg-gray-100 px-4.5 py-3.5">
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.3s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.15s]" />
+                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" />
+                     </div>
+                  </div>
+               </div>
+            )}
+            {botReplyTimedOut && (
+               <div className="flex justify-start">
+                  <div className="mr-2 w-7 shrink-0">
+                     <ChatAvatar
+                        name="AI 비서"
+                        imageUrl={null}
+                        size="sm"
+                        icon={Bot}
+                        bgClassName="bg-brand-green/10"
+                        iconClassName="text-brand-green"
+                     />
+                  </div>
+                  <div className="flex flex-col items-start">
+                     <span className="mb-1 text-xs font-medium text-gray-500">AI 비서</span>
+                     <div className="max-w-64 rounded-sm rounded-tl-none bg-gray-100 px-3 py-2 text-sm text-gray-500">
+                        응답이 지연되고 있어요. 잠시 후 다시 확인해주세요.
+                     </div>
+                  </div>
+               </div>
             )}
          </div>
 
@@ -728,14 +842,14 @@ export default function ChatConversation({
                value={draft}
                onChange={(e) => handleDraftChange(e.target.value)}
                onKeyDown={handleInputKeyDown}
-               placeholder="메시지를 입력하세요... (@로 멘션)"
-               className="h-10 flex-1 rounded-sm border border-gray-200 px-3 text-sm text-gray-900 outline-none focus:border-gray-400"
+               placeholder={isChatbot ? 'AI 비서에게 궁금한 점을 물어보세요' : '메시지를 입력하세요... (@로 멘션)'}
+               className="h-10 flex-1 rounded-xs border border-gray-200 px-3 text-sm text-gray-900 outline-none focus:border-gray-400"
             />
             <button
                type="submit"
                disabled={!draft.trim() && !pendingAttachment}
                aria-label="전송"
-               className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-sm bg-brand-green text-white transition-colors hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-gray-200"
+               className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xs bg-brand-green text-white transition-colors hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-gray-200"
             >
                <Send size={16} />
             </button>

@@ -21,7 +21,7 @@ interface StatDot {
 
 function CardShell({ children }: { children: React.ReactNode }) {
    return (
-      <div className="h-full rounded-xs border border-gray-200 bg-white p-6 lg:p-6">
+      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-6">
          <div className="mb-4 flex items-center justify-between lg:mb-4">
             <h2 className="flex items-center gap-1.5 -ml-1 text-sm font-bold text-gray-900">
                <ClipboardCheck size={16} className="text-gray-400" />
@@ -188,10 +188,10 @@ function ManagerAttendanceCard() {
       );
    }
 
-   // 구글 시트 동기화 전이면 서버가 이 값들을 null(또는 누락)로 내려줄 수 있어, 화면엔 항상 0으로 보정한다
+   // 구글 시트 동기화 전이면 서버가 이 값들을 null(또는 누락)로 내려줄 수 있어, 화면엔 항상 0으로 보정
    const attendedTodayCount = summary.attendedTodayCount ?? 0;
-   // managedStudents는 "관리 대상"(주의 이상) 인원이라 정상 인원이 아니다(features/tracker/tabs/StatusTab.tsx
-   // 참고) - 정상 인원은 진행 중인 전체 훈련생에서 관리 대상을 뺀 나머지다
+   // managedStudents는 "관리 대상"(주의 이상) 인원이라 정상 인원이 아님
+   // 정상 인원은 진행 중인 전체 훈련생에서 관리 대상을 뺀 나머지
    const managedStudents = summary.managedStudents ?? 0;
    const normalStudents = Math.max(summary.activeStudents - managedStudents, 0);
    const cautionStudents = summary.cautionStudents ?? 0;
