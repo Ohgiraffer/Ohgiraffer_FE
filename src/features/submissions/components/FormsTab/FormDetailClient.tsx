@@ -415,10 +415,12 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                                           </p>
                                        </div>
                                     </td>
-                                    <td className="px-6 py-4 mt-1.5 flex justify-center">
-                                       <StatusBadge tone={student.responded ? 'success' : 'muted'}>
-                                          {student.responded ? '응답완료' : '미응답'}
-                                       </StatusBadge>
+                                    <td className="px-6 py-4 text-center">
+                                       <div className="mt-1.5 flex justify-center">
+                                          <StatusBadge tone={student.responded ? 'success' : 'muted'}>
+                                             {student.responded ? '응답완료' : '미응답'}
+                                          </StatusBadge>
+                                       </div>
                                     </td>
                                     <td className="px-6 py-4 text-gray-500 text-center">
                                        {formatDateTime(student.submittedAt)}

@@ -115,6 +115,12 @@ export default function ChatConversation({
    );
 
    const [messages, setMessages] = useState<ChatMessage[]>([]);
+   // refreshMessages가 setMessages 업데이터 밖에서도 "직전 messages"를 읽을 수 있도록 미러링해둔다
+   // (업데이터 함수 안에서 다른 state의 setter를 호출하지 않기 위해 필요)
+   const messagesRef = useRef<ChatMessage[]>(messages);
+   useEffect(() => {
+      messagesRef.current = messages;
+   }, [messages]);
    // 렌더 중 prop 변화를 감지해 반영하는 패턴(React의 "prop 변경에 따라 state 조정") - 같은 patch를
    // 두 번 반영하지 않도록 마지막으로 적용한 patch 객체 자체를 비교 기준으로 삼는다
    const [appliedPatch, setAppliedPatch] = useState<ChatMessage | null>(null);
@@ -258,11 +264,14 @@ export default function ChatConversation({
    // 열려 있는 대화방에 다른 사람이 보낸 새 메시지나 다른 사람의 수정·삭제가 있는지 다시 조회한다.
    // id로 병합해 기존 메시지는 최신 내용으로 갱신하고, 새 메시지만 뒤에 붙인다(단, 답장 인용
    // 미리보기처럼 서버가 안 주는 클라이언트 전용 필드는 유지)
+   // 반환값: 이번 새로고침으로 상대방이 보낸 새 메시지를 실제로 받았는지(챗봇 응답 타임아웃
+   // 확인용). setMessages 업데이터 함수 밖에서, ref로 미러링해둔 이전 messages를 기준으로 별도
+   // 계산한다 - 업데이터 안에서 다른 state의 setter를 호출하면 안 되기 때문(React strict 룰)
    const refreshMessages = useCallback(() => {
       return getChannelMessages(room.channelId)
          .then((list) => {
+            const content = list ?? [];
             setMessages((prev) => {
-               const content = list ?? [];
                const dtoById = new Map(content.map((dto) => [dto.sendbirdMessageId, dto]));
                const merged = prev.map((m) => {
                   const dto = dtoById.get(m.id);
@@ -281,8 +290,12 @@ export default function ChatConversation({
                return newOnes.length > 0 ? [...merged, ...newOnes] : merged;
             });
             onMessagesRead?.();
+            const existingIds = new Set(messagesRef.current.map((m) => m.id));
+            return content.some(
+               (dto) => !existingIds.has(dto.sendbirdMessageId) && dto.senderId !== mapCtx.currentUserId,
+            );
          })
-         .catch(() => {}); // 백그라운드 새로고침이라 실패해도 조용히 무시
+         .catch(() => false); // 백그라운드 새로고침이라 실패해도 조용히 무시(타임아웃 쪽에선 "응답 없음"으로 처리)
    }, [room.channelId, mapCtx, onMessagesRead]);
 
    // Sendbird 실시간 연결이 되어 있으면 이 채널로 새 메시지가 올 때마다 바로 다시 조회한다
@@ -322,13 +335,13 @@ export default function ChatConversation({
    useEffect(() => {
       if (!isWaitingForBotReply) return;
       const timer = setTimeout(() => {
-         refreshMessages().then(() => {
-            // 방금 refreshMessages가 반영한 최신 messages 기준으로도 여전히 대기 중이라면
-            // (=진짜 응답이 없었다면) 그때만 지연 안내로 전환한다
-            setIsWaitingForBotReply((stillWaiting) => {
-               if (stillWaiting) setBotReplyTimedOut(true);
-               return false;
-            });
+         // refreshMessages가 새 응답을 실제로 받아왔는지 여부를 그대로 반환해주므로,
+         // 업데이터 함수 안이 아니라 여기서 두 state를 바로 설정한다
+         refreshMessages().then((receivedReply) => {
+            if (!receivedReply) {
+               setIsWaitingForBotReply(false);
+               setBotReplyTimedOut(true);
+            }
          });
       }, CHATBOT_REPLY_TIMEOUT_MS);
       return () => clearTimeout(timer);
@@ -763,7 +776,9 @@ export default function ChatConversation({
                   <div className="flex flex-col items-start">
                      <span className="mb-1 text-xs font-medium text-gray-500">AI 비서</span>
                      <div className="max-w-64 rounded-sm rounded-tl-none bg-gray-100 px-3 py-2 text-sm text-gray-500">
-                        응답이 지연되고 있어요. 잠시 후 다시 확인해주세요.
+                        응답이 지연되고 있어요.
+                        <br />
+                        잠시 후 다시 확인해주세요.
                      </div>
                   </div>
                </div>
