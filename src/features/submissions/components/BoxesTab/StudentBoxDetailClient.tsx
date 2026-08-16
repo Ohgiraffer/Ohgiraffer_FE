@@ -65,13 +65,15 @@ export default function StudentBoxDetailClient({ boxId }: StudentBoxDetailClient
 
    const handleDownload = async (value: SubmissionItemValue) => {
       try {
-         const { blob } = await downloadSubmissionItem(value.submissionItemValueId);
-         const url = URL.createObjectURL(blob);
+         // 더 이상 302로 파일을 직접 안 내려주고, 매 클릭마다 새로 발급받은 임시 URL로만 이동한다
+         const { downloadUrl, originalFileName } = await downloadSubmissionItem(
+            value.submissionItemValueId,
+         );
          const a = document.createElement('a');
-         a.href = url;
-         a.download = value.originalFileName ?? '다운로드';
+         a.href = downloadUrl;
+         a.download = originalFileName ?? '다운로드';
+         a.rel = 'noopener';
          a.click();
-         URL.revokeObjectURL(url);
       } catch (err) {
          toast.error(
             err instanceof ApiError
