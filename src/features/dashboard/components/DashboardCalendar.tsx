@@ -84,6 +84,10 @@ function CalendarToolbar({ label, onNavigate }: ToolbarProps<CalendarEvent, obje
 
 interface DashboardCalendarProps {
    holidays?: Holiday[];
+   // 서버(DashboardContent)에서 계산한 초기 연·월 - 여기서 new Date()를 따로 부르면 서버와
+   // 자정 경계·시계 차이로 어긋나면서 hydration mismatch가 날 수 있어 그대로 물려받아 쓴다
+   initialYear: number;
+   initialMonth: number;
    // 부모(DashboardGrid)가 오늘이 속한 달의 일정을 오늘 일정 카드와 공유하려고 미리 한 번 조회해 내려준다
    initialEvents?: CalendarEvent[] | null;
    initialEventsReady?: boolean;
@@ -100,6 +104,8 @@ interface DashboardCalendarProps {
 
 export default function DashboardCalendar({
    holidays: initialHolidays = [],
+   initialYear,
+   initialMonth,
    initialEvents,
    initialEventsReady = false,
    onEventCreated,
@@ -109,10 +115,12 @@ export default function DashboardCalendar({
    const [events, setEvents] = useState<CalendarEvent[]>([]);
    const [createDate, setCreateDate] = useState<Date | null>(null);
    const [viewDate, setViewDate] = useState<Date | null>(null);
-   const [currentDate, setCurrentDate] = useState(() => new Date());
+   // 일(day)은 어느 값이든 월 표시에 영향이 없어(react-big-calendar는 "오늘" 표시를 자체
+   // 시계로 판단) 1일로 고정 - 서버가 내려준 연·월만 서버/클라이언트가 동일하게 쓰면 됨
+   const [currentDate, setCurrentDate] = useState(() => new Date(initialYear, initialMonth - 1, 1));
 
    const [holidaysByYear, setHolidaysByYear] = useState<Record<number, Holiday[]>>(() => ({
-      [new Date().getFullYear()]: initialHolidays,
+      [initialYear]: initialHolidays,
    }));
 
    const currentYear = currentDate.getFullYear();

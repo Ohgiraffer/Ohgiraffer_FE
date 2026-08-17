@@ -12,9 +12,9 @@ import { mapCalendarEvent } from '../calendarEventUtils';
 import type { CalendarEvent } from '../types';
 import type { Holiday } from '@/services/holiday.service';
 
-// react-big-calendar는 대시보드 첫 화면에서만 쓰이는 무거운 라이브러리라, 클라이언트 JS는
-// 별도 청크로 분리한다. 다만 ssr:false는 아니다 - LCP 요소가 이 캘린더라 서버가 미리 렌더링해서
-// 초기 HTML에 포함시켜야 한다(ssr:false였을 때는 청크 로드가 끝나야만 그려져서 LCP가 늦어졌음)
+// react-big-calendar는 대시보드 첫 화면에서만 쓰이는 무거운 라이브러리라, 클라이언트 JS는 별도 청크로 분리한다. 
+// 다만 ssr:false는 아니다 - LCP 요소가 이 캘린더라 서버가 미리 렌더링해서 초기 HTML에 포함시켜야 한다
+// (ssr:false였을 때는 청크 로드가 끝나야만 그려져서 LCP가 늦어졌음)
 const DashboardCalendar = dynamic(() => import('./DashboardCalendar'), {
    loading: () => <DashboardCalendarSkeleton />,
 });
@@ -45,9 +45,13 @@ function DashboardCalendarSkeleton() {
 
 interface DashboardGridProps {
    holidays: Holiday[];
+   // 서버(DashboardContent)에서 계산한 초기 연·월 - 여기서 다시 new Date()를 부르면
+   // DashboardCalendar가 쓰는 값과 어긋날 수 있어 그대로 물려받아 쓴다
+   initialYear: number;
+   initialMonth: number;
 }
 
-export default function DashboardGrid({ holidays }: DashboardGridProps) {
+export default function DashboardGrid({ holidays, initialYear, initialMonth }: DashboardGridProps) {
    // 캘린더와 오늘 일정 카드가 각자 따로 오늘이 속한 달의 일정을 조회하던 걸, 여기서 한 번만 조회해 둘 다에 내려줌
    const [monthEvents, setMonthEvents] = useState<CalendarEvent[] | null>(null);
    const [monthEventsError, setMonthEventsError] = useState(false);
@@ -55,8 +59,7 @@ export default function DashboardGrid({ holidays }: DashboardGridProps) {
 
    useEffect(() => {
       let isMounted = true;
-      const today = new Date();
-      getCalendarEvents(today.getFullYear(), today.getMonth() + 1)
+      getCalendarEvents(initialYear, initialMonth)
          .then((items) => {
             if (!isMounted) return;
             setMonthEvents(items.map(mapCalendarEvent).filter((event): event is CalendarEvent => event !== null));
@@ -68,7 +71,7 @@ export default function DashboardGrid({ holidays }: DashboardGridProps) {
       return () => {
          isMounted = false;
       };
-   }, [refreshKey]);
+   }, [refreshKey, initialYear, initialMonth]);
 
    // effect 안에서 직접 지우면 react-hooks/set-state-in-effect 위반이라 여기서 처리
    const refetchMonthEvents = useCallback(() => {
@@ -88,6 +91,8 @@ export default function DashboardGrid({ holidays }: DashboardGridProps) {
          <div className="min-w-0 [grid-area:calendar]">
             <DashboardCalendar
                holidays={holidays}
+               initialYear={initialYear}
+               initialMonth={initialMonth}
                initialEvents={monthEvents}
                initialEventsReady={monthEvents !== null || monthEventsError}
                onEventCreated={refetchMonthEvents}
