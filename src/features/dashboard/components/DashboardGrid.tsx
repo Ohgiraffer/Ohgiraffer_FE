@@ -12,10 +12,10 @@ import { mapCalendarEvent } from '../calendarEventUtils';
 import type { CalendarEvent } from '../types';
 import type { Holiday } from '@/services/holiday.service';
 
-// react-big-calendar는 대시보드 첫 화면에서만 쓰이는 무거운 라이브러리라, 
-// 초기 파싱과 분리되도록 지연 로딩
+// react-big-calendar는 대시보드 첫 화면에서만 쓰이는 무거운 라이브러리라, 클라이언트 JS는
+// 별도 청크로 분리한다. 다만 ssr:false는 아니다 - LCP 요소가 이 캘린더라 서버가 미리 렌더링해서
+// 초기 HTML에 포함시켜야 한다(ssr:false였을 때는 청크 로드가 끝나야만 그려져서 LCP가 늦어졌음)
 const DashboardCalendar = dynamic(() => import('./DashboardCalendar'), {
-   ssr: false,
    loading: () => <DashboardCalendarSkeleton />,
 });
 
@@ -23,7 +23,16 @@ function DashboardCalendarSkeleton() {
    return (
       <div className="rounded-xs border border-gray-200 bg-white p-6">
          <div className="mb-4 flex items-center justify-between">
-            <Skeleton width={120} height={22} className="rounded-md" />
+            <div className="flex items-center gap-4">
+               <Skeleton width={120} height={22} className="rounded-md" />
+               {/* 실제 툴바의 일정 유형 범례(수업/발표·행사·개인) 자리 - 없으면 실제 컴포넌트로
+                  바뀔 때 이 줄의 너비/높이가 달라져 레이아웃이 밀린다(CLS) */}
+               <div className="flex items-center gap-3">
+                  <Skeleton width={48} height={14} className="rounded-md" />
+                  <Skeleton width={36} height={14} className="rounded-md" />
+                  <Skeleton width={36} height={14} className="rounded-md" />
+               </div>
+            </div>
             <div className="flex gap-1">
                <Skeleton width={28} height={28} className="rounded-xs" />
                <Skeleton width={28} height={28} className="rounded-xs" />
