@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -46,9 +46,26 @@ export default function NoticesPageClient() {
    const [keyword, setKeyword] = useState('');
    const [currentPage, setCurrentPage] = useState(1);
    const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+   const categoryScrollRef = useRef<HTMLDivElement>(null);
+   const [canScrollCategories, setCanScrollCategories] = useState(false);
 
    const isLoading = isLoadingNotices || isLoadingCategories;
    const hasError = hasNoticesError || isCategoriesError;
+
+   // 실제로 옆으로 넘치는 카테고리가 있을 때만 그라데이션을 보여준다 - ResizeObserver는 탭 목록
+   // 컨테이너 자체 크기 변화(창 크기 등)를, categories 의존성은 카테고리 추가/삭제로 내용 너비만
+   // 바뀌는 경우(컨테이너 크기는 그대로라 ResizeObserver가 못 잡음)를 각각 커버한다
+   useEffect(() => {
+      const el = categoryScrollRef.current;
+      if (!el) return;
+
+      const checkOverflow = () => setCanScrollCategories(el.scrollWidth > el.clientWidth);
+      checkOverflow();
+
+      const observer = new ResizeObserver(checkOverflow);
+      observer.observe(el);
+      return () => observer.disconnect();
+   }, [categories]);
 
    useEffect(() => {
       let isMounted = true;
@@ -167,41 +184,49 @@ export default function NoticesPageClient() {
 
          <div className="mt-5 rounded-sm border border-[#E5E7EB] bg-white">
             <div className="flex flex-col border-b border-[#E5E7EB] sm:flex-row sm:items-stretch sm:justify-between">
-               <div className="flex items-stretch gap-4 overflow-x-auto px-6 pt-2">
-                  <button
-                     type="button"
-                     onClick={() => handleTabChange('all')}
-                     className={`flex shrink-0 cursor-pointer items-center border-b-2 px-3 text-sm transition-colors ${
-                        activeCategoryId === 'all'
-                           ? 'border-brand-green font-bold text-gray-900'
-                           : 'border-transparent font-medium text-gray-400 hover:text-gray-700'
-                     }`}
+               <div className="relative min-w-0 flex-1">
+                  <div
+                     ref={categoryScrollRef}
+                     className="flex h-full items-stretch gap-4 overflow-x-auto px-6 pt-2 scrollbar-none [&::-webkit-scrollbar]:hidden"
                   >
-                     전체
-                  </button>
-                  {categories.map((category) => (
                      <button
-                        key={category.categoryId}
                         type="button"
-                        onClick={() => handleTabChange(category.categoryId)}
+                        onClick={() => handleTabChange('all')}
                         className={`flex shrink-0 cursor-pointer items-center border-b-2 px-3 text-sm transition-colors ${
-                           activeCategoryId === category.categoryId
+                           activeCategoryId === 'all'
                               ? 'border-brand-green font-bold text-gray-900'
                               : 'border-transparent font-medium text-gray-400 hover:text-gray-700'
                         }`}
                      >
-                        {category.name}
+                        전체
                      </button>
-                  ))}
-                  {canManageCategories && (
-                     <button
-                        type="button"
-                        onClick={() => setIsCategoryModalOpen(true)}
-                        aria-label="카테고리 관리"
-                        className="mt-1.5 flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-sm px-1 text-gray-400 hover:bg-gray-50 hover:text-gray-700"
-                     >
-                        <Settings size={16} />
-                     </button>
+                     {categories.map((category) => (
+                        <button
+                           key={category.categoryId}
+                           type="button"
+                           onClick={() => handleTabChange(category.categoryId)}
+                           className={`flex shrink-0 cursor-pointer items-center border-b-2 px-3 text-sm transition-colors ${
+                              activeCategoryId === category.categoryId
+                                 ? 'border-brand-green font-bold text-gray-900'
+                                 : 'border-transparent font-medium text-gray-400 hover:text-gray-700'
+                           }`}
+                        >
+                           {category.name}
+                        </button>
+                     ))}
+                     {canManageCategories && (
+                        <button
+                           type="button"
+                           onClick={() => setIsCategoryModalOpen(true)}
+                           aria-label="카테고리 관리"
+                           className="mt-1.5 flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-sm px-1 text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                        >
+                           <Settings size={16} />
+                        </button>
+                     )}
+                  </div>
+                  {canScrollCategories && (
+                     <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-brand-sage/15 to-transparent" />
                   )}
                </div>
 
@@ -271,7 +296,7 @@ export default function NoticesPageClient() {
                            <div className="flex items-start justify-between gap-2">
                               <div className="flex items-center gap-1.5">
                                  {notice.pinned && (
-                                    <Pin size={13} className="size-[13px] shrink-0 text-brand-maroon" />
+                                    <Pin size={13} className="size-3.25 shrink-0 text-brand-maroon" />
                                  )}
                                  <p className="text-sm font-medium text-gray-900">{notice.title}</p>
                               </div>

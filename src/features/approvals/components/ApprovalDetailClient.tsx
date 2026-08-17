@@ -318,7 +318,7 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
                      <button
                         type="button"
                         onClick={() => openDownloadConfirm(numericApprovalId, detail.requestType)}
-                        className="flex cursor-pointer items-center gap-1.5 rounded-sm bg-brand-green px-4 py-2 text-sm font-semibold text-white hover:bg-[#4D655A]"
+                        className="flex cursor-pointer items-center gap-1.5 rounded-xs bg-brand-green px-4 py-2 text-sm font-semibold text-white hover:bg-[#4D655A]"
                      >
                         {detail.requestType === 'LEAVE' ? (
                            <>

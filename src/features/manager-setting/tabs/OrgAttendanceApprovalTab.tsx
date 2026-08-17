@@ -136,7 +136,7 @@ export default function OrgAttendanceApprovalTab() {
                type="button"
                disabled={!isSaveEnabled}
                onClick={handleSave}
-               className={`cursor-pointer rounded-sm px-5 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed ${
+               className={`cursor-pointer rounded-xs px-5 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed ${
                   isSaveEnabled
                      ? 'bg-brand-green text-white hover:bg-[#4D655A]'
                      : 'bg-[#E5E7EB] text-[#9CA3AF]'
