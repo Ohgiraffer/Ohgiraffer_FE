@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import SearchInput from '@/components/ui/SearchInput';
 import Pagination from '@/components/ui/Pagination';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { useChangeHistory } from '../hooks/useChangeHistory';
 
 const PAGE_SIZE = 6;
@@ -36,8 +37,47 @@ export default function ChangeHistoryTab() {
 
    if (isLoading) {
       return (
-         <div className="rounded-sm border border-[#E5E7EB] bg-white px-8 py-10 text-center text-sm text-gray-400">
-            불러오는 중...
+         <div>
+            <Skeleton width={288} height={40} className="rounded-xs" />
+
+            <div className="mt-4 overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
+               <table className="w-full table-fixed text-left text-sm">
+                  <thead>
+                     <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
+                        <th className="w-[6%] px-6 py-3 font-medium">#</th>
+                        <th className="w-[10%] px-6 py-3 text-center font-medium">변경 사용자</th>
+                        <th className="w-[16%] px-6 py-3 text-center font-medium">변경 시각</th>
+                        <th className="w-[18%] px-6 py-3 font-medium">변경 항목</th>
+                        <th className="w-[23%] px-6 py-3 font-medium">변경 전 값</th>
+                        <th className="w-[27%] px-6 py-3 font-medium">변경 후 값</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {[0, 1, 2, 3, 4].map((i) => (
+                        <tr key={i} className="border-b border-[#F3F4F6] last:border-b-0">
+                           <td className="px-6 py-4">
+                              <Skeleton width={16} height={14} className="rounded-md" />
+                           </td>
+                           <td className="px-6 py-4">
+                              <Skeleton width={48} height={14} className="mx-auto rounded-md" />
+                           </td>
+                           <td className="px-6 py-4">
+                              <Skeleton width={96} height={14} className="mx-auto rounded-md" />
+                           </td>
+                           <td className="px-6 py-4">
+                              <Skeleton width="70%" height={14} className="rounded-md" />
+                           </td>
+                           <td className="px-6 py-4">
+                              <Skeleton width="80%" height={14} className="rounded-md" />
+                           </td>
+                           <td className="px-6 py-4">
+                              <Skeleton width="60%" height={14} className="rounded-md" />
+                           </td>
+                        </tr>
+                     ))}
+                  </tbody>
+               </table>
+            </div>
          </div>
       );
    }

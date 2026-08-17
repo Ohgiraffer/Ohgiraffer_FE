@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import SearchInput from '@/components/ui/SearchInput';
+import { SkeletonListRow } from '@/components/ui/loading/Skeleton';
 import ChatAvatar from '../ChatAvatar';
 import { useAuth } from '@/components/auth/AuthContext';
 import { getUserList, type UserListItem } from '@/services/user.service';
@@ -150,7 +151,11 @@ export default function NewChatModal({ onClose, onCreate }: NewChatModalProps) {
 
             <ul className="flex-1 overflow-y-auto py-1 scrollbar-gutter-stable">
                {isLoading ? (
-                  <p className="p-6 text-center text-sm text-gray-400">불러오는 중...</p>
+                  [0, 1, 2, 3, 4].map((i) => (
+                     <li key={i}>
+                        <SkeletonListRow index={i} />
+                     </li>
+                  ))
                ) : results.length === 0 ? (
                   <p className="p-6 text-center text-sm text-gray-400">검색 결과가 없습니다</p>
                ) : (

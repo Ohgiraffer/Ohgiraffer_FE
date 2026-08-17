@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Bell, Trash2, X } from 'lucide-react';
 import { Switch } from '@/components/ui/shadcn/switch';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import SidePanelShell, { PanelHeaderBar } from '@/components/ui/SidePanelShell';
 import { useSidePanel } from '@/components/layout/SidePanelContext';
 import type { useNotifications } from '../hooks/useNotifications';
@@ -99,7 +100,23 @@ export default function NotificationPanel({
 
          <div className="flex-1 overflow-y-auto">
             {isLoading ? (
-               <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+               <div>
+                  {[0, 1, 2, 3].map((i) => (
+                     <div
+                        key={i}
+                        className="flex items-start gap-3 border-b border-[#F3F4F6] px-6 py-4"
+                        style={{ '--row-delay': `${i * 0.15}s` } as React.CSSProperties}
+                     >
+                        <Skeleton width={16} height={16} className="mt-0.5 shrink-0 rounded-xs" />
+                        <div className="min-w-0 flex-1">
+                           <Skeleton width="55%" height={14} className="rounded-md" />
+                           <Skeleton width="85%" height={12} className="mt-2 rounded-md" />
+                           <Skeleton width="30%" height={10} className="mt-2 rounded-md" />
+                        </div>
+                        <Skeleton width={14} height={14} className="mt-0.5 shrink-0 rounded-xs" />
+                     </div>
+                  ))}
+               </div>
             ) : hasError ? (
                <div className="flex flex-col items-center gap-3 py-16">
                   <p className="text-sm text-gray-400">알림을 불러오지 못했습니다.</p>

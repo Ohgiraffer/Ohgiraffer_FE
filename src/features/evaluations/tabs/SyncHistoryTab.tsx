@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Pagination from '@/components/ui/Pagination';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { formatSyncedAt } from '../formatSyncedAt';
 import type { SyncHistoryEntry } from '../types';
 
@@ -36,11 +37,14 @@ export default function SyncHistoryTab({ history, isLoadingHistory, historyError
                </thead>
                <tbody>
                   {isLoadingHistory ? (
-                     <tr>
-                        <td colSpan={4} className="px-6 py-10 text-center text-gray-400">
-                           불러오는 중...
-                        </td>
-                     </tr>
+                     [0, 1, 2, 3, 4].map((i) => (
+                        <tr key={i} className="border-b border-[#F3F4F6] last:border-b-0">
+                           <td className="px-6 py-4"><Skeleton width={16} height={14} className="mx-auto rounded-md" /></td>
+                           <td className="px-15 py-4"><Skeleton width="50%" height={14} className="mx-auto rounded-md" /></td>
+                           <td className="px-15 py-4"><Skeleton width="60%" height={14} className="rounded-md" /></td>
+                           <td className="px-6 py-4"><Skeleton width="40%" height={14} className="rounded-md" /></td>
+                        </tr>
+                     ))
                   ) : historyError ? (
                      <tr>
                         <td colSpan={4} className="px-6 py-10 text-center text-gray-400">

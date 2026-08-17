@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 import SearchInput from '@/components/ui/SearchInput';
+import { SkeletonListRow } from '@/components/ui/loading/Skeleton';
 import DirectChatListItem from './DirectChatListItem';
 import GroupChatListItem from './GroupChatListItem';
 import type { ChatChannel } from '@/services/chat.service';
@@ -91,7 +92,7 @@ export default function ChatRoomList({ channels, isLoading, onSelectRoom }: Chat
 
          <div className="flex-1 overflow-y-auto">
             {isLoading ? (
-               <p className="p-6 text-center text-sm text-gray-400">불러오는 중...</p>
+               [0, 1, 2, 3, 4].map((i) => <SkeletonListRow key={i} index={i} />)
             ) : activeRooms.length === 0 ? (
                <p className="p-6 text-center text-sm text-gray-400">
                   {tab === 'direct' ? '1:1 채팅방이 없습니다' : '단체 채팅방이 없습니다'}
