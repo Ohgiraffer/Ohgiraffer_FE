@@ -233,8 +233,8 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
                </button>
             </div>
          ) : (
-            <div className="mt-5 rounded-sm border border-[#E5E7EB] bg-white px-15 py-8">
-               <div className="mt-5 px-25">
+            <div className="mt-5 rounded-sm border border-[#E5E7EB] bg-white px-4 py-6 sm:px-15 sm:py-8">
+               <div className="mt-5 sm:px-25">
                   <ApprovalStatusTimeline
                      status={detail.status}
                      approverName={detail.approverName}
@@ -243,7 +243,7 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
                   />
                </div>
 
-               <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-6 border-t border-[#F3F4F6] pt-8">
+               <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 border-t border-[#F3F4F6] pt-8 sm:grid-cols-2">
                   {isProcessor ? (
                      <InfoField label="신청자" value={detail.requesterName} />
                   ) : (

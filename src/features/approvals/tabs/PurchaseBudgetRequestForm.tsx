@@ -71,7 +71,7 @@ export default function PurchaseBudgetRequestForm() {
             </Select>
          </div>
 
-         <div className="mt-6 grid grid-cols-2 gap-6">
+         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
                <label className="text-[15px] font-semibold text-gray-900">신청 날짜</label>
                <input

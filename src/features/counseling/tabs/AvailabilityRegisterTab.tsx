@@ -23,7 +23,7 @@ export default function AvailabilityRegisterTab() {
    } = useAvailabilityRegister();
 
    return (
-      <div className="grid grid-cols-[4.5fr_5.5fr] items-start gap-6">
+      <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-[4.5fr_5.5fr]">
          <CounselingCalendar
             selectedDate={selectedDate}
             onSelectDate={selectDate}

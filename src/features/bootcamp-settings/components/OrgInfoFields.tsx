@@ -15,7 +15,7 @@ export default function OrgInfoFields({ value, onChange, dateOrderError }: Props
    };
 
    return (
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
          <div>
             <label className="text-[15px] font-semibold text-gray-900">
                조직명 <span className="font-bold text-[16px] text-brand-gold">*</span>

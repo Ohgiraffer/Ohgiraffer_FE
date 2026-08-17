@@ -60,7 +60,7 @@ export default function SheetSyncTab({
 
             <div className="mt-5">
                <Skeleton width={70} height={14} className="rounded-md" />
-               <div className="mt-3 grid grid-cols-3 gap-4">
+               <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {EVALUATION_SHEET_COLUMNS.map((column) => (
                      <div key={column.key} className="px-1.5">
                         <Skeleton width={70} height={13} className="rounded-md" />

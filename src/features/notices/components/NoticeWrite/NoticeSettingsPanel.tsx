@@ -62,7 +62,7 @@ export default function NoticeSettingsPanel({
    onFileRemove,
 }: Props) {
    return (
-      <div className="flex h-131.75 min-h-0 w-90 shrink-0 flex-col overflow-hidden rounded-sm border border-[#E5E7EB] bg-white p-6">
+      <div className="flex min-h-0 w-full shrink-0 flex-col overflow-hidden rounded-sm border border-[#E5E7EB] bg-white p-6 lg:h-131.75 lg:w-90">
          <div className="shrink-0">
             <label className="text-[15px] font-semibold text-gray-900">
                카테고리<span className="font-bold text-[16px] text-brand-gold">*</span>

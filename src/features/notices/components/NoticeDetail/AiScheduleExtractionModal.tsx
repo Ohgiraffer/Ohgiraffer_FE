@@ -168,7 +168,7 @@ export default function AiScheduleExtractionModal({
                   )}
                </div>
 
-               <div className="mt-3 grid grid-cols-2 gap-3">
+               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
                      <label
                         htmlFor={startDateId}
@@ -201,7 +201,7 @@ export default function AiScheduleExtractionModal({
                   </div>
                </div>
 
-               <div className="mt-3 grid grid-cols-2 gap-3">
+               <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
                      <label htmlFor={endDateId} className="text-[14px] font-semibold text-gray-900">
                         종료일 <span className="font-bold text-[16px] text-brand-gold">*</span>
