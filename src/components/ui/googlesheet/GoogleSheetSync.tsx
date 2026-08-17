@@ -277,7 +277,7 @@ export default function GoogleSheetSync({
                      <span className="text-xs font-normal text-gray-400">연결 후 활성화됩니다</span>
                   )}
                </p>
-               <div className="mt-3 grid grid-cols-3 gap-4">
+               <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {columns.map((column) => {
                      const fieldId = `${columnFieldPrefix}-${column.key}`;
                      return (

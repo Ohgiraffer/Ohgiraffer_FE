@@ -57,7 +57,7 @@ export default function AttendanceUnitPeriodsFields({ periods, onChange, periodE
 
                         <p className="text-sm text-[#6B7280]">{index + 1}단위기간</p>
 
-                        <div className="mt-1 grid grid-cols-2 gap-4">
+                        <div className="mt-1 grid grid-cols-1 gap-4 sm:grid-cols-2">
                            <div>
                               <label className="text-[13px] font-semibold text-gray-900">
                                  시작일

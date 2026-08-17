@@ -10,7 +10,7 @@ function OrgAttendanceApprovalTabSkeleton() {
       <div className="flex flex-col gap-4">
          <div className="rounded-sm border border-[#E5E7EB] bg-white px-8 py-6">
             <Skeleton width={120} height={20} className="rounded-md" />
-            <div className="mt-3 grid grid-cols-2 gap-6">
+            <div className="mt-3 grid grid-cols-1 gap-6 sm:grid-cols-2">
                {[0, 1, 2, 3].map((i) => (
                   <div key={i}>
                      <Skeleton width={100} height={16} className="rounded-md" />
@@ -28,7 +28,7 @@ function OrgAttendanceApprovalTabSkeleton() {
                {[0, 1].map((i) => (
                   <div key={i} className="rounded-sm border border-gray-200 p-4">
                      <Skeleton width={72} height={14} className="rounded-md" />
-                     <div className="mt-1 grid grid-cols-2 gap-4">
+                     <div className="mt-1 grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div>
                            <Skeleton width={48} height={13} className="rounded-md" />
                            <Skeleton width="100%" height={42} className="mt-1 rounded-sm" />

@@ -61,7 +61,7 @@ export default function CounselingDetailClient({ consultationId }: Props) {
 
                   <hr className="mt-4 border-[#F3F4F6]" />
 
-                  <div className="mt-5 grid grid-cols-2 gap-4">
+                  <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                      <div>
                         <Skeleton width={40} height={12} className="rounded-md" />
                         <Skeleton width="60%" height={15} className="mt-2 rounded-md" />
@@ -105,7 +105,7 @@ export default function CounselingDetailClient({ consultationId }: Props) {
 
                <hr className="mt-4 border-[#F3F4F6]" />
 
-               <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
+               <div className="mt-5 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
                   <div>
                      <p className="text-[13px] text-[#9CA3AF]">신청자</p>
                      <p className="mt-1 text-[15px] text-gray-900">{detail.requesterName}</p>

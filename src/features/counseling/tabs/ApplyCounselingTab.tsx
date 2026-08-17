@@ -47,7 +47,7 @@ export default function ApplyCounselingTab() {
                ))}
             </div>
 
-            <div className="mt-3 grid grid-cols-[4.5fr_5.5fr] items-start gap-6">
+            <div className="mt-3 grid grid-cols-1 items-start gap-6 sm:grid-cols-[4.5fr_5.5fr]">
                <Skeleton width="100%" height={420} className="rounded-sm" />
 
                <div className="flex flex-col gap-3">
@@ -94,7 +94,7 @@ export default function ApplyCounselingTab() {
             onSelect={selectCounselor}
          />
 
-         <div className="mt-3 grid grid-cols-[4.5fr_5.5fr] items-start gap-6">
+         <div className="mt-3 grid grid-cols-1 items-start gap-6 md:grid-cols-[4.5fr_5.5fr]">
             <CounselingCalendar
                selectedDate={selectedDate}
                onSelectDate={selectDate}

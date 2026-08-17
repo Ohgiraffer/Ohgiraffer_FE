@@ -48,25 +48,25 @@ export default function SpaceReservationClient() {
 
    return (
       <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
-         <div className="flex items-center justify-between">
+         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h1 className="text-2xl font-bold text-gray-900">공간 예약</h1>
             <div className="flex items-center gap-2">
                <SearchInput
                   onSearch={handleSearch}
                   placeholder="이름으로 자리 검색"
-                  className="w-72"
+                  className="w-full sm:w-72"
                />
                {canManageSpaces && (
                   <button
                      type="button"
                      onClick={openManagePanel}
-                     className="flex cursor-pointer items-center gap-1.5 rounded-xs border border-brand-green bg-white px-3 h-9 text-sm font-semibold text-brand-green hover:bg-gray-50"
+                     className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xs border border-brand-green bg-white px-3 h-9 text-sm font-semibold text-brand-green hover:bg-gray-50"
                   >
                      <Building size={16} />
                      공간 관리
                   </button>
                )}
-               <div className="flex items-center rounded-xs border border-[#E5E7EB] bg-white">
+               <div className="flex shrink-0 items-center rounded-xs border border-[#E5E7EB] bg-white">
                   <button
                      type="button"
                      onClick={() => setViewMode('grid')}

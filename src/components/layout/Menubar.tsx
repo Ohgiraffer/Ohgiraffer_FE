@@ -104,7 +104,7 @@ export default function Menubar() {
                         isActive ? 'bg-brand-green text-white' : 'text-[#3B4150] hover:bg-[#F7F8FA]'
                      }`}
                   >
-                     <Icon className="h-[clamp(14px,3.667vh,22px)] w-[clamp(14px,3.667vh,22px)] shrink-0" />
+                     <Icon className="h-[clamp(14px,3.667vh,22px)] w-[clamp(14px,3.667vh,22px)] shrink-0 [@media(max-height:640px)]:hidden" />
                      <span className="truncate">{label}</span>
                   </Link>
                );

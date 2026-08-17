@@ -166,12 +166,12 @@ export default function NoticesPageClient() {
          </div>
 
          <div className="mt-5 rounded-sm border border-[#E5E7EB] bg-white">
-            <div className="flex items-stretch justify-between border-b border-[#E5E7EB] px-6">
-               <div className="flex items-stretch gap-4 pt-2">
+            <div className="flex flex-col border-b border-[#E5E7EB] sm:flex-row sm:items-stretch sm:justify-between">
+               <div className="flex items-stretch gap-4 overflow-x-auto px-6 pt-2">
                   <button
                      type="button"
                      onClick={() => handleTabChange('all')}
-                     className={`flex cursor-pointer items-center border-b-2 px-3 text-sm transition-colors ${
+                     className={`flex shrink-0 cursor-pointer items-center border-b-2 px-3 text-sm transition-colors ${
                         activeCategoryId === 'all'
                            ? 'border-brand-green font-bold text-gray-900'
                            : 'border-transparent font-medium text-gray-400 hover:text-gray-700'
@@ -184,7 +184,7 @@ export default function NoticesPageClient() {
                         key={category.categoryId}
                         type="button"
                         onClick={() => handleTabChange(category.categoryId)}
-                        className={`flex cursor-pointer items-center border-b-2 px-3 text-sm transition-colors ${
+                        className={`flex shrink-0 cursor-pointer items-center border-b-2 px-3 text-sm transition-colors ${
                            activeCategoryId === category.categoryId
                               ? 'border-brand-green font-bold text-gray-900'
                               : 'border-transparent font-medium text-gray-400 hover:text-gray-700'
@@ -198,37 +198,37 @@ export default function NoticesPageClient() {
                         type="button"
                         onClick={() => setIsCategoryModalOpen(true)}
                         aria-label="카테고리 관리"
-                        className="mt-1.5 flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm px-1 text-gray-400 hover:bg-gray-50 hover:text-gray-700"
+                        className="mt-1.5 flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-sm px-1 text-gray-400 hover:bg-gray-50 hover:text-gray-700"
                      >
                         <Settings size={16} />
                      </button>
                   )}
                </div>
 
-               <div className="flex items-center py-2">
+               <div className="flex items-center px-6 py-2 sm:pl-0">
                   <SearchInput
                      onSearch={handleSearch}
                      placeholder="제목 또는 작성자 검색"
-                     className="w-72"
+                     className="w-full sm:w-72"
                   />
                </div>
             </div>
 
-            <table className="w-full table-fixed text-center text-sm">
-               <thead>
-                  <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
-                     <th className="w-[6%] px-6 py-3 font-medium">#</th>
-                     <th className="w-[8%] px-6 py-3 font-medium">고정</th>
-                     <th className="w-[32%] px-6 py-3 font-medium">제목</th>
-                     <th className="w-[12%] px-6 py-3 font-medium">확인 여부</th>
-                     <th className="w-[12%] px-6 py-3 font-medium">카테고리</th>
-                     <th className="w-[12%] px-6 py-3 font-medium">작성자</th>
-                     <th className="w-[18%] px-6 py-3 font-medium">등록일</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  {isLoading ? (
-                     [0, 1, 2, 3, 4, 5].map((i) => (
+            {isLoading ? (
+               <table className="w-full table-fixed text-center text-sm">
+                  <thead>
+                     <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
+                        <th className="w-[6%] px-6 py-3 font-medium">#</th>
+                        <th className="w-[8%] px-6 py-3 font-medium">고정</th>
+                        <th className="w-[32%] px-6 py-3 font-medium">제목</th>
+                        <th className="w-[12%] px-6 py-3 font-medium">확인 여부</th>
+                        <th className="w-[12%] px-6 py-3 font-medium">카테고리</th>
+                        <th className="w-[12%] px-6 py-3 font-medium">작성자</th>
+                        <th className="w-[18%] px-6 py-3 font-medium">등록일</th>
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {[0, 1, 2, 3, 4, 5].map((i) => (
                         <tr key={i} className="border-b border-[#F3F4F6] last:border-b-0">
                            <td className="px-6 py-4"><Skeleton width={16} height={14} className="mx-auto rounded-md" /></td>
                            <td className="px-6 py-4" />
@@ -238,73 +238,118 @@ export default function NoticesPageClient() {
                            <td className="px-6 py-4"><Skeleton width={48} height={14} className="mx-auto rounded-md" /></td>
                            <td className="px-6 py-4"><Skeleton width={64} height={14} className="mx-auto rounded-md" /></td>
                         </tr>
-                     ))
-                  ) : hasError ? (
-                     <tr>
-                        <td colSpan={7} className="px-6 py-16">
-                           <div className="flex flex-col items-center gap-3">
-                              <p className="text-sm text-gray-400">
-                                 공지사항을 불러오는데 실패했습니다.
-                              </p>
-                              <button
-                                 type="button"
-                                 onClick={() => window.location.reload()}
-                                 className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                              >
-                                 새로고침
-                              </button>
-                           </div>
-                        </td>
-                     </tr>
-                  ) : pagedNotices.length === 0 ? (
-                     <tr>
-                        <td colSpan={7} className="px-6 py-10 text-center text-gray-400">
-                           등록된 공지사항이 없습니다.
-                        </td>
-                     </tr>
-                  ) : (
-                     pagedNotices.map((notice, index) => {
-                        const rowNumber = (currentPage - 1) * PAGE_SIZE + index + 1;
-
-                        return (
-                           <tr
-                              key={notice.noticeId}
-                              onClick={() => router.push(`/notices/${notice.noticeId}`)}
-                              className={`cursor-pointer border-b border-[#F3F4F6] transition-colors last:border-b-0 hover:bg-[#F9FAFB] ${
-                                 notice.pinned ? 'border-l-4 border-l-brand-maroon' : ''
-                              }`}
-                           >
-                              <td className="px-6 py-4 text-gray-500">{rowNumber}</td>
-                              <td className="px-6 py-4">
+                     ))}
+                  </tbody>
+               </table>
+            ) : hasError ? (
+               <div className="flex flex-col items-center gap-3 px-6 py-16">
+                  <p className="text-sm text-gray-400">공지사항을 불러오는데 실패했습니다.</p>
+                  <button
+                     type="button"
+                     onClick={() => window.location.reload()}
+                     className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                     새로고침
+                  </button>
+               </div>
+            ) : pagedNotices.length === 0 ? (
+               <div className="px-6 py-10 text-center text-gray-400">
+                  등록된 공지사항이 없습니다.
+               </div>
+            ) : (
+               <>
+                  {/* 좁은 화면 - 카드형 목록 */}
+                  <div className="divide-y divide-[#F3F4F6] md:hidden">
+                     {pagedNotices.map((notice) => (
+                        <div
+                           key={notice.noticeId}
+                           onClick={() => router.push(`/notices/${notice.noticeId}`)}
+                           className={`cursor-pointer p-4 transition-colors hover:bg-[#F9FAFB] ${
+                              notice.pinned ? 'border-l-4 border-l-brand-maroon' : ''
+                           }`}
+                        >
+                           <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-1.5">
                                  {notice.pinned && (
-                                    <div className="flex justify-center">
-                                       <Pin size={14} className="text-brand-maroon" />
-                                    </div>
+                                    <Pin size={13} className="size-[13px] shrink-0 text-brand-maroon" />
                                  )}
-                              </td>
-                              <td className="px-6 py-4 text-left font-medium text-gray-900">
-                                 {notice.title}
-                              </td>
-                              <td className="px-6 py-4 font-semibold">
-                                 {notice.confirmedByMe ? (
-                                    <span className="text-gray-500">완료</span>
-                                 ) : (
-                                    <span className="text-brand-maroon">미완료</span>
-                                 )}
-                              </td>
-                              <td className="px-6 py-4 text-gray-700">{notice.categoryName}</td>
-                              <td className="px-6 py-4 text-gray-700">
-                                 {notice.authorName ?? '(알 수 없음)'}
-                              </td>
-                              <td className="px-6 py-4 text-gray-500">
-                                 {formatNoticeDate(notice.createdAt)}
-                              </td>
-                           </tr>
-                        );
-                     })
-                  )}
-               </tbody>
-            </table>
+                                 <p className="text-sm font-medium text-gray-900">{notice.title}</p>
+                              </div>
+                              {notice.confirmedByMe ? (
+                                 <span className="shrink-0 text-xs font-semibold text-gray-500">
+                                    완료
+                                 </span>
+                              ) : (
+                                 <span className="shrink-0 text-xs font-semibold text-brand-maroon">
+                                    미완료
+                                 </span>
+                              )}
+                           </div>
+                           <p className="mt-1.5 text-xs text-gray-500">
+                              {notice.categoryName} · {notice.authorName ?? '(알 수 없음)'} ·{' '}
+                              {formatNoticeDate(notice.createdAt)}
+                           </p>
+                        </div>
+                     ))}
+                  </div>
+
+                  {/* 넓은 화면 - 테이블 */}
+                  <table className="hidden w-full table-fixed text-center text-sm md:table">
+                     <thead>
+                        <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
+                           <th className="w-[6%] px-6 py-3 font-medium">#</th>
+                           <th className="w-[8%] px-2 py-3 font-medium">고정</th>
+                           <th className="w-[32%] px-6 py-3 font-medium">제목</th>
+                           <th className="w-[12%] px-6 py-3 font-medium">확인 여부</th>
+                           <th className="w-[12%] px-6 py-3 font-medium">카테고리</th>
+                           <th className="w-[12%] px-6 py-3 font-medium">작성자</th>
+                           <th className="w-[18%] px-6 py-3 font-medium">등록일</th>
+                        </tr>
+                     </thead>
+                     <tbody>
+                        {pagedNotices.map((notice, index) => {
+                           const rowNumber = (currentPage - 1) * PAGE_SIZE + index + 1;
+
+                           return (
+                              <tr
+                                 key={notice.noticeId}
+                                 onClick={() => router.push(`/notices/${notice.noticeId}`)}
+                                 className={`cursor-pointer border-b border-[#F3F4F6] transition-colors last:border-b-0 hover:bg-[#F9FAFB] ${
+                                    notice.pinned ? 'border-l-4 border-l-brand-maroon' : ''
+                                 }`}
+                              >
+                                 <td className="px-6 py-4 text-gray-500">{rowNumber}</td>
+                                 <td className="px-2 py-4">
+                                    {notice.pinned && (
+                                       <div className="flex justify-center">
+                                          <Pin size={14} className="size-3.5 shrink-0 text-brand-maroon" />
+                                       </div>
+                                    )}
+                                 </td>
+                                 <td className="px-6 py-4 text-left font-medium text-gray-900">
+                                    {notice.title}
+                                 </td>
+                                 <td className="px-6 py-4 font-semibold">
+                                    {notice.confirmedByMe ? (
+                                       <span className="text-gray-500">완료</span>
+                                    ) : (
+                                       <span className="text-brand-maroon">미완료</span>
+                                    )}
+                                 </td>
+                                 <td className="px-6 py-4 text-gray-700">{notice.categoryName}</td>
+                                 <td className="px-6 py-4 text-gray-700">
+                                    {notice.authorName ?? '(알 수 없음)'}
+                                 </td>
+                                 <td className="px-6 py-4 text-gray-500">
+                                    {formatNoticeDate(notice.createdAt)}
+                                 </td>
+                              </tr>
+                           );
+                        })}
+                     </tbody>
+                  </table>
+               </>
+            )}
          </div>
 
          <div className="mt-6">
