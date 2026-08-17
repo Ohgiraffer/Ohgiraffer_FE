@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { formatTeamDateDot } from '../formatTeamDate';
 import PeriodActionMenu from './PeriodActionMenu';
@@ -27,12 +28,32 @@ export default function TeamPeriodTabs({
    onDeletePeriod,
 }: TeamPeriodTabsProps) {
    const showActions = !!onEditPeriod || !!onDeletePeriod;
+   const scrollRef = useRef<HTMLDivElement>(null);
+   const [canScroll, setCanScroll] = useState(false);
+
+   // 실제로 옆으로 넘치는 기간이 있을 때만 그라데이션을 보여준다 - ResizeObserver는 탭 목록 컨테이너
+   // 자체 크기 변화(창 크기, 사이드바 토글 등)를, periods 의존성은 기간 추가/삭제로 내용 너비만
+   // 바뀌는 경우(컨테이너 크기는 그대로라 ResizeObserver가 못 잡음)를 각각 커버한다
+   useEffect(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+
+      const checkOverflow = () => setCanScroll(el.scrollWidth > el.clientWidth);
+      checkOverflow();
+
+      const observer = new ResizeObserver(checkOverflow);
+      observer.observe(el);
+      return () => observer.disconnect();
+   }, [periods]);
 
    return (
       <div className="mt-5 flex gap-3 border-b border-[#E5E7EB]">
          {/* min-w-0가 없으면 flex-1 아이템이 내용물 너비만큼 늘어나버려 overflow-x-auto가 동작하지 않는다 */}
          <div className="relative min-w-0 flex-1">
-            <div className="flex gap-6 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden">
+            <div
+               ref={scrollRef}
+               className="flex gap-6 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden"
+            >
                {periods.map((period) => {
                   const isActive = period.teamPeriodId === activePeriodId;
                   return (
@@ -65,9 +86,10 @@ export default function TeamPeriodTabs({
                   );
                })}
             </div>
-            {/* 스크롤 영역 끝에 옅은 흰색 그라데이션 - 넘치는 기간이 있을 때만 텍스트가 자연스럽게
-               흐려지고, 안 넘칠 땐 배경(흰색) 위라 티가 안 나서 항상 렌더링해도 무방하다 */}
-            <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-brand-sage/15 to-transparent" />
+            {/* 실제로 스크롤 가능할 때(canScroll)만 렌더링 - 넘치는 기간이 있어야 그라데이션이 뜬다 */}
+            {canScroll && (
+               <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-brand-sage/15 to-transparent" />
+            )}
          </div>
          {trailing && <div className="relative top-1.5 pl-2 pr-6 shrink-0">{trailing}</div>}
       </div>
