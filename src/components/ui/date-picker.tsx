@@ -64,7 +64,7 @@ export function DatePicker({
             >
                <CalendarIcon size={16} />
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-auto rounded-sm p-0">
+            <PopoverContent align="end" className="w-auto rounded-xs p-0">
                <Calendar
                   mode="single"
                   locale={ko}

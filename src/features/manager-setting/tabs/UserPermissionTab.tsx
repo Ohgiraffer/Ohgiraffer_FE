@@ -194,7 +194,7 @@ export default function UserPermissionTab() {
             <button
                type="button"
                onClick={() => setIsRegisterModalOpen(true)}
-               className="w-full cursor-pointer rounded-sm bg-brand-green px-4 py-2 text-sm font-semibold text-white hover:bg-[#4D655A] sm:w-auto"
+               className="w-full cursor-pointer rounded-xs bg-brand-green px-4 py-2 text-sm font-semibold text-white hover:bg-[#4D655A] sm:w-auto"
             >
                + 사용자 등록
             </button>

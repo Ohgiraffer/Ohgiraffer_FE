@@ -87,7 +87,7 @@ export default function OnboardingWizardClient() {
                            type="button"
                            disabled={isSubmitting}
                            onClick={goToPreviousStep}
-                           className="flex cursor-pointer items-center gap-1 rounded-sm bg-white border border-[#E5E7EB] px-4 py-2 text-sm font-medium text-[#374151] hover:bg-[#F7F8FA] disabled:cursor-not-allowed disabled:opacity-60"
+                           className="flex cursor-pointer items-center gap-1 rounded-xs bg-white border border-[#E5E7EB] px-4 py-2 text-sm font-medium text-[#374151] hover:bg-[#F7F8FA] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                            <ChevronLeft size={16} />
                            이전
@@ -103,7 +103,7 @@ export default function OnboardingWizardClient() {
                         type="button"
                         disabled={!isCurrentStepValid || isSubmitting}
                         onClick={isLastStep ? completeOnboarding : goToNextStep}
-                        className={`flex items-center gap-1 rounded-sm px-4 py-2 text-sm font-semibold transition-colors ${
+                        className={`flex items-center gap-1 rounded-xs px-4 py-2 text-sm font-semibold transition-colors ${
                            isCurrentStepValid && !isSubmitting
                               ? 'cursor-pointer bg-brand-green text-white hover:bg-[#4D655A]'
                               : 'cursor-not-allowed bg-[#E5E7EB] text-[#9CA3AF]'
