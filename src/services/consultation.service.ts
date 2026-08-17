@@ -1,13 +1,12 @@
 import { apiFetch } from '@/lib/http';
+import type { ConsultationStatus } from '@/services/counseling.service';
 
 export interface TraineeConsultationHistoryEntry {
    consultationId: number;
    topic: string;
    scheduledAt: string; // yyyy-MM-ddTHH:mm:ss
    counselorName: string;
-   // 현재 문서화된 값은 PENDING뿐이라 넓게 string으로 둔다 - 화면에서는 모르는 값이 와도
-   // 원본 문자열을 그대로 보여주는 방식으로 방어한다
-   status: string;
+   status: ConsultationStatus;
 }
 
 // 운영진용 - 훈련생 관리 상세 페이지의 상담 탭. 목록의 consultationId로 상세 조회/상담 내용

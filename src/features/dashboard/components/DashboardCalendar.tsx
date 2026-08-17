@@ -88,6 +88,14 @@ interface DashboardCalendarProps {
    initialEvents?: CalendarEvent[] | null;
    initialEventsReady?: boolean;
    onEventCreated?: () => void;
+   // 부모의 최초 조회가 실패해 initialEvents가 없을 때, 이 컴포넌트가 같은 달을 자체적으로
+   // 재조회해서 성공하면 그 결과를 부모(오늘 일정 카드)에도 동기화한다 - 안 그러면 캘린더는
+   // 정상 표시되는데 오늘 일정 카드만 계속 에러 상태로 남는다
+   onInitialEventsResolved?: (events: CalendarEvent[]) => void;
+   // 부모(DashboardGrid)의 재조회 세대(refreshKey) - 이 재조회가 시작된 뒤 부모가 새로 재조회를
+   // 시작했다면(세대가 바뀜) 그 사이에 끝난 이 컴포넌트의 낡은 응답으로 부모의 최신 상태를
+   // 덮어쓰면 안 된다
+   requestGeneration?: number;
 }
 
 export default function DashboardCalendar({
@@ -95,6 +103,8 @@ export default function DashboardCalendar({
    initialEvents,
    initialEventsReady = false,
    onEventCreated,
+   onInitialEventsResolved,
+   requestGeneration = 0,
 }: DashboardCalendarProps) {
    const [events, setEvents] = useState<CalendarEvent[]>([]);
    const [createDate, setCreateDate] = useState<Date | null>(null);
@@ -120,19 +130,38 @@ export default function DashboardCalendar({
 
    // 매 요청에 순번을 매겨 가장 마지막에 시작한 요청의 응답만 반영
    const latestRequestIdRef = useRef(0);
+   // requestGeneration은 props라 useCallback 의존성에 넣으면 매 부모 재조회마다 이 콜백 자체가
+   // 재생성돼 진행 중이던 fetch의 "시작 시점 세대" 캡처가 흔들릴 수 있어, ref로만 최신값을 추적한다
+   const requestGenerationRef = useRef(requestGeneration);
+   useEffect(() => {
+      requestGenerationRef.current = requestGeneration;
+   }, [requestGeneration]);
+
    const applyFetchedEvents = useCallback((year: number, month: number) => {
       const requestId = ++latestRequestIdRef.current;
+      // 이 요청이 시작된 시점의 부모 세대 - 응답이 왔을 때 부모가 이미 새 세대로 넘어갔다면
+      // (그 사이 부모가 재조회를 새로 시작했다면) 이 낡은 응답으로 부모 상태를 덮어쓰지 않는다
+      const generationAtStart = requestGenerationRef.current;
       fetchMappedEvents(year, month)
          .then((mapped) => {
             if (latestRequestIdRef.current === requestId) {
                setEvents(mapped);
                setLoadedYearMonth({ year, month });
+               // 부모의 최초 조회가 실패해서 이 재조회가 걸린 경우에만 해당 - 부모가 이미 성공했다면
+               // initialEvents를 그대로 채택하는 렌더 중 처리에서 끝나 이 콜백까지 오지 않는다
+               if (
+                  year === initialYearMonth.year &&
+                  month === initialYearMonth.month &&
+                  requestGenerationRef.current === generationAtStart
+               ) {
+                  onInitialEventsResolved?.(mapped);
+               }
             }
          })
          .catch(() => {
             if (latestRequestIdRef.current === requestId) toast.error('일정을 불러오지 못했습니다.');
          });
-   }, []);
+   }, [initialYearMonth, onInitialEventsResolved]);
 
    const isStillInitialMonth =
       currentYear === initialYearMonth.year && currentMonth === initialYearMonth.month;

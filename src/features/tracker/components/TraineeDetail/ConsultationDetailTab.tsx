@@ -1,12 +1,10 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { format, isValid, parseISO } from 'date-fns';
-import StatusBadge from '@/features/submissions/components/StatusBadge';
+import CounselingStatusBadge from '@/features/counseling/components/CounselingStatusBadge';
 import { useTraineeConsultations } from '../../hooks/useTraineeConsultations';
-
-const STATUS_BADGE: Partial<Record<string, { tone: 'gold' | 'neutral'; label: string }>> = {
-   PENDING: { tone: 'gold', label: '예정' },
-};
 
 function formatScheduledAt(value: string) {
    const date = parseISO(value);
@@ -14,6 +12,7 @@ function formatScheduledAt(value: string) {
 }
 
 export default function ConsultationDetailTab({ traineeId }: { traineeId: number }) {
+   const router = useRouter();
    const { consultations, isLoading, error, retry } = useTraineeConsultations(traineeId);
 
    if (isLoading) {
@@ -35,41 +34,85 @@ export default function ConsultationDetailTab({ traineeId }: { traineeId: number
       );
    }
 
-   if (consultations.length === 0) {
-      return (
-         <div className="rounded-sm border border-[#E5E7EB] bg-white px-6 py-10 text-center text-sm text-gray-400">
-            상담 이력이 없습니다.
-         </div>
-      );
-   }
-
    return (
-      <div className="flex flex-col gap-3">
-         {consultations.map((consultation) => {
-            // 문서에 없는 상태값이 오더라도 원본 문자열을 그대로 보여줘 화면이 죽지 않게 한다
-            const badge = STATUS_BADGE[consultation.status] ?? {
-               tone: 'neutral' as const,
-               label: consultation.status,
-            };
-
-            return (
-               <div
-                  key={consultation.consultationId}
-                  className="flex items-center justify-between gap-4 rounded-sm border border-[#E5E7EB] bg-white px-6 py-4"
-               >
-                  <div className="min-w-0">
-                     <p className="text-xs text-gray-400">
+      <>
+         <div className="divide-y divide-[#F3F4F6] overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:hidden">
+            {consultations.length === 0 ? (
+               <p className="px-6 py-10 text-center text-sm text-gray-400">상담 이력이 없습니다.</p>
+            ) : (
+               consultations.map((consultation) => (
+                  <div
+                     key={consultation.consultationId}
+                     onClick={() => router.push(`/counseling/${consultation.consultationId}`)}
+                     className="cursor-pointer p-4 transition-colors hover:bg-[#F9FAFB]"
+                  >
+                     <div className="flex items-start justify-between gap-2">
+                        <Link
+                           href={`/counseling/${consultation.consultationId}`}
+                           onClick={(e) => e.stopPropagation()}
+                           className="min-w-0 truncate text-sm font-medium text-gray-900 hover:underline"
+                           title={consultation.topic}
+                        >
+                           {consultation.topic}
+                        </Link>
+                        <CounselingStatusBadge status={consultation.status} />
+                     </div>
+                     <p className="mt-1 text-xs text-gray-400">
                         {formatScheduledAt(consultation.scheduledAt)}{' '}
                         <span className="font-medium text-gray-600">{consultation.counselorName}</span>
                      </p>
-                     <p className="mt-1 truncate text-sm text-gray-900">{consultation.topic}</p>
                   </div>
-                  <StatusBadge tone={badge.tone} className="shrink-0">
-                     {badge.label}
-                  </StatusBadge>
-               </div>
-            );
-         })}
-      </div>
+               ))
+            )}
+         </div>
+
+         <div className="hidden overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:block">
+            <table className="w-full table-fixed text-left text-sm">
+               <thead>
+                  <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
+                     <th className="w-[22%] px-6 py-3 font-medium">일시</th>
+                     <th className="w-[18%] px-6 py-3 font-medium">담당자</th>
+                     <th className="w-[40%] px-6 py-3 font-medium">주제</th>
+                     <th className="w-[20%] px-6 py-3 text-center font-medium">상태</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  {consultations.length === 0 ? (
+                     <tr>
+                        <td colSpan={4} className="px-6 py-10 text-center text-gray-400">
+                           상담 이력이 없습니다.
+                        </td>
+                     </tr>
+                  ) : (
+                     consultations.map((consultation) => (
+                        <tr
+                           key={consultation.consultationId}
+                           onClick={() => router.push(`/counseling/${consultation.consultationId}`)}
+                           className="cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]"
+                        >
+                           <td className="px-6 py-4 text-gray-700">
+                              {formatScheduledAt(consultation.scheduledAt)}
+                           </td>
+                           <td className="px-6 py-4 text-gray-700">{consultation.counselorName}</td>
+                           <td className="px-6 py-4 font-medium text-gray-900">
+                              <Link
+                                 href={`/counseling/${consultation.consultationId}`}
+                                 onClick={(e) => e.stopPropagation()}
+                                 className="block truncate hover:underline"
+                                 title={consultation.topic}
+                              >
+                                 {consultation.topic}
+                              </Link>
+                           </td>
+                           <td className="px-6 py-4 text-center">
+                              <CounselingStatusBadge status={consultation.status} />
+                           </td>
+                        </tr>
+                     ))
+                  )}
+               </tbody>
+            </table>
+         </div>
+      </>
    );
 }

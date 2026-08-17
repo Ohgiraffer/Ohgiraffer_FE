@@ -100,8 +100,8 @@ export default function LoginPageClient() {
    return (
       // AuthLayout(부모)이 이 페이지를 가운데 정렬된 좁은 카드로 감싸고 있어서, 화면 전체를
       // 좌우로 나누는 레이아웃은 fixed로 뷰포트에 직접 고정해 부모의 정렬/여백 영향을 받지 않게 한다
-      <div className="fixed inset-0 flex bg-white">
-         <div className="relative isolate hidden w-4/7 flex-col justify-between overflow-hidden bg-[linear-gradient(145deg,#1E3528_0%,#2E4A3D_45%,#3D6350_100%)] px-22 py-14 text-white lg:flex">
+      <div className="fixed inset-0 flex items-start overflow-y-auto bg-white">
+         <div className="relative isolate hidden min-h-full w-4/7 flex-col justify-between overflow-hidden bg-[linear-gradient(145deg,#1E3528_0%,#2E4A3D_45%,#3D6350_100%)] px-22 py-14 text-white lg:flex">
             <svg
                className="pointer-events-none absolute inset-0 -z-10 h-full w-full opacity-[0.07]"
                viewBox="0 0 900 700"
@@ -159,7 +159,7 @@ export default function LoginPageClient() {
             <div />
          </div>
 
-         <div className="flex w-full flex-col items-center justify-center bg-white px-25 lg:w-3/7">
+         <div className="flex min-h-full w-full flex-col items-center justify-center bg-white px-25 lg:w-3/7">
             <div className="w-full max-w-md">
                {/* 좌측 브랜드 패널이 보이는 lg 이상에서는 인사말, 패널이 숨겨지는 작은 화면에서는 로고 */}
                <div className="lg:hidden flex items-center justify-center -ml-8 mb-12">
