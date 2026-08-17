@@ -138,18 +138,21 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
 
    const handleSearch = (value: string) => {
       setIsLoadingResponses(true);
+      setResponsesError(false);
       setKeyword(value);
       setCurrentPage(1);
    };
 
    const handleStatusChange = (value: SurveyResponseStatusFilter) => {
       setIsLoadingResponses(true);
+      setResponsesError(false);
       setStatusFilter(value);
       setCurrentPage(1);
    };
 
    const handlePageChange = (page: number) => {
       setIsLoadingResponses(true);
+      setResponsesError(false);
       setCurrentPage(page);
    };
 

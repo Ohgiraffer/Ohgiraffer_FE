@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { format, isValid, parseISO } from 'date-fns';
 import CounselingStatusBadge from '@/features/counseling/components/CounselingStatusBadge';
 import { useTraineeConsultations } from '../../hooks/useTraineeConsultations';
@@ -46,12 +47,14 @@ export default function ConsultationDetailTab({ traineeId }: { traineeId: number
                      className="cursor-pointer p-4 transition-colors hover:bg-[#F9FAFB]"
                   >
                      <div className="flex items-start justify-between gap-2">
-                        <p
-                           className="min-w-0 truncate text-sm font-medium text-gray-900"
+                        <Link
+                           href={`/counseling/${consultation.consultationId}`}
+                           onClick={(e) => e.stopPropagation()}
+                           className="min-w-0 truncate text-sm font-medium text-gray-900 hover:underline"
                            title={consultation.topic}
                         >
                            {consultation.topic}
-                        </p>
+                        </Link>
                         <CounselingStatusBadge status={consultation.status} />
                      </div>
                      <p className="mt-1 text-xs text-gray-400">
@@ -92,9 +95,14 @@ export default function ConsultationDetailTab({ traineeId }: { traineeId: number
                            </td>
                            <td className="px-6 py-4 text-gray-700">{consultation.counselorName}</td>
                            <td className="px-6 py-4 font-medium text-gray-900">
-                              <p className="truncate" title={consultation.topic}>
+                              <Link
+                                 href={`/counseling/${consultation.consultationId}`}
+                                 onClick={(e) => e.stopPropagation()}
+                                 className="block truncate hover:underline"
+                                 title={consultation.topic}
+                              >
                                  {consultation.topic}
-                              </p>
+                              </Link>
                            </td>
                            <td className="px-6 py-4 text-center">
                               <CounselingStatusBadge status={consultation.status} />

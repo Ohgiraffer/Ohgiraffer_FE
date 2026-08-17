@@ -92,18 +92,21 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
 
    const handleSearch = (value: string) => {
       setIsLoading(true);
+      setHasError(false);
       setKeyword(value);
       setCurrentPage(1);
    };
 
    const handleStatusChange = (value: SubmissionStatusFilter) => {
       setIsLoading(true);
+      setHasError(false);
       setStatusFilter(value);
       setCurrentPage(1);
    };
 
    const handlePageChange = (page: number) => {
       setIsLoading(true);
+      setHasError(false);
       setCurrentPage(page);
    };
 

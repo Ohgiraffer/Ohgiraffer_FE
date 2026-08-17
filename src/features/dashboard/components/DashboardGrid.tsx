@@ -83,6 +83,7 @@ export default function DashboardGrid({ holidays }: DashboardGridProps) {
                initialEventsReady={monthEvents !== null || monthEventsError}
                onEventCreated={refetchMonthEvents}
                onInitialEventsResolved={handleInitialEventsResolved}
+               requestGeneration={refreshKey}
             />
          </div>
          <div className="min-w-0 [grid-area:today]">
