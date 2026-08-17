@@ -143,9 +143,11 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
    }, [trainees, riskFilter, dangerOnly, teamFilter, searchText]);
 
    const totalPages = Math.max(1, Math.ceil(filteredTrainees.length / PAGE_SIZE));
+   // 필터 변경이 아닌 이유(재조회 등)로 목록 자체가 줄어들어도 범위 밖 페이지에 머물지 않도록 보정
+   const safePage = Math.min(currentPage, totalPages);
    const pagedTrainees = filteredTrainees.slice(
-      (currentPage - 1) * PAGE_SIZE,
-      currentPage * PAGE_SIZE,
+      (safePage - 1) * PAGE_SIZE,
+      safePage * PAGE_SIZE,
    );
 
    if (isLoading) {
@@ -458,7 +460,7 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
          </div>
 
          <div className="mt-6">
-            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+            <Pagination currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} />
          </div>
       </div>
    );

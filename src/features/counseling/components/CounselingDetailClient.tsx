@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
@@ -12,15 +12,19 @@ type Props = {
    consultationId: string;
 };
 
+// 상담 이력 목록(/counseling)뿐 아니라 훈련생 상세의 상담 탭에서도 이 페이지로 들어올 수 있어서,
+// 특정 경로로 고정하지 않고 실제로 들어온 곳으로 되돌아가게 한다
 function BackLink() {
+   const router = useRouter();
    return (
-      <Link
-         href="/counseling"
+      <button
+         type="button"
+         onClick={() => router.back()}
          className="inline-flex cursor-pointer items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
       >
          <ChevronLeft size={16} />
          목록으로
-      </Link>
+      </button>
    );
 }
 

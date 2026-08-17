@@ -91,13 +91,23 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
    };
 
    const handleSearch = (value: string) => {
+      setIsLoading(true);
+      setHasError(false);
       setKeyword(value);
       setCurrentPage(1);
    };
 
    const handleStatusChange = (value: SubmissionStatusFilter) => {
+      setIsLoading(true);
+      setHasError(false);
       setStatusFilter(value);
       setCurrentPage(1);
+   };
+
+   const handlePageChange = (page: number) => {
+      setIsLoading(true);
+      setHasError(false);
+      setCurrentPage(page);
    };
 
    const handleDownload = async (value: SubmissionItemValue) => {
@@ -259,7 +269,9 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                      </div>
                   </div>
 
-                  {detail.submissions.length === 0 ? (
+                  {isLoading ? (
+                     <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+                  ) : detail.submissions.length === 0 ? (
                      <p className="py-16 text-center text-sm text-gray-400">
                         {keyword || statusFilter !== 'ALL'
                            ? '검색 결과가 없습니다.'
@@ -405,7 +417,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                            <Pagination
                               currentPage={currentPage}
                               totalPages={detail.totalPages}
-                              onPageChange={setCurrentPage}
+                              onPageChange={handlePageChange}
                            />
                         </div>
                      </>
