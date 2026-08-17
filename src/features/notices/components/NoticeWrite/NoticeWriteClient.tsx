@@ -264,7 +264,7 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
             {isEditMode ? '공지 수정' : '공지 작성'}
          </h1>
 
-         <div className="flex flex-col items-stretch gap-5 lg:flex-row">
+         <div className="flex flex-col items-stretch gap-5 mt-5 lg:flex-row">
             <div className="flex min-w-0 flex-1 flex-col">
                <NoticeContentPanel title={form.title} onTitleChange={form.setTitle}>
                   <NoticeEditorArea
