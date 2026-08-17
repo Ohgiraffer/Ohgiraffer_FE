@@ -62,10 +62,10 @@ export default function AttendanceDetailTab({
 
    return (
       <div>
-         <div className="grid grid-cols-[auto_1fr] rounded-sm border border-gray-200 bg-white">
+         <div className="grid grid-cols-1 rounded-sm border border-gray-200 bg-white md:grid-cols-[auto_1fr]">
             <div className="p-6">
                <p className="text-sm text-gray-400">단위기간</p>
-               <div className="mt-2 flex w-fit rounded-xs border border-gray-200 bg-white p-0.5">
+               <div className="mt-2 flex w-fit flex-wrap rounded-xs border border-gray-200 bg-white p-0.5">
                   <button
                      type="button"
                      onClick={() => setUnitPeriod('전체')}
@@ -98,8 +98,8 @@ export default function AttendanceDetailTab({
                </p>
             </div>
 
-            <div className="relative p-6">
-               <div className="absolute inset-y-6 left-0 w-px bg-gray-100" />
+            <div className="relative border-t border-gray-100 p-6 md:border-t-0">
+               <div className="absolute inset-y-6 left-0 hidden w-px bg-gray-100 md:block" />
                <p className="text-sm text-gray-400">현재 출석률</p>
                <p className="mt-1 text-2xl font-bold text-gray-900">
                   {displayedRate}%{' '}

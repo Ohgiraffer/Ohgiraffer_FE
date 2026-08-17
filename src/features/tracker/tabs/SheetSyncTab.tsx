@@ -36,6 +36,36 @@ function formatSyncedAt(value: string) {
    return isValid(date) ? format(date, 'yyyy.MM.dd HH:mm') : '—';
 }
 
+// 카드형(모바일)과 표형(sm 이상) 뷰에서 결과 배지 표시가 동일해야 해서 공용 컴포넌트로 분리
+function SyncResultBadge({ entry }: { entry: TrackerSyncHistoryEntry }) {
+   if (entry.result === 'SUCCESS') {
+      return (
+         <StatusBadge tone={(RESULT_BADGE.SUCCESS ?? DEFAULT_RESULT_BADGE).tone}>
+            {(RESULT_BADGE.SUCCESS ?? DEFAULT_RESULT_BADGE).label}
+         </StatusBadge>
+      );
+   }
+   return (
+      <Popover>
+         <PopoverTrigger className="cursor-pointer">
+            <StatusBadge tone={(RESULT_BADGE[entry.result] ?? DEFAULT_RESULT_BADGE).tone}>
+               {(RESULT_BADGE[entry.result] ?? DEFAULT_RESULT_BADGE).label} · {entry.failedRows.length}건
+            </StatusBadge>
+         </PopoverTrigger>
+         <PopoverContent align="end" className="w-fit min-w-0 max-w-64 rounded-xs!">
+            <p className="text-xs font-semibold text-gray-700">실패한 행</p>
+            <ul className="mt-1 flex flex-col gap-1">
+               {entry.failedRows.map((row) => (
+                  <li key={row.rowNumber} className="text-xs text-gray-500">
+                     <span className="font-medium text-gray-700">{row.rowNumber}행</span> · {row.reason}
+                  </li>
+               ))}
+            </ul>
+         </PopoverContent>
+      </Popover>
+   );
+}
+
 export default function SheetSyncTab() {
    const { isConnected, spreadsheetUrl, columnMapping, isLoading, loadError, handleSaveMapping } =
       useTrackerSheetSync();
@@ -103,7 +133,7 @@ export default function SheetSyncTab() {
 
          {isConnected && (
             <>
-               <div className="flex items-center justify-between gap-4 rounded-sm border border-[#E5E7EB] bg-white p-6">
+               <div className="flex flex-col items-start gap-4 rounded-sm border border-[#E5E7EB] bg-white p-6 md:flex-row md:items-center md:justify-between">
                   <div>
                      <h3 className="text-sm font-bold text-gray-900">동기화 실행</h3>
                      <p className="mt-1 text-sm text-gray-500">
@@ -114,7 +144,7 @@ export default function SheetSyncTab() {
                      type="button"
                      onClick={runSync}
                      disabled={isSyncing}
-                     className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xs bg-brand-green px-3 py-2 text-sm font-semibold text-white hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
+                     className="flex w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xs bg-brand-green px-3 py-2 text-sm font-semibold text-white hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400 md:w-auto"
                   >
                      <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
                      {isSyncing ? '동기화 중...' : '동기화 실행'}
@@ -122,7 +152,7 @@ export default function SheetSyncTab() {
                </div>
 
                <div>
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                      <div>
                         <p className="text-sm font-bold text-gray-900">동기화 이력</p>
                         <p className="mt-1 text-xs text-gray-400">
@@ -136,7 +166,7 @@ export default function SheetSyncTab() {
                            setCurrentPage(1);
                         }}
                      >
-                        <SelectTrigger className="h-9 w-32 shrink-0 rounded-xs bg-white">
+                        <SelectTrigger className="h-9 w-full shrink-0 rounded-xs bg-white sm:w-32">
                            <SelectValue placeholder="전체 날짜">
                               {(value: string | null) =>
                                  !value || value === 'ALL'
@@ -155,7 +185,37 @@ export default function SheetSyncTab() {
                         </SelectContent>
                      </Select>
                   </div>
-                  <div className="mt-3 overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
+                  <div className="mt-3 divide-y divide-[#F3F4F6] overflow-hidden rounded-sm border border-[#E5E7EB] bg-white sm:hidden">
+                     {isLoadingHistory ? (
+                        <p className="px-6 py-10 text-center text-sm text-gray-400">불러오는 중...</p>
+                     ) : historyError ? (
+                        <p className="px-6 py-10 text-center text-sm text-gray-400">
+                           동기화 이력을 불러오지 못했습니다.
+                        </p>
+                     ) : filteredHistory.length === 0 ? (
+                        <p className="px-6 py-10 text-center text-sm text-gray-400">
+                           {history.length === 0
+                              ? '동기화 이력이 없습니다.'
+                              : '해당 날짜의 이력이 없습니다.'}
+                        </p>
+                     ) : (
+                        pagedHistory.map((entry) => (
+                           <div key={entry.syncLogId} className="p-4">
+                              <div className="flex items-center justify-between gap-2">
+                                 <span className="text-sm font-medium text-gray-900">
+                                    {formatSyncedAt(entry.syncedAt)}
+                                 </span>
+                                 <SyncResultBadge entry={entry} />
+                              </div>
+                              <p className="mt-1 text-xs text-gray-500">
+                                 {entry.executorName} · {entry.successCount}건 변동
+                              </p>
+                           </div>
+                        ))
+                     )}
+                  </div>
+
+                  <div className="mt-3 hidden overflow-hidden rounded-sm border border-[#E5E7EB] bg-white sm:block">
                      <table className="w-full table-fixed text-left text-sm">
                         <thead>
                            <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
@@ -197,37 +257,7 @@ export default function SheetSyncTab() {
                                     <td className="px-6 py-4 text-gray-700 text-center">{entry.successCount}건</td>
                                     <td className="px-6 py-4">
                                        <div className="flex items-center justify-center">
-                                          {entry.result !== 'SUCCESS' ? (
-                                             <Popover>
-                                                <PopoverTrigger className="cursor-pointer">
-                                                   <StatusBadge
-                                                      tone={(RESULT_BADGE[entry.result] ?? DEFAULT_RESULT_BADGE).tone}
-                                                   >
-                                                      {(RESULT_BADGE[entry.result] ?? DEFAULT_RESULT_BADGE).label} ·{' '}
-                                                      {entry.failedRows.length}건
-                                                   </StatusBadge>
-                                                </PopoverTrigger>
-                                                <PopoverContent align="end" className="w-fit min-w-0 max-w-64 rounded-xs!">
-                                                   <p className="text-xs font-semibold text-gray-700">
-                                                      실패한 행
-                                                   </p>
-                                                   <ul className="mt-1 flex flex-col gap-1">
-                                                      {entry.failedRows.map((row) => (
-                                                         <li key={row.rowNumber} className="text-xs text-gray-500">
-                                                            <span className="font-medium text-gray-700">
-                                                               {row.rowNumber}행
-                                                            </span>{' '}
-                                                            · {row.reason}
-                                                         </li>
-                                                      ))}
-                                                   </ul>
-                                                </PopoverContent>
-                                             </Popover>
-                                          ) : (
-                                             <StatusBadge tone={(RESULT_BADGE.SUCCESS ?? DEFAULT_RESULT_BADGE).tone}>
-                                                {(RESULT_BADGE.SUCCESS ?? DEFAULT_RESULT_BADGE).label}
-                                             </StatusBadge>
-                                          )}
+                                          <SyncResultBadge entry={entry} />
                                        </div>
                                     </td>
                                  </tr>

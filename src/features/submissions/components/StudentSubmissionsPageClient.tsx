@@ -90,7 +90,7 @@ export default function StudentSubmissionsPageClient() {
          {partialError && !hasError && (
             <div
                role="alert"
-               className="mt-5 flex items-center justify-between rounded-xs border border-[#F5DFDC] bg-[#FDF4F3] px-4 py-3 text-sm text-brand-maroon"
+               className="mt-5 flex flex-col items-start gap-2 rounded-xs border border-[#F5DFDC] bg-[#FDF4F3] px-4 py-3 text-sm text-brand-maroon sm:flex-row sm:items-center sm:justify-between sm:gap-3"
             >
                <span className="flex items-center gap-2">
                   <TriangleAlert size={14} className="shrink-0" />
@@ -138,7 +138,7 @@ export default function StudentSubmissionsPageClient() {
                      key={item.key}
                      type="button"
                      onClick={() => handleClick(item)}
-                     className="flex w-full cursor-pointer items-center justify-between gap-4 border-b border-[#F3F4F6] px-6 py-4 text-left transition-colors last:border-b-0 hover:bg-[#F9FAFB]"
+                     className="flex w-full cursor-pointer flex-col gap-2 border-b border-[#F3F4F6] px-6 py-4 text-left transition-colors last:border-b-0 hover:bg-[#F9FAFB] sm:flex-row sm:items-center sm:justify-between sm:gap-4"
                   >
                      <div className="min-w-0">
                         <div className="flex items-center gap-3">

@@ -19,7 +19,7 @@ export default function GoogleSheetConnectedCard({
    return (
       <div className="rounded-sm border border-gray-200 bg-white p-5">
          <h3 className="text-sm font-bold text-gray-900">Google Sheet 연동</h3>
-         <div className="mt-4 flex items-center justify-between gap-3">
+         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
                <p className="text-xs text-gray-500">{urlLabel}</p>
                <a
