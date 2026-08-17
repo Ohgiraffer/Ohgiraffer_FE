@@ -88,6 +88,10 @@ interface DashboardCalendarProps {
    initialEvents?: CalendarEvent[] | null;
    initialEventsReady?: boolean;
    onEventCreated?: () => void;
+   // 부모의 최초 조회가 실패해 initialEvents가 없을 때, 이 컴포넌트가 같은 달을 자체적으로
+   // 재조회해서 성공하면 그 결과를 부모(오늘 일정 카드)에도 동기화한다 - 안 그러면 캘린더는
+   // 정상 표시되는데 오늘 일정 카드만 계속 에러 상태로 남는다
+   onInitialEventsResolved?: (events: CalendarEvent[]) => void;
 }
 
 export default function DashboardCalendar({
@@ -95,6 +99,7 @@ export default function DashboardCalendar({
    initialEvents,
    initialEventsReady = false,
    onEventCreated,
+   onInitialEventsResolved,
 }: DashboardCalendarProps) {
    const [events, setEvents] = useState<CalendarEvent[]>([]);
    const [createDate, setCreateDate] = useState<Date | null>(null);
@@ -127,12 +132,17 @@ export default function DashboardCalendar({
             if (latestRequestIdRef.current === requestId) {
                setEvents(mapped);
                setLoadedYearMonth({ year, month });
+               // 부모의 최초 조회가 실패해서 이 재조회가 걸린 경우에만 해당 - 부모가 이미 성공했다면
+               // initialEvents를 그대로 채택하는 렌더 중 처리에서 끝나 이 콜백까지 오지 않는다
+               if (year === initialYearMonth.year && month === initialYearMonth.month) {
+                  onInitialEventsResolved?.(mapped);
+               }
             }
          })
          .catch(() => {
             if (latestRequestIdRef.current === requestId) toast.error('일정을 불러오지 못했습니다.');
          });
-   }, []);
+   }, [initialYearMonth, onInitialEventsResolved]);
 
    const isStillInitialMonth =
       currentYear === initialYearMonth.year && currentMonth === initialYearMonth.month;

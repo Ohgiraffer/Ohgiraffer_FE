@@ -40,6 +40,7 @@ export function useAttendanceOverview(userId?: number) {
       setOverview(null);
       setIsLoadingOverview(true);
       setOverviewError(false);
+      setCurrentDate(new Date());
       setRecords([]);
       setIsLoadingRecords(true);
       setRecordsError(false);

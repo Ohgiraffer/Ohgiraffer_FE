@@ -26,7 +26,7 @@ const STATUS_OPTIONS: Array<{ value: SurveyFormStatus; label: string }> = [
 interface FormEditModalProps {
    form: SurveyFormDetail;
    onClose: () => void;
-   onSaved: (editUrl?: string) => void;
+   onSaved: () => void;
 }
 
 export default function FormEditModal({ form, onClose, onSaved }: FormEditModalProps) {
@@ -43,11 +43,6 @@ export default function FormEditModal({ form, onClose, onSaved }: FormEditModalP
       setIsSubmitting(true);
       setTitleError('');
       const prevStatus = form.status;
-      // 저장 API 호출(await) 이후에 window.open을 부르면 사용자 제스처가 끊겨 팝업이 차단되므로,
-      // 클릭 이벤트 안에서 빈 탭을 먼저 열어두고 저장이 끝나면 주소만 채운다.
-      // 'noopener'를 넘기면 탭 핸들을 아예 못 받으므로(항상 null), 대신 연 뒤 opener를 직접 끊는다
-      const editTab = form.editUrl ? window.open() : null;
-      if (editTab) editTab.opener = null;
       try {
          await updateSurveyForm(form.surveyFormId, {
             title: title.trim(),
@@ -55,14 +50,8 @@ export default function FormEditModal({ form, onClose, onSaved }: FormEditModalP
             status,
          });
          toast.success('설문/평가 폼을 수정했습니다.');
-         if (editTab && !editTab.closed && form.editUrl) {
-            editTab.location.href = form.editUrl;
-            onSaved();
-         } else {
-            onSaved(form.editUrl);
-         }
+         onSaved();
       } catch (err) {
-         editTab?.close();
          if (err instanceof ApiError && err.code === 'SURVEY_002') {
             setStatus(prevStatus);
             toast.error(err.message || '허용되지 않는 상태 변경입니다.');
@@ -99,16 +88,6 @@ export default function FormEditModal({ form, onClose, onSaved }: FormEditModalP
                <X size={18} />
             </button>
          </div>
-
-         <a
-            href={form.editUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 flex items-center gap-1 text-sm text-brand-green hover:underline"
-         >
-            <ExternalLink size={14} />
-            Google Form에서 문항 수정
-         </a>
 
          <div className="mt-4">
             <label className="flex items-center gap-1 text-sm font-semibold text-gray-900">
@@ -154,22 +133,33 @@ export default function FormEditModal({ form, onClose, onSaved }: FormEditModalP
             </Select>
          </div>
 
-         <div className="mt-6 flex justify-end gap-2">
-            <button
-               type="button"
-               onClick={onClose}
-               className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+         <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+            <a
+               href={form.editUrl}
+               target="_blank"
+               rel="noopener noreferrer"
+               className="flex items-center gap-1 text-sm text-brand-green hover:underline"
             >
-               취소
-            </button>
-            <button
-               type="button"
-               onClick={handleSubmit}
-               disabled={!canSubmit}
-               className="cursor-pointer rounded-xs bg-brand-green px-4 py-2 text-sm font-medium text-white hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
-            >
-               {isSubmitting ? '수정 중...' : '수정'}
-            </button>
+               <ExternalLink size={14} />
+               Google Form에서 문항 수정
+            </a>
+            <div className="flex gap-2">
+               <button
+                  type="button"
+                  onClick={onClose}
+                  className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+               >
+                  취소
+               </button>
+               <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={!canSubmit}
+                  className="cursor-pointer rounded-xs bg-brand-green px-4 py-2 text-sm font-medium text-white hover:bg-[#4D655A] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
+               >
+                  {isSubmitting ? '수정 중...' : '수정'}
+               </button>
+            </div>
          </div>
       </Modal>
    );

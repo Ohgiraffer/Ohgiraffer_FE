@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Download, ExternalLink, Pencil, TriangleAlert, Trash2 } from 'lucide-react';
+import { ChevronLeft, Download, Pencil, TriangleAlert, Trash2 } from 'lucide-react';
 import SearchInput from '@/components/ui/SearchInput';
 import Pagination from '@/components/ui/Pagination';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -73,7 +73,6 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
    const [isEditOpen, setIsEditOpen] = useState(false);
    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
    const [isDeleting, setIsDeleting] = useState(false);
-   const [pendingEditUrl, setPendingEditUrl] = useState<string | null>(null);
 
    useEffect(() => {
       if (!Number.isInteger(surveyFormId) || role === 'STUDENT') return;
@@ -138,25 +137,29 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
    };
 
    const handleSearch = (value: string) => {
+      setIsLoadingResponses(true);
       setKeyword(value);
       setCurrentPage(1);
    };
 
    const handleStatusChange = (value: SurveyResponseStatusFilter) => {
+      setIsLoadingResponses(true);
       setStatusFilter(value);
       setCurrentPage(1);
+   };
+
+   const handlePageChange = (page: number) => {
+      setIsLoadingResponses(true);
+      setCurrentPage(page);
    };
 
    const handleLinked = () => {
       setDetailRetryKey((key) => key + 1);
    };
 
-   const handleSaved = (editUrl?: string) => {
+   const handleSaved = () => {
       setIsEditOpen(false);
       setDetailRetryKey((key) => key + 1);
-      // 저장 완료 콜백은 비동기 이후에 실행돼 사용자 제스처가 끊겨 있으므로 window.open을 다시 시도하지 않는다
-      // (모달이 클릭 시점에 이미 탭을 열었고, 실패했을 때만 editUrl을 넘겨준다)
-      if (editUrl) setPendingEditUrl(editUrl);
    };
 
    const handleDeleteConfirm = async () => {
@@ -298,23 +301,6 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                   </div>
                </div>
 
-               {pendingEditUrl && (
-                  <div className="mt-4 flex flex-col items-start gap-2 rounded-sm border border-[#F3DFA0] bg-[#FFF9EC] px-4 py-3 text-sm text-gray-700 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                     <span>팝업이 차단되어 Google Form 편집 창이 자동으로 열리지 않았습니다.</span>
-                     <button
-                        type="button"
-                        onClick={() => {
-                           window.open(pendingEditUrl, '_blank', 'noopener,noreferrer');
-                           setPendingEditUrl(null);
-                        }}
-                        className="flex shrink-0 cursor-pointer items-center gap-1 rounded-xs bg-brand-green px-3 py-1.5 text-xs font-medium text-white hover:bg-[#4D655A]"
-                     >
-                        <ExternalLink size={12} />
-                        Google Form 열기
-                     </button>
-                  </div>
-               )}
-
                <div className="mt-4 flex items-start gap-2 rounded-sm bg-[#F5DFDC] px-4 py-3 text-xs text-brand-maroon">
                   <TriangleAlert size={14} className="mt-0.5 shrink-0" />
                   <div>
@@ -383,6 +369,8 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                            다시 시도
                         </button>
                      </div>
+                  ) : isLoadingResponses ? (
+                     <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
                   ) : responses.students.length === 0 ? (
                      <p className="py-16 text-center text-sm text-gray-400">
                         {keyword || statusFilter !== 'ALL'
@@ -472,7 +460,7 @@ export default function FormDetailClient({ formId }: FormDetailClientProps) {
                            <Pagination
                               currentPage={currentPage}
                               totalPages={responses.totalPages}
-                              onPageChange={setCurrentPage}
+                              onPageChange={handlePageChange}
                            />
                         </div>
                      </>

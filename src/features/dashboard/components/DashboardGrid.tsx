@@ -67,6 +67,13 @@ export default function DashboardGrid({ holidays }: DashboardGridProps) {
       setRefreshKey((key) => key + 1);
    }, []);
 
+   // 캘린더가 최초 조회 실패 이후 같은 달을 자체적으로 재조회해서 성공했을 때 호출됨 -
+   // 오늘 일정 카드도 같은 데이터를 받아야 에러 상태에서 벗어난다
+   const handleInitialEventsResolved = useCallback((events: CalendarEvent[]) => {
+      setMonthEvents(events);
+      setMonthEventsError(false);
+   }, []);
+
    return (
       <div className="dashboard-grid grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-[2fr_0.9fr_0.9fr]">
          <div className="min-w-0 [grid-area:calendar]">
@@ -75,6 +82,7 @@ export default function DashboardGrid({ holidays }: DashboardGridProps) {
                initialEvents={monthEvents}
                initialEventsReady={monthEvents !== null || monthEventsError}
                onEventCreated={refetchMonthEvents}
+               onInitialEventsResolved={handleInitialEventsResolved}
             />
          </div>
          <div className="min-w-0 [grid-area:today]">
