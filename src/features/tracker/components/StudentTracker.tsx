@@ -48,7 +48,7 @@ export default function StudentTracker() {
                <Skeleton width={110} height={38} className="rounded-xs" />
             </div>
 
-            <div className="mt-5 grid grid-cols-[1fr_2fr] divide-x divide-gray-100 rounded-sm border border-gray-200 bg-white">
+            <div className="mt-5 grid grid-cols-1 divide-y divide-gray-100 rounded-sm border border-gray-200 bg-white sm:grid-cols-[1fr_2fr] sm:divide-x sm:divide-y-0">
                <div className="p-6">
                   <Skeleton width={90} height={13} className="rounded-md" />
                   <Skeleton width={70} height={24} className="mt-2 rounded-xs" />
@@ -65,9 +65,11 @@ export default function StudentTracker() {
                </div>
             </div>
 
-            <div className="mt-5 flex gap-3 rounded-sm border border-gray-200 bg-white p-6">
+            <div className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-gray-200 bg-gray-100 sm:grid-cols-4 lg:grid-cols-7">
                {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-                  <Skeleton key={i} width="100%" height={40} className="rounded-md" />
+                  <div key={i} className="bg-white p-3">
+                     <Skeleton width="100%" height={40} className="rounded-md" />
+                  </div>
                ))}
             </div>
 
@@ -129,7 +131,7 @@ export default function StudentTracker() {
             </div>
          )}
 
-         <div className="mt-5 grid grid-cols-[1fr_2fr] divide-x divide-gray-100 rounded-sm border border-gray-200 bg-white">
+         <div className="mt-5 grid grid-cols-1 divide-y divide-gray-100 rounded-sm border border-gray-200 bg-white sm:grid-cols-[1fr_2fr] sm:divide-x sm:divide-y-0">
             <div className="p-6">
                <p className="text-sm text-gray-400">오늘 출결 상태</p>
                {overview.todayStatus ? (

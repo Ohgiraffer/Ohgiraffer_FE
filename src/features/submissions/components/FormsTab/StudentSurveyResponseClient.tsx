@@ -83,13 +83,29 @@ export default function StudentSurveyResponseClient({ formId }: StudentSurveyRes
 
                <div className="mt-4 flex items-start gap-2 rounded-xs bg-[#F5DFDC] px-4 py-3 text-xs text-brand-maroon">
                   <TriangleAlert size={14} className="mt-0.5 shrink-0" />
-                  <div>
-                     <p>부트캠프에 등록한 Google 이메일과 동일한 계정으로 응답해 주세요.</p>
-                     <p>
-                        현재 계정이 다르거나 로그인되어 있지 않다면 로그인 또는 계정 전환이 필요하며,
+                  <div className="min-w-0 flex-1">
+                     <p className="min-[680px]:hidden">
+                        부트캠프에 등록한 Google 이메일과 동일한 계정으로 응답해 주세요. 현재 계정이
+                        다르거나 로그인되어 있지 않다면 로그인 또는 계정 전환이 필요하며, 이 과정에서
+                        설문이 새 탭으로 열릴 수 있습니다. 다른 이메일로 응답하면 미응답으로 표시될 수
+                        있습니다.
                      </p>
-                     <p>이 과정에서 설문이 새 탭으로 열릴 수 있습니다.</p>
-                     <p>다른 이메일로 응답하면 미응답으로 표시될 수 있습니다.</p>
+                     <p className="hidden min-[680px]:block min-[1050px]:hidden">
+                        부트캠프에 등록한 Google 이메일과 동일한 계정으로 응답해 주세요.
+                        <br />
+                        현재 계정이 다르거나 로그인되어 있지 않다면 로그인 또는 계정 전환이 필요하며,
+                        <br />
+                        이 과정에서 설문이 새 탭으로 열릴 수 있습니다.
+                        <br />
+                        다른 이메일로 응답하면 미응답으로 표시될 수 있습니다.
+                     </p>
+                     <p className="hidden min-[1050px]:block">
+                        부트캠프에 등록한 Google 이메일과 동일한 계정으로 응답해 주세요. 현재 계정이
+                        다르거나 로그인되어 있지 않다면 로그인 또는 계정 전환이 필요하며,
+                        <br />
+                        이 과정에서 설문이 새 탭으로 열릴 수 있습니다. 다른 이메일로 응답하면 미응답으로
+                        표시될 수 있습니다.
+                     </p>
                   </div>
                </div>
 

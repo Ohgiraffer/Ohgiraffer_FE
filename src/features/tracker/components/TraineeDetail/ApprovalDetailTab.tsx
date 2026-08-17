@@ -25,35 +25,54 @@ export default function ApprovalDetailTab({ traineeId }: { traineeId: number }) 
    }
 
    return (
-      <div className="overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
-         <table className="w-full table-fixed text-center text-sm">
-            <thead>
-               <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
-                  <th className="w-[20%] px-6 py-3 font-medium">신청일</th>
-                  <th className="w-[20%] px-6 py-3 font-medium">유형</th>
-                  <th className="w-[40%] px-6 py-3 font-medium">기간</th>
-                  <th className="w-[20%] px-6 py-3 font-medium">승인일</th>
-               </tr>
-            </thead>
-            <tbody>
-               {approvals.length === 0 ? (
-                  <tr>
-                     <td colSpan={4} className="px-6 py-10 text-center text-gray-400">
-                        결재 이력이 없습니다.
-                     </td>
+      <>
+         <div className="divide-y divide-[#F3F4F6] overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:hidden">
+            {approvals.length === 0 ? (
+               <p className="px-6 py-10 text-center text-sm text-gray-400">결재 이력이 없습니다.</p>
+            ) : (
+               approvals.map((approval) => (
+                  <div key={approval.approvalId} className="p-4">
+                     <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-gray-900">{approval.typeName}</span>
+                        <span className="shrink-0 text-xs text-gray-400">{approval.requestedDate} 신청</span>
+                     </div>
+                     <p className="mt-1 text-xs text-gray-500">{approval.period}</p>
+                     <p className="mt-1 text-xs text-gray-400">승인일 {approval.approvedDate ?? '—'}</p>
+                  </div>
+               ))
+            )}
+         </div>
+
+         <div className="hidden overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:block">
+            <table className="w-full table-fixed text-center text-sm">
+               <thead>
+                  <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
+                     <th className="w-[20%] px-6 py-3 font-medium">신청일</th>
+                     <th className="w-[20%] px-6 py-3 font-medium">유형</th>
+                     <th className="w-[40%] px-6 py-3 font-medium">기간</th>
+                     <th className="w-[20%] px-6 py-3 font-medium">승인일</th>
                   </tr>
-               ) : (
-                  approvals.map((approval) => (
-                     <tr key={approval.approvalId} className="border-b border-[#F3F4F6] last:border-b-0">
-                        <td className="px-6 py-4 text-gray-700">{approval.requestedDate}</td>
-                        <td className="px-6 py-4 text-gray-900">{approval.typeName}</td>
-                        <td className="px-6 py-4 text-gray-700">{approval.period}</td>
-                        <td className="px-6 py-4 text-gray-700">{approval.approvedDate ?? '—'}</td>
+               </thead>
+               <tbody>
+                  {approvals.length === 0 ? (
+                     <tr>
+                        <td colSpan={4} className="px-6 py-10 text-center text-gray-400">
+                           결재 이력이 없습니다.
+                        </td>
                      </tr>
-                  ))
-               )}
-            </tbody>
-         </table>
-      </div>
+                  ) : (
+                     approvals.map((approval) => (
+                        <tr key={approval.approvalId} className="border-b border-[#F3F4F6] last:border-b-0">
+                           <td className="px-6 py-4 text-gray-700">{approval.requestedDate}</td>
+                           <td className="px-6 py-4 text-gray-900">{approval.typeName}</td>
+                           <td className="px-6 py-4 text-gray-700">{approval.period}</td>
+                           <td className="px-6 py-4 text-gray-700">{approval.approvedDate ?? '—'}</td>
+                        </tr>
+                     ))
+                  )}
+               </tbody>
+            </table>
+         </div>
+      </>
    );
 }
