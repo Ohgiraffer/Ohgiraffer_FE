@@ -48,7 +48,9 @@ export function useUserList() {
       queryFn: getUserList,
    });
 
-   const users = (data ?? []).map(toManagerSettingUser);
+   // 최근 등록한 사용자를 목록 맨 앞에서 바로 확인할 수 있도록 userId 내림차순(최신 가입순)으로 정렬
+   // - 캐시 배열을 직접 정렬하면 안 되니 얕은 복사 후 정렬한다
+   const users = [...(data ?? [])].sort((a, b) => b.userId - a.userId).map(toManagerSettingUser);
    const loadError = error
       ? getApiErrorMessage(error, '사용자 목록을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
       : null;

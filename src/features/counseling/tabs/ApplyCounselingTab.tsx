@@ -4,6 +4,7 @@ import { CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
+import InlineProgressBar from '@/components/ui/loading/InlineProgressBar';
 import { ROLE_LABELS } from '@/services/auth.service';
 import CounselingCalendar from '../components/CounselingCalendar';
 import CounselorList from '../components/CounselorList';
@@ -47,16 +48,15 @@ export default function ApplyCounselingTab() {
                ))}
             </div>
 
-            <div className="mt-3 grid grid-cols-1 items-start gap-6 sm:grid-cols-[4.5fr_5.5fr]">
+            <div className="mt-3 grid grid-cols-1 items-start gap-6 md:grid-cols-[4.5fr_5.5fr]">
                <Skeleton width="100%" height={420} className="rounded-sm" />
 
                <div className="flex flex-col gap-3">
                   <div className="rounded-sm border border-gray-200 bg-white px-6 py-4">
                      <Skeleton width={80} height={16} className="rounded-md" />
-                     <div className="mt-4 grid grid-cols-7 gap-2">
-                        {Array.from({ length: 14 }).map((_, i) => (
-                           <Skeleton key={i} width="100%" height={38} className="rounded-xs" />
-                        ))}
+                     <div className="mt-2 flex min-h-35 flex-col items-center justify-center gap-2 text-sm text-gray-400">
+                        <InlineProgressBar />
+                        시간 선택 정보를 불러오는 중...
                      </div>
                   </div>
 
@@ -114,10 +114,9 @@ export default function ApplyCounselingTab() {
                            날짜를 먼저 선택해주세요
                         </div>
                      ) : isLoadingTimes ? (
-                        <div className="grid grid-cols-7 gap-2">
-                           {Array.from({ length: 14 }).map((_, i) => (
-                              <Skeleton key={i} width="100%" height={38} className="rounded-xs" />
-                           ))}
+                        <div className="flex min-h-35 flex-col items-center justify-center gap-2 text-sm text-gray-400">
+                           <InlineProgressBar />
+                           가능한 시간을 불러오는 중...
                         </div>
                      ) : (
                         <AvailableTimeSlots

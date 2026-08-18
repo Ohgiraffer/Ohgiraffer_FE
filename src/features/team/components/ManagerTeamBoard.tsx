@@ -299,9 +299,13 @@ export default function ManagerTeamBoard({
       setEditingPeriod(null);
       queryClient.setQueryData<TeamPeriod[]>(['teamPeriods'], (prev = []) => {
          const exists = prev.some((p) => p.teamPeriodId === period.teamPeriodId);
-         return exists
+         const next = exists
             ? prev.map((p) => (p.teamPeriodId === period.teamPeriodId ? period : p))
             : [...prev, period];
+         // getTeamPeriods()의 서버 재조회 결과와 동일하게 시작일 기준으로 정렬해둔다 - 그냥
+         // 뒤에 붙이기만 하면(특히 이미 있는 기간보다 앞선 기간을 나중에 추가한 경우) 탭 순서가
+         // 생성 순으로 어긋난다
+         return [...next].sort((a, b) => a.startDate.localeCompare(b.startDate));
       });
       if (!wasEditing) {
          guardedAction(() => switchPeriod(period.teamPeriodId));
