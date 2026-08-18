@@ -38,10 +38,49 @@ interface MemberInfo {
    originalTeamId: number | null;
 }
 
+interface ManagerTeamBoardProps {
+   // team/page.tsx가 서버에서 미리 불러와 넘겨주는 초기 데이터 - 없으면(캐시 히트, 검증 실패 등)
+   // 지금처럼 클라이언트에서 직접 불러온다
+   initialPeriods?: TeamPeriod[];
+   initialActivePeriodId?: number | null;
+   initialTeams?: Team[];
+   initialUnassigned?: UnassignedStudent[];
+}
+
+// 서버에서 받은 teams/unassigned 응답을 draftTeams/draftAssignment 초안 상태로 바꾸는 로직 -
+// 초기 렌더(프리페치된 초기값 시딩)와 이후 재조회(useEffect) 양쪽에서 같은 변환을 써야 어긋나지
+// 않는다
+function buildDraftStateFromServer(teams: Team[], unassignedStudents: UnassignedStudent[]) {
+   const draftTeams: DraftTeam[] = teams.map((t) => ({
+      teamId: t.teamId,
+      name: t.name,
+      startDate: t.startDate,
+      endDate: t.endDate,
+      dissolved: t.dissolved,
+   }));
+   const draftAssignment: Record<number, number | null> = {};
+   teams.forEach((team) => {
+      team.members.forEach((member) => {
+         draftAssignment[member.userId] = team.teamId;
+      });
+   });
+   unassignedStudents.forEach((student) => {
+      // 서버가 내려준 팀 배정 정보가 이미 있으면 그걸 우선함(두 응답이 불일치할 경우의 방어)
+      if (student.userId in draftAssignment) return;
+      draftAssignment[student.userId] = null;
+   });
+   return { draftTeams, draftAssignment };
+}
+
 // 기간 추가/수정 버튼을 누를 때만 필요한 날짜선택 모달이라 지연 로딩
 const TeamPeriodAddModal = dynamic(() => import('./TeamPeriodAddModal'), { ssr: false });
 
-export default function ManagerTeamBoard() {
+export default function ManagerTeamBoard({
+   initialPeriods,
+   initialActivePeriodId,
+   initialTeams,
+   initialUnassigned,
+}: ManagerTeamBoardProps) {
    const queryClient = useQueryClient();
    // StudentTeamView/TeamHistoryPageClient와 같은 queryKey를 써서 캐시를 공유
    const {
@@ -51,10 +90,16 @@ export default function ManagerTeamBoard() {
    } = useQuery({
       queryKey: ['teamPeriods'],
       queryFn: getTeamPeriods,
+      initialData: initialPeriods,
    });
-   const [activePeriodId, setActivePeriodId] = useState<number | null>(null);
-   // 기간 목록이 도착하면 마지막(최신) 기간을 기본 선택한다 - 한 번만 시딩한다
-   const [hasSeededActivePeriod, setHasSeededActivePeriod] = useState(false);
+   const [activePeriodId, setActivePeriodId] = useState<number | null>(
+      initialActivePeriodId ?? null,
+   );
+   // 기간 목록이 도착하면 마지막(최신) 기간을 기본 선택한다 - 한 번만 시딩한다. 서버가 이미
+   // initialActivePeriodId를 시딩해줬으면 이 이펙트가 다시 덮어쓰지 않도록 시딩된 것으로 시작
+   const [hasSeededActivePeriod, setHasSeededActivePeriod] = useState(
+      initialActivePeriodId != null,
+   );
    if (!hasSeededActivePeriod && periods.length > 0) {
       setHasSeededActivePeriod(true);
       setActivePeriodId(periods[periods.length - 1].teamPeriodId);
@@ -64,17 +109,26 @@ export default function ManagerTeamBoard() {
    const [deletingPeriod, setDeletingPeriod] = useState<TeamPeriod | null>(null);
    const isDeletingPeriodRef = useRef(false);
 
-   const [serverTeams, setServerTeams] = useState<Team[]>([]);
-   const [unassigned, setUnassigned] = useState<UnassignedStudent[]>([]);
-   const [isLoading, setIsLoading] = useState(true);
+   const [serverTeams, setServerTeams] = useState<Team[]>(initialTeams ?? []);
+   const [unassigned, setUnassigned] = useState<UnassignedStudent[]>(initialUnassigned ?? []);
+   const [isLoading, setIsLoading] = useState(!initialTeams);
    const [hasError, setHasError] = useState(false);
    const [reloadKey, setReloadKey] = useState(0);
+   // 서버가 이미 initialActivePeriodId 몫의 팀 데이터를 넘겨줬으면, 그 값으로 시작하자마자
+   // 같은 기간을 또 불러오지 않게 재조회 이펙트의 첫 실행 한 번은 건너뛴다
+   const skipNextFetchRef = useRef(initialTeams != null);
 
    // 팀 목록 자체도 초안: 실제 팀(teamId >= 0) + 이번 세션에 추가했지만 아직 저장 안 한 팀(teamId < 0)
-   const [draftTeams, setDraftTeams] = useState<DraftTeam[]>([]);
+   const [draftTeams, setDraftTeams] = useState<DraftTeam[]>(() =>
+      initialTeams ? buildDraftStateFromServer(initialTeams, initialUnassigned ?? []).draftTeams : [],
+   );
    // 삭제 예정인 "실제" 팀 id만 (새로 추가했다가 지운 팀은 draftTeams에서 그냥 제거, 여기 안 넣음)
    const [deletedTeamIds, setDeletedTeamIds] = useState<number[]>([]);
-   const [draftAssignment, setDraftAssignment] = useState<Record<number, number | null>>({});
+   const [draftAssignment, setDraftAssignment] = useState<Record<number, number | null>>(() =>
+      initialTeams
+         ? buildDraftStateFromServer(initialTeams, initialUnassigned ?? []).draftAssignment
+         : {},
+   );
    const nextDraftIdRef = useRef(-1);
 
    const [isSaveConfirmOpen, setIsSaveConfirmOpen] = useState(false);
@@ -88,6 +142,10 @@ export default function ManagerTeamBoard() {
    // 2) 선택된 기간의 팀/미배정 목록
    useEffect(() => {
       if (activePeriodId == null) return;
+      if (skipNextFetchRef.current) {
+         skipNextFetchRef.current = false;
+         return;
+      }
       let isMounted = true;
       // isLoading/hasError는 이 effect가 아니라,
       // activePeriodId/reloadKey를 바꾸는 이벤트 핸들러 쪽(switchPeriod/reloadTeams)에서 미리 세팅
@@ -96,28 +154,13 @@ export default function ManagerTeamBoard() {
             if (!isMounted) return;
             setServerTeams(teamsResult);
             setUnassigned(unassignedResult);
-            setDraftTeams(
-               teamsResult.map((t) => ({
-                  teamId: t.teamId,
-                  name: t.name,
-                  startDate: t.startDate,
-                  endDate: t.endDate,
-                  dissolved: t.dissolved,
-               })),
+            const { draftTeams, draftAssignment } = buildDraftStateFromServer(
+               teamsResult,
+               unassignedResult,
             );
+            setDraftTeams(draftTeams);
             setDeletedTeamIds([]);
-            const next: Record<number, number | null> = {};
-            teamsResult.forEach((team) => {
-               team.members.forEach((member) => {
-                  next[member.userId] = team.teamId;
-               });
-            });
-            unassignedResult.forEach((student) => {
-               // 서버가 내려준 팀 배정 정보가 이미 있으면 그걸 우선함(두 응답이 불일치할 경우의 방어)
-               if (student.userId in next) return;
-               next[student.userId] = null;
-            });
-            setDraftAssignment(next);
+            setDraftAssignment(draftAssignment);
          })
          .catch(() => {
             if (isMounted) setHasError(true);

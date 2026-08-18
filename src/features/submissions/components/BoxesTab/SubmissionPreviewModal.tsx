@@ -65,14 +65,18 @@ export default function SubmissionPreviewModal({
             ) : errorMessage || !preview ? (
                <p className="px-6 text-center text-sm text-gray-400">{errorMessage}</p>
             ) : preview.contentType === 'application/pdf' ? (
-               // sandbox=""(전체 잠금)는 크롬 내장 PDF 뷰어까지 막아 "Chrome에서 차단한 페이지"로
-               // 표시된다. previewUrl은 항상 S3 등 다른 origin이라 allow-same-origin을 줘도
-               // 우리 앱 origin 권한이 넘어가지 않고, allow-scripts는 여전히 안 줘서 스크립트 실행은 막힌다
+               // 크롬 내장 PDF 뷰어는 sandbox 속성이 붙어있으면 어떤 allow-* 조합을 줘도 아예
+               // 활성화되지 않고 빈 화면만 뜬다(직접 확인함 - allow-scripts allow-same-origin을
+               // 줘도 load 이벤트는 정상 발생하지만 화면엔 아무것도 안 그려짐). 그래서 sandbox
+               // 없이 렌더링한다 - previewUrl은 항상 S3 등 다른 origin이고, 브라우저의 동일 출처
+               // 정책 자체가(sandbox와 무관하게) 이 프레임이 우리 앱 origin의 쿠키/스토리지/DOM에
+               // 접근하는 걸 막아준다. sandbox가 막아주던 나머지(최상위 창 네비게이션 탈취, 팝업 등)는
+               // 이제 못 막지만, previewUrl은 우리 백엔드가 만든 presigned URL이라 임의 사용자가
+               // 그 안의 콘텐츠를 바꿔치기할 수 없다
                <iframe
                   src={preview.previewUrl}
                   className="h-full w-full"
                   title={preview.originalFileName}
-                  sandbox="allow-same-origin"
                />
             ) : preview.contentType.startsWith('video/') ? (
                <video src={preview.previewUrl} controls className="max-h-full max-w-full" />
