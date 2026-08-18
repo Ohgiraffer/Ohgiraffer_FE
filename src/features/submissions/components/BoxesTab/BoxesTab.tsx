@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import { Skeleton, SkeletonListRow } from '@/components/ui/loading/Skeleton';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
 import {
@@ -14,6 +14,60 @@ import {
 import type { EditableBox } from './BoxCreateForm';
 import BoxListTable from './BoxListTable';
 import type { SubmissionBoxListItem } from '../../types';
+
+// BoxListTable 데스크톱 테이블과 동일한 컬럼 구조의 자리표시 (모바일 카드는 P1 관례상 별도 스켈레톤을 두지 않는다)
+function BoxesTableSkeleton({ hideManage }: { hideManage: boolean }) {
+   return (
+      <table className="w-full table-fixed text-left text-sm">
+         <thead>
+            <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
+               <th className="w-[4%] px-6 py-3 font-medium">#</th>
+               <th className="w-[22%] px-6 py-3 font-medium text-center">프로젝트명</th>
+               <th className="w-[13%] px-6 py-3 font-medium text-center">시작일</th>
+               <th className="w-[13%] px-6 py-3 font-medium text-center">마감일</th>
+               <th className="w-[22%] px-6 py-3 font-medium text-center">제출 현황</th>
+               <th className="w-[11%] px-6 py-3 font-medium text-center">지각 제출</th>
+               {!hideManage && (
+                  <th className="w-[15%] px-6 py-3 font-medium text-center">관리</th>
+               )}
+            </tr>
+         </thead>
+         <tbody>
+            {[0, 1, 2, 3].map((i) => (
+               <tr
+                  key={i}
+                  className="border-b border-[#F3F4F6] last:border-b-0"
+                  style={{ '--row-delay': `${i * 0.15}s` } as React.CSSProperties}
+               >
+                  <td className="px-6 py-4">
+                     <Skeleton width={16} height={14} className="rounded-md" />
+                  </td>
+                  <td className="px-6 py-4">
+                     <Skeleton width="70%" height={14} className="mx-auto rounded-md" />
+                  </td>
+                  <td className="px-6 py-4">
+                     <Skeleton width={64} height={14} className="mx-auto rounded-md" />
+                  </td>
+                  <td className="px-6 py-4">
+                     <Skeleton width={64} height={14} className="mx-auto rounded-md" />
+                  </td>
+                  <td className="px-6 py-4">
+                     <Skeleton width="60%" height={10} className="mx-auto rounded-full" />
+                  </td>
+                  <td className="px-6 py-4">
+                     <Skeleton width={56} height={22} className="mx-auto rounded-xs" />
+                  </td>
+                  {!hideManage && (
+                     <td className="px-6 py-4">
+                        <Skeleton width={80} height={28} className="mx-auto rounded-xs" />
+                     </td>
+                  )}
+               </tr>
+            ))}
+         </tbody>
+      </table>
+   );
+}
 
 // 생성/수정 버튼을 눌러야만 필요한 날짜선택 폼이라 지연 로딩한다
 const BoxCreateForm = dynamic(() => import('./BoxCreateForm'), {
@@ -161,9 +215,7 @@ export default function BoxesTab({ isCreating, onCreatingChange, initialBoxes }:
 
          {isLoading ? (
             <div className="mt-4 overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
-               {[0, 1, 2, 3].map((i) => (
-                  <SkeletonListRow key={i} index={i} />
-               ))}
+               <BoxesTableSkeleton hideManage={isCreating} />
             </div>
          ) : hasError ? (
             <div className="flex flex-col items-center gap-3 py-16">

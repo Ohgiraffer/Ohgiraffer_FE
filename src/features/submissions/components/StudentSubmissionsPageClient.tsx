@@ -5,11 +5,33 @@ import { useRouter } from 'next/navigation';
 import { ChevronRight, TriangleAlert } from 'lucide-react';
 import { getSubmissionBoxes } from '@/services/submissionBox.service';
 import { getSurveyForms } from '@/services/surveyForm.service';
-import { SkeletonListRow } from '@/components/ui/loading/Skeleton';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import StatusBadge from './StatusBadge';
 import { formatDateTime, formatDday } from '../formatSubmissionDate';
 import type { ServerSubmissionsData } from '../getServerSubmissionsData';
 import type { SubmissionBoxListItem, SurveyFormListItem } from '../types';
+
+// 제출함/설문 통합 목록의 실제 행(뱃지+제목, 날짜 메타라인, 상태뱃지+화살표) 모양 자리표시
+function SubmissionRowSkeleton({ index }: { index: number }) {
+   return (
+      <div
+         className="flex flex-col gap-2 border-b border-[#F3F4F6] px-6 py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+         style={{ '--row-delay': `${index * 0.15}s` } as React.CSSProperties}
+      >
+         <div className="min-w-0">
+            <div className="flex items-center gap-3">
+               <Skeleton width={48} height={20} className="rounded-sm" />
+               <Skeleton width={160} height={14} className="rounded-md" />
+            </div>
+            <Skeleton width={220} height={12} className="mt-1.5 rounded-md" />
+         </div>
+         <div className="flex shrink-0 items-center gap-3">
+            <Skeleton width={56} height={22} className="rounded-xs" />
+            <Skeleton width={16} height={16} className="rounded-full" />
+         </div>
+      </div>
+   );
+}
 
 interface MergedItem {
    key: string;
@@ -138,7 +160,7 @@ export default function StudentSubmissionsPageClient({
             {items === null && !hasError ? (
                <>
                   {[0, 1, 2, 3].map((i) => (
-                     <SkeletonListRow key={i} index={i} />
+                     <SubmissionRowSkeleton key={i} index={i} />
                   ))}
                </>
             ) : hasError ? (
