@@ -1,18 +1,19 @@
 'use client';
 
 import { Check, Eye, EyeOff, TriangleAlert } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/shadcn/button';
 import { useAuth } from '@/components/auth/AuthContext';
 import { resetPassword } from '@/services/auth.service';
-import { setAccessToken } from '@/lib/auth/token-store';
+import { setAccessTokenForNewSession } from '@/lib/auth/token-store';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
+import FullScreenLoader from '@/components/ui/loading/FullScreenLoader';
 
 export default function ResetPasswordPageClient() {
    const router = useRouter();
-   const { clearNeedResetPw } = useAuth();
+   const { isAuthenticated, isInitializing, needResetPw, clearNeedResetPw } = useAuth();
    const [password, setPassword] = useState('');
    const [passwordConfirm, setPasswordConfirm] = useState('');
    const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -20,6 +21,20 @@ export default function ResetPasswordPageClient() {
    const [isSubmitting, setIsSubmitting] = useState(false);
    // disabled만으로는 연타(더블클릭)를 막지 못해 useRef 기반 동기 가드를 함께 둔다
    const isSubmittingRef = useRef(false);
+
+   // 이 화면은 최초 비밀번호 재설정이 필요한 계정만 봐야 한다(URL로 직접 들어오는 것 차단) -
+   // 로그인 안 했으면 로그인 화면으로, 이미 재설정을 마친 계정이면 대시보드로 돌려보낸다.
+   // (user)/layout.tsx의 AuthGuard 밖에 있는 라우트라 이 화면에서 직접 처리해야 한다
+   useEffect(() => {
+      if (isInitializing) return;
+      if (!isAuthenticated) {
+         router.replace('/login');
+         return;
+      }
+      if (!needResetPw) {
+         router.replace('/');
+      }
+   }, [isInitializing, isAuthenticated, needResetPw, router]);
 
    const isLengthValid = password.length >= 8 && password.length <= 16;
    const hasLetter = /[a-zA-Z]/.test(password);
@@ -45,8 +60,11 @@ export default function ResetPasswordPageClient() {
          const data = await resetPassword(password);
          toast.success(data.message);
          clearNeedResetPw();
-         // 응답 메시지가 재로그인을 안내하므로 로컬 세션을 정리하고 로그인 페이지로 보낸다
-         setAccessToken(null);
+         // 응답 메시지가 재로그인을 안내하므로 로컬 세션을 정리하고 로그인 페이지로 보낸다.
+         // setAccessToken이 아니라 setAccessTokenForNewSession을 써서 세션 세대를 올려야,
+         // 이 시점에 이미 진행 중이던 자동 갱신(refresh)이 늦게 응답해도 낡은 결과로 처리돼
+         // 방금 지운 토큰을 되살리지 못한다
+         setAccessTokenForNewSession(null);
          router.push('/login');
       } catch (err) {
          if (err instanceof ApiError) {
@@ -67,6 +85,8 @@ export default function ResetPasswordPageClient() {
          setIsSubmitting(false);
       }
    };
+
+   if (isInitializing || !isAuthenticated || !needResetPw) return <FullScreenLoader />;
 
    return (
       <div className="w-full max-w-md rounded-sm bg-white p-10 shadow-sm">
