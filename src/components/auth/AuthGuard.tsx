@@ -5,15 +5,18 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthContext';
 import FullScreenLoader from '@/components/ui/loading/FullScreenLoader';
 
-// 리프레시 토큰 쿠키 이름/속성을 몰라 미들웨어(proxy.ts)에서는 인증 여부를 판단할 수 없음
-// 그래서 클라이언트에서 /auth/refresh 복구 결과(accessToken 유무)로 라우트를 보호
+// 미들웨어(proxy.ts)가 쿠키로 롤을 미리 검증해 넘겨주면 role은 즉시 채워지지만, 실제
+// accessToken은 클라이언트의 /auth/refresh 왕복이 끝나야 도착한다. 그래서 여기서는
+// isAuthenticated(accessToken 유무)가 아니라 role 유무로 로그인 여부를 판단한다 -
+// isAuthenticated로 판단하면 그 짧은 틈에 로그인된 사용자를 /login으로 잘못 보내게 된다
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
-   const { isAuthenticated, isInitializing, needResetPw } = useAuth();
+   const { role, isSessionVerified, needResetPw } = useAuth();
    const router = useRouter();
+   const isLoggedIn = role !== null;
 
    useEffect(() => {
-      if (isInitializing) return;
-      if (!isAuthenticated) {
+      if (!isSessionVerified) return;
+      if (!isLoggedIn) {
          router.replace('/login');
          return;
       }
@@ -23,9 +26,9 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       if (needResetPw) {
          router.replace('/reset-password');
       }
-   }, [isInitializing, isAuthenticated, needResetPw, router]);
+   }, [isSessionVerified, isLoggedIn, needResetPw, router]);
 
-   if (isInitializing || !isAuthenticated || needResetPw) return <FullScreenLoader />;
+   if (!isSessionVerified || !isLoggedIn || needResetPw) return <FullScreenLoader />;
 
    return <>{children}</>;
 }

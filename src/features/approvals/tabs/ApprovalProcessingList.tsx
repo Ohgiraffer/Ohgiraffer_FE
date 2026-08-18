@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, Download } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import Pagination from '@/components/ui/Pagination';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
 import StatusBadge from '@/features/submissions/components/StatusBadge';
 import { useApprovalList } from '../hooks/useApprovalList';
@@ -10,6 +12,8 @@ import { useApprovalPdfDownload } from '../hooks/useApprovalPdfDownload';
 import { formatApprovalDate } from '../formatApprovalDate';
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_TONES } from '../types';
 import type { ApprovalSummary } from '@/services/approval.service';
+
+const PAGE_SIZE = 10;
 
 function formatRequesterLabel(approval: ApprovalSummary) {
    return `${approval.requesterName} (${approval.requestType === 'LEAVE' ? '학생' : '강사'})`;
@@ -40,6 +44,10 @@ export default function ApprovalProcessingList() {
       confirmDownload,
    } = useApprovalPdfDownload({ onAssigned: refetch });
    const isPendingConfirmForPurchase = pendingRequestType === 'PURCHASE';
+   const [currentPage, setCurrentPage] = useState(1);
+
+   const totalPages = Math.max(1, Math.ceil(approvals.length / PAGE_SIZE));
+   const pagedApprovals = approvals.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
    return (
       <>
@@ -90,7 +98,7 @@ export default function ApprovalProcessingList() {
                <>
                   {/* 좁은 화면 - 카드형 목록 */}
                   <div className="divide-y divide-[#F3F4F6] md:hidden">
-                     {approvals.map((approval) => {
+                     {pagedApprovals.map((approval) => {
                         const isActionable = approval.status === 'PENDING';
 
                         return (
@@ -158,8 +166,9 @@ export default function ApprovalProcessingList() {
                         </tr>
                      </thead>
                      <tbody>
-                        {approvals.map((approval, index) => {
+                        {pagedApprovals.map((approval, index) => {
                            const isActionable = approval.status === 'PENDING';
+                           const rowNumber = (currentPage - 1) * PAGE_SIZE + index + 1;
 
                            return (
                               <tr
@@ -167,7 +176,7 @@ export default function ApprovalProcessingList() {
                                  onClick={() => router.push(`/approvals/${approval.approvalId}`)}
                                  className="cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]"
                               >
-                                 <td className="px-8 py-3 text-center text-gray-500">{index + 1}</td>
+                                 <td className="px-8 py-3 text-center text-gray-500">{rowNumber}</td>
                                  <td className="px-6 py-3 text-center font-medium text-gray-900">
                                     {approval.title}
                                  </td>
@@ -221,6 +230,10 @@ export default function ApprovalProcessingList() {
                   </table>
                </>
             )}
+         </div>
+
+         <div className="mt-6">
+            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
          </div>
 
          <ConfirmModal

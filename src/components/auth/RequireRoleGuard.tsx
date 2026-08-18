@@ -34,19 +34,22 @@ const ROLE_RESTRICTIONS: RoleRestriction[] = [
    },
 ];
 
+// AuthGuard와 동일한 이유로 isInitializing이 아니라 isSessionVerified를 기준으로 삼는다 -
+// initialAuth로 role이 이미 채워져 있는데도 isInitializing만 보고 기다리면, AuthGuard는
+// 통과했는데 바로 다음 단계인 여기서 또 빈 화면으로 막혀 깜빡임 제거 효과가 무의미해진다
 export default function RequireRoleGuard({ children }: { children: React.ReactNode }) {
    const pathname = usePathname();
    const router = useRouter();
-   const { role, isInitializing } = useAuth();
+   const { role, isSessionVerified } = useAuth();
 
    const restriction = ROLE_RESTRICTIONS.find((r) => r.matches(pathname));
    const isBlocked = Boolean(
-      restriction && (isInitializing || role === null || !restriction.allowedRoles.includes(role)),
+      restriction && (!isSessionVerified || role === null || !restriction.allowedRoles.includes(role)),
    );
 
    useEffect(() => {
-      if (!isInitializing && isBlocked) router.replace('/');
-   }, [isInitializing, isBlocked, router]);
+      if (isSessionVerified && isBlocked) router.replace('/');
+   }, [isSessionVerified, isBlocked, router]);
 
    if (isBlocked) return null;
 

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { X } from 'lucide-react';
 import { Toaster } from 'sonner';
@@ -65,7 +66,13 @@ export default function RootLayout({
             <QueryProvider>
                <AuthProvider>
                   {children}
-                  <AIAssistantWidgetLoader />
+                  {/* ssr:false 클라이언트 전용 위젯을 Suspense 없이 그대로 두면, 동적 렌더링되는
+                  라우트((user)/*)에서 이 하나 때문에 페이지 전체가 요청마다 서버 렌더링을 포기하고
+                  통째로 클라이언트 렌더링으로 폴백한다(next/dynamic bail out) - Suspense로 감싸서
+                  이 위젯만 폴백 처리되게 격리한다 */}
+                  <Suspense fallback={null}>
+                     <AIAssistantWidgetLoader />
+                  </Suspense>
                </AuthProvider>
             </QueryProvider>
             <Toaster
