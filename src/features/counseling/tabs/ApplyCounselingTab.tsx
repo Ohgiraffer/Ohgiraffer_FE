@@ -9,10 +9,15 @@ import CounselingCalendar from '../components/CounselingCalendar';
 import CounselorList from '../components/CounselorList';
 import AvailableTimeSlots from '../components/AvailableTimeSlots';
 import { useApplyCounseling } from '../hooks/useApplyCounseling';
+import type { ServerStudentCounselingData } from '../getServerCounselingData';
+
+interface ApplyCounselingTabProps {
+   initialData?: ServerStudentCounselingData;
+}
 
 // 훈련생 "상담 신청" 탭
 // 운영진 선택 → 달력에서 상담 가능일 선택 → 가능 시간 선택 → 주제·내용 입력 → 신청하기(확인 모달) → 신청
-export default function ApplyCounselingTab() {
+export default function ApplyCounselingTab({ initialData }: ApplyCounselingTabProps) {
    const {
       counselors,
       isLoadingCounselors,
@@ -36,7 +41,7 @@ export default function ApplyCounselingTab() {
       closeConfirm,
       isSubmitting,
       confirmSubmit,
-   } = useApplyCounseling();
+   } = useApplyCounseling(initialData);
 
    if (isLoadingCounselors) {
       return (

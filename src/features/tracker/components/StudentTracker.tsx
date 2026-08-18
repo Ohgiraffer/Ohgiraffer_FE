@@ -15,6 +15,7 @@ import {
 } from '../types';
 import AttendanceStatRow from './AttendanceStatRow';
 import MonthAttendanceCalendar from './MonthAttendanceCalendar';
+import type { ServerStudentTrackerData } from '../getServerStudentTrackerData';
 
 // 오늘 출결 상태 배지 색상 - 달력 범례와 같은 규칙(정상 초록 / 지각·조퇴·외출 분홍 / 결석 빨강)
 const TODAY_STATUS_BADGE_CLASSES: Record<AttendanceColorGroup, string> = {
@@ -26,8 +27,12 @@ const TODAY_STATUS_BADGE_CLASSES: Record<AttendanceColorGroup, string> = {
 // 출석률 필터 - 'ALL'이면 전체 기간, 숫자면 그 단위기간(periodNo)만
 type RateFilter = 'ALL' | number;
 
+interface StudentTrackerProps {
+   initialData?: ServerStudentTrackerData;
+}
+
 // 훈련생 본인 화면 - "내 훈련 현황"
-export default function StudentTracker() {
+export default function StudentTracker({ initialData }: StudentTrackerProps) {
    const [rateFilter, setRateFilter] = useState<RateFilter>('ALL');
    const {
       overview,
@@ -38,7 +43,7 @@ export default function StudentTracker() {
       setCurrentDate,
       records,
       recordsError,
-   } = useAttendanceOverview();
+   } = useAttendanceOverview(undefined, initialData);
 
    if (isLoadingOverview) {
       return (

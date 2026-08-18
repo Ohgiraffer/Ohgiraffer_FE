@@ -24,13 +24,23 @@ import CategoryManageModal from './CategoryManageModal';
 
 const PAGE_SIZE = 6;
 
-export default function NoticesPageClient() {
+interface NoticesPageClientProps {
+   // notices/page.tsx가 서버에서 미리 불러와 넘겨주는 초기 데이터 - 없으면(캐시 히트, 검증 실패
+   // 등) 지금처럼 클라이언트에서 직접 불러온다
+   initialCategories?: NoticeCategory[];
+   initialNotices?: NoticeListItem[];
+}
+
+export default function NoticesPageClient({
+   initialCategories,
+   initialNotices,
+}: NoticesPageClientProps) {
    const router = useRouter();
    const queryClient = useQueryClient();
    const { role } = useAuth();
    const canManageCategories = role === 'INSTRUCTOR' || role === 'MANAGER';
    const canWriteNotice = role === 'INSTRUCTOR' || role === 'MANAGER';
-   
+
    const {
       data: categories = [],
       isLoading: isLoadingCategories,
@@ -38,10 +48,13 @@ export default function NoticesPageClient() {
    } = useQuery({
       queryKey: ['noticeCategories'],
       queryFn: getNoticeCategories,
+      initialData: initialCategories,
    });
-   const [notices, setNotices] = useState<NoticeListItem[]>([]);
-   const [isLoadingNotices, setIsLoadingNotices] = useState(true);
+   const [notices, setNotices] = useState<NoticeListItem[]>(initialNotices ?? []);
+   const [isLoadingNotices, setIsLoadingNotices] = useState(!initialNotices);
    const [hasNoticesError, setHasNoticesError] = useState(false);
+   // 서버가 이미 initialNotices를 넘겨줬으면, 마운트 시점의 첫 조회 한 번은 건너뛴다
+   const skipInitialFetchRef = useRef(initialNotices != null);
    const [activeCategoryId, setActiveCategoryId] = useState<number | 'all'>('all');
    const [keyword, setKeyword] = useState('');
    const [currentPage, setCurrentPage] = useState(1);
@@ -68,6 +81,10 @@ export default function NoticesPageClient() {
    }, [categories]);
 
    useEffect(() => {
+      if (skipInitialFetchRef.current) {
+         skipInitialFetchRef.current = false;
+         return;
+      }
       let isMounted = true;
 
       getNotices()

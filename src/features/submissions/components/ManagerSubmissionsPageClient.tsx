@@ -6,6 +6,7 @@ import ConfirmModal from '@/components/ui/ConfirmModal';
 import { hasUnsavedChanges } from '@/lib/navigationGuard';
 import BoxesTab from './BoxesTab/BoxesTab';
 import FormsTab from './FormsTab/FormsTab';
+import type { ServerSubmissionsData } from '../getServerSubmissionsData';
 
 type Tab = 'boxes' | 'forms';
 
@@ -14,8 +15,14 @@ const TABS: Array<{ key: Tab; label: string }> = [
    { key: 'forms', label: '설문·평가 폼' },
 ];
 
+interface ManagerSubmissionsPageClientProps {
+   initialData?: ServerSubmissionsData;
+}
+
 // 운영진(강사·매니저) 전용 "제출물 관리"
-export default function ManagerSubmissionsPageClient() {
+export default function ManagerSubmissionsPageClient({
+   initialData,
+}: ManagerSubmissionsPageClientProps) {
    const router = useRouter();
    const searchParams = useSearchParams();
    const [tab, setTab] = useState<Tab>(searchParams.get('tab') === 'forms' ? 'forms' : 'boxes');
@@ -82,9 +89,17 @@ export default function ManagerSubmissionsPageClient() {
 
          <div className="mt-6">
             {tab === 'boxes' ? (
-               <BoxesTab isCreating={isCreating} onCreatingChange={setIsCreating} />
+               <BoxesTab
+                  isCreating={isCreating}
+                  onCreatingChange={setIsCreating}
+                  initialBoxes={initialData?.initialBoxes}
+               />
             ) : (
-               <FormsTab isCreating={isCreating} onCreatingChange={setIsCreating} />
+               <FormsTab
+                  isCreating={isCreating}
+                  onCreatingChange={setIsCreating}
+                  initialForms={initialData?.initialForms}
+               />
             )}
          </div>
 

@@ -18,6 +18,7 @@ import StatusBadge from '@/features/submissions/components/StatusBadge';
 import { useManagerTrackerData } from '../hooks/useManagerTrackerData';
 import { TRAINEE_RISK_LABELS, TRAINEE_RISK_TONES, type TraineeRiskStatus } from '../types';
 import AttendanceTrendChart from '../components/AttendanceTrendChart';
+import type { ServerManagerTrackerData } from '../getServerManagerTrackerData';
 
 const PAGE_SIZE = 5;
 
@@ -100,9 +101,10 @@ function StatusTabSkeleton() {
 
 interface StatusTabProps {
    onGoToSheetSync: () => void;
+   initialData?: ServerManagerTrackerData;
 }
 
-export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
+export default function StatusTab({ onGoToSheetSync, initialData }: StatusTabProps) {
    const router = useRouter();
    const {
       stats,
@@ -117,7 +119,7 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
       selectedPeriodId,
       changePeriod,
       retryTrend,
-   } = useManagerTrackerData();
+   } = useManagerTrackerData(initialData);
    const [riskFilter, setRiskFilter] = useState<TraineeRiskStatus | 'ALL'>('ALL');
    const [dangerOnly, setDangerOnly] = useState<'ALL' | 'AT_RISK'>('ALL');
    const [teamFilter, setTeamFilter] = useState('ALL');

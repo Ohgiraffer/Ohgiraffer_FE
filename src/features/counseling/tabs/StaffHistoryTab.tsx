@@ -16,6 +16,7 @@ import {
    type ConsultationStatusFilter,
    type CounselorRoleFilter,
 } from '../hooks/useStaffCounselingHistory';
+import type { ServerStaffCounselingData } from '../getServerCounselingData';
 
 const ROLE_FILTER_OPTIONS: Array<{ value: CounselorRoleFilter; label: string }> = [
    { value: 'ALL', label: '전체' },
@@ -62,8 +63,12 @@ function StaffConsultationRowSkeleton({
    );
 }
 
+interface StaffHistoryTabProps {
+   initialData?: ServerStaffCounselingData;
+}
+
 // 운영진 "상담 이력 조회" 탭
-export default function StaffHistoryTab() {
+export default function StaffHistoryTab({ initialData }: StaffHistoryTabProps) {
    const {
       upcoming,
       pagedUpcoming,
@@ -83,7 +88,7 @@ export default function StaffHistoryTab() {
       setRoleFilter,
       statusFilter,
       setStatusFilter,
-   } = useStaffCounselingHistory();
+   } = useStaffCounselingHistory(initialData);
 
    const handleRoleFilterChange = (value: CounselorRoleFilter | null) => {
       if (!value) return;

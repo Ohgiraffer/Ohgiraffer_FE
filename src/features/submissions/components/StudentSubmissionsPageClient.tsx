@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronRight, TriangleAlert } from 'lucide-react';
 import { getSubmissionBoxes } from '@/services/submissionBox.service';
@@ -8,6 +8,8 @@ import { getSurveyForms } from '@/services/surveyForm.service';
 import { SkeletonListRow } from '@/components/ui/loading/Skeleton';
 import StatusBadge from './StatusBadge';
 import { formatDateTime, formatDday } from '../formatSubmissionDate';
+import type { ServerSubmissionsData } from '../getServerSubmissionsData';
+import type { SubmissionBoxListItem, SurveyFormListItem } from '../types';
 
 interface MergedItem {
    key: string;
@@ -20,15 +22,61 @@ interface MergedItem {
    secondaryDate: string;
 }
 
-export default function StudentSubmissionsPageClient() {
+// 초기 렌더(프리페치된 초기값 시딩)와 이후 재조회 양쪽에서 같은 병합·정렬을 써야 어긋나지 않는다
+function mergeSubmissionItems(
+   boxes: SubmissionBoxListItem[],
+   forms: SurveyFormListItem[],
+): MergedItem[] {
+   const merged: MergedItem[] = [
+      ...boxes.map((box) => ({
+         key: `box-${box.submissionBoxId}`,
+         type: 'box' as const,
+         id: box.submissionBoxId,
+         title: box.projectName,
+         dueAt: box.dueAt,
+         isDone: !!box.submitted,
+         secondaryDate: box.startAt,
+      })),
+      ...forms.map((form) => ({
+         key: `form-${form.surveyFormId}`,
+         type: 'form' as const,
+         id: form.surveyFormId,
+         title: form.title,
+         dueAt: form.dueAt,
+         isDone: !!form.responded,
+         secondaryDate: form.createdAt,
+      })),
+   ];
+   merged.sort((a, b) => {
+      if (a.isDone !== b.isDone) return a.isDone ? 1 : -1;
+      return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
+   });
+   return merged;
+}
+
+interface StudentSubmissionsPageClientProps {
+   initialData?: ServerSubmissionsData;
+}
+
+export default function StudentSubmissionsPageClient({
+   initialData,
+}: StudentSubmissionsPageClientProps) {
    const router = useRouter();
-   const [items, setItems] = useState<MergedItem[] | null>(null);
+   const [items, setItems] = useState<MergedItem[] | null>(() =>
+      initialData ? mergeSubmissionItems(initialData.initialBoxes, initialData.initialForms) : null,
+   );
    const [hasError, setHasError] = useState(false);
    // 제출함/설문 중 하나만 조회 실패했을 때 - 성공한 목록은 보여주되 누락을 알려준다
    const [partialError, setPartialError] = useState(false);
    const [reloadKey, setReloadKey] = useState(0);
+   // 서버가 이미 initialData를 넘겨줬으면, 마운트 시점의 첫 조회 한 번은 건너뛴다
+   const skipInitialFetchRef = useRef(initialData != null);
 
    useEffect(() => {
+      if (skipInitialFetchRef.current) {
+         skipInitialFetchRef.current = false;
+         return;
+      }
       let isMounted = true;
       // 제출함/설문 중 한쪽 조회가 실패해도, 성공한 쪽은 그대로 보여준다 (둘 다 실패했을 때만 전체 오류 처리)
       Promise.allSettled([getSubmissionBoxes(), getSurveyForms()]).then((results) => {
@@ -41,31 +89,7 @@ export default function StudentSubmissionsPageClient() {
          setPartialError(boxesResult.status === 'rejected' || formsResult.status === 'rejected');
          const boxes = boxesResult.status === 'fulfilled' ? boxesResult.value : [];
          const forms = formsResult.status === 'fulfilled' ? formsResult.value : [];
-         const merged: MergedItem[] = [
-            ...boxes.map((box) => ({
-               key: `box-${box.submissionBoxId}`,
-               type: 'box' as const,
-               id: box.submissionBoxId,
-               title: box.projectName,
-               dueAt: box.dueAt,
-               isDone: !!box.submitted,
-               secondaryDate: box.startAt,
-            })),
-            ...forms.map((form) => ({
-               key: `form-${form.surveyFormId}`,
-               type: 'form' as const,
-               id: form.surveyFormId,
-               title: form.title,
-               dueAt: form.dueAt,
-               isDone: !!form.responded,
-               secondaryDate: form.createdAt,
-            })),
-         ];
-         merged.sort((a, b) => {
-            if (a.isDone !== b.isDone) return a.isDone ? 1 : -1;
-            return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
-         });
-         setItems(merged);
+         setItems(mergeSubmissionItems(boxes, forms));
       });
       return () => {
          isMounted = false;

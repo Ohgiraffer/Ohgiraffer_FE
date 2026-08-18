@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import StatusTab from '../tabs/StatusTab';
 import SheetSyncTab from '../tabs/SheetSyncTab';
+import type { ServerManagerTrackerData } from '../getServerManagerTrackerData';
 
 type TabKey = 'status' | 'sheet-sync';
 
@@ -11,8 +12,12 @@ const TABS: Array<{ key: TabKey; label: string }> = [
    { key: 'sheet-sync', label: '연동 설정' },
 ];
 
+interface ManagerTrackerBoardProps {
+   initialData?: ServerManagerTrackerData;
+}
+
 // 운영진(강사·매니저) 전용 - "훈련생 관리". 현황/연동 설정 탭으로 구성
-export default function ManagerTrackerBoard() {
+export default function ManagerTrackerBoard({ initialData }: ManagerTrackerBoardProps) {
    const [activeTab, setActiveTab] = useState<TabKey>('status');
 
    return (
@@ -37,7 +42,9 @@ export default function ManagerTrackerBoard() {
          </div>
 
          <div className="mt-6">
-            {activeTab === 'status' && <StatusTab onGoToSheetSync={() => setActiveTab('sheet-sync')} />}
+            {activeTab === 'status' && (
+               <StatusTab onGoToSheetSync={() => setActiveTab('sheet-sync')} initialData={initialData} />
+            )}
             {activeTab === 'sheet-sync' && <SheetSyncTab />}
          </div>
       </div>
