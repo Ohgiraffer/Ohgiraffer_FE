@@ -44,9 +44,11 @@ export function useNotificationSse(onEvent: () => void, enabled: boolean) {
                es.onopen = () => {
                   onEventRef.current();
                };
-               es.onmessage = () => {
+               // 서버가 이름 없는 기본("message") 이벤트가 아니라 event: notification으로 보내서,
+               // onmessage(= addEventListener('message', ...))로는 이 이벤트를 못 받는다
+               es.addEventListener('notification', () => {
                   onEventRef.current();
-               };
+               });
                es.onerror = () => {
                   es.close();
                   if (source === es) source = null;
