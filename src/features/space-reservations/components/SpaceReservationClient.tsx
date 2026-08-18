@@ -10,9 +10,16 @@ import SpaceListView from './SpaceListView';
 import SpaceManagePanel from './SpaceManagePanel';
 import { useSpaceReservation } from '../hooks/useSpaceReservation';
 import { useSidePanel } from '@/components/layout/SidePanelContext';
+import type { Space } from '../types';
+
+interface SpaceReservationClientProps {
+   // space-reservations/page.tsx가 서버에서 미리 불러와 넘겨주는 초기 데이터 - 없으면(캐시 히트,
+   // 검증 실패 등) 지금처럼 클라이언트에서 직접 불러온다
+   initialSpaces?: Space[];
+}
 
 // 공간 예약(자리 현황) 페이지
-export default function SpaceReservationClient() {
+export default function SpaceReservationClient({ initialSpaces }: SpaceReservationClientProps) {
    const { role } = useAuth();
    const canManageSpaces = role === 'INSTRUCTOR' || role === 'MANAGER';
    const {
@@ -30,7 +37,7 @@ export default function SpaceReservationClient() {
       isChangingLocation,
       addSpace,
       removeSpace,
-   } = useSpaceReservation();
+   } = useSpaceReservation(initialSpaces);
    const { isOpen: isManagePanelOpen, open: openManagePanel, close: closeManagePanel } =
       useSidePanel('space-manage');
 
