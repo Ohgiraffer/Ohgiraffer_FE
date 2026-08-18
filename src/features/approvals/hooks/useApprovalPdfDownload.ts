@@ -8,6 +8,7 @@ import {
    downloadApprovalPdf,
    type ApprovalRequestType,
 } from '@/services/approval.service';
+import { getSignature } from '@/services/signature.service';
 
 type Options = {
    onAssigned?: (approvalId: number) => void;
@@ -24,15 +25,44 @@ function triggerBlobDownload(blob: Blob, filename: string | null) {
    URL.revokeObjectURL(url);
 }
 
+// 서명 등록 여부 확인 자체가 실패하면(네트워크 오류 등) 이 체크 때문에 결재 처리 흐름을
+// 막지 않도록 등록된 것으로 간주하고 넘어간다 - 404(미등록)일 때만 명확히 false를 반환
+async function hasRegisteredSignature(): Promise<boolean> {
+   try {
+      await getSignature();
+      return true;
+   } catch (err) {
+      if (err instanceof ApiError && err.status === 404) return false;
+      return true;
+   }
+}
+
 export function useApprovalPdfDownload({ onAssigned }: Options = {}) {
    const [pending, setPending] = useState<PendingRequest>(null);
    const [isSubmitting, setIsSubmitting] = useState(false);
    const isSubmittingRef = useRef(false);
+   // 서명 등록 여부를 조회하는 동안 같은/다른 행을 연타해도 중복 조회·중복 토스트·요청
+   // 순서 뒤바뀜으로 엉뚱한 행의 모달이 열리는 걸 막는 가드
+   const isCheckingSignatureRef = useRef(false);
 
    const assignedApprovalIdRef = useRef<number | null>(null);
 
-   const openConfirm = (approvalId: number, requestType: ApprovalRequestType) =>
+   const openConfirm = async (approvalId: number, requestType: ApprovalRequestType) => {
+      if (isCheckingSignatureRef.current) return;
+
+      if (requestType === 'LEAVE') {
+         isCheckingSignatureRef.current = true;
+         try {
+            if (!(await hasRegisteredSignature())) {
+               toast.warning('등록된 전자 서명 파일이 없어 PDF 다운로드가 불가능합니다.');
+               return;
+            }
+         } finally {
+            isCheckingSignatureRef.current = false;
+         }
+      }
       setPending({ approvalId, requestType });
+   };
 
    const closeConfirm = () => {
       if (isSubmittingRef.current) return;
