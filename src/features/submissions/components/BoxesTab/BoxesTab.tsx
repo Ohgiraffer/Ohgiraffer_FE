@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { Skeleton, SkeletonListRow } from '@/components/ui/loading/Skeleton';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
 import {
@@ -9,9 +11,20 @@ import {
    getSubmissionBoxes,
    getSubmissionBoxSubmissions,
 } from '@/services/submissionBox.service';
-import BoxCreateForm, { type EditableBox } from './BoxCreateForm';
+import type { EditableBox } from './BoxCreateForm';
 import BoxListTable from './BoxListTable';
 import type { SubmissionBoxListItem } from '../../types';
+
+// 생성/수정 버튼을 눌러야만 필요한 날짜선택 폼이라 지연 로딩한다
+const BoxCreateForm = dynamic(() => import('./BoxCreateForm'), {
+   ssr: false,
+   loading: () => (
+      <div className="mb-4 rounded-sm border border-[#E5E7EB] bg-white p-6">
+         <Skeleton width="40%" height={20} className="rounded-md" />
+         <Skeleton width="100%" height={160} className="mt-4 rounded-md" />
+      </div>
+   ),
+});
 
 interface BoxesTabProps {
    isCreating: boolean;
@@ -138,7 +151,11 @@ export default function BoxesTab({ isCreating, onCreatingChange }: BoxesTabProps
          )}
 
          {isLoading ? (
-            <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+            <div className="mt-4 overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
+               {[0, 1, 2, 3].map((i) => (
+                  <SkeletonListRow key={i} index={i} />
+               ))}
+            </div>
          ) : hasError ? (
             <div className="flex flex-col items-center gap-3 py-16">
                <p className="text-sm text-gray-400">

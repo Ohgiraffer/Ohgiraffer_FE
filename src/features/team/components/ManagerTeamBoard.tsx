@@ -1,9 +1,12 @@
 'use client';
 
 import { useMemo, useRef, useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Clock, Plus } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
 import { useLeaveGuard } from '@/lib/hooks/useLeaveGuard';
@@ -18,7 +21,6 @@ import TeamCard from './TeamCard';
 import UnassignedPanel from './UnassignedPanel';
 import TeamAddCard from './TeamAddCard';
 import TeamPeriodTabs from './TeamPeriodTabs';
-import TeamPeriodAddModal from './TeamPeriodAddModal';
 import type {
    DraftTeam,
    Team,
@@ -36,11 +38,27 @@ interface MemberInfo {
    originalTeamId: number | null;
 }
 
+// 기간 추가/수정 버튼을 누를 때만 필요한 날짜선택 모달이라 지연 로딩
+const TeamPeriodAddModal = dynamic(() => import('./TeamPeriodAddModal'), { ssr: false });
+
 export default function ManagerTeamBoard() {
-   const [periods, setPeriods] = useState<TeamPeriod[]>([]);
-   const [isLoadingPeriods, setIsLoadingPeriods] = useState(true);
-   const [periodsError, setPeriodsError] = useState(false);
+   const queryClient = useQueryClient();
+   // StudentTeamView/TeamHistoryPageClient와 같은 queryKey를 써서 캐시를 공유
+   const {
+      data: periods = [],
+      isLoading: isLoadingPeriods,
+      isError: periodsError,
+   } = useQuery({
+      queryKey: ['teamPeriods'],
+      queryFn: getTeamPeriods,
+   });
    const [activePeriodId, setActivePeriodId] = useState<number | null>(null);
+   // 기간 목록이 도착하면 마지막(최신) 기간을 기본 선택한다 - 한 번만 시딩한다
+   const [hasSeededActivePeriod, setHasSeededActivePeriod] = useState(false);
+   if (!hasSeededActivePeriod && periods.length > 0) {
+      setHasSeededActivePeriod(true);
+      setActivePeriodId(periods[periods.length - 1].teamPeriodId);
+   }
    const [isPeriodAddOpen, setIsPeriodAddOpen] = useState(false);
    const [editingPeriod, setEditingPeriod] = useState<TeamPeriod | null>(null);
    const [deletingPeriod, setDeletingPeriod] = useState<TeamPeriod | null>(null);
@@ -67,36 +85,12 @@ export default function ManagerTeamBoard() {
    const isSavingRef = useRef(false);
    const [isDeletingPeriod, setIsDeletingPeriod] = useState(false);
 
-   // 1) 편성 기간 목록 - 최초 1회만 조회, 없으면 마지막(최신) 기간을 기본 선택
+   // 2) 선택된 기간의 팀/미배정 목록
    useEffect(() => {
-      let isMounted = true;
-      getTeamPeriods()
-         .then((result) => {
-            if (!isMounted) return;
-            setPeriods(result);
-            setActivePeriodId(result.length > 0 ? result[result.length - 1].teamPeriodId : null);
-         })
-         .catch(() => {
-            if (isMounted) setPeriodsError(true);
-         })
-         .finally(() => {
-            if (isMounted) setIsLoadingPeriods(false);
-         });
-      return () => {
-         isMounted = false;
-      };
-   }, []);
-
-   // 2) 선택된 기간의 팀/미배정 목록 - 기간이 바뀌거나 저장 성공(reloadKey) 후 다시 불러오고,
-   // 매번 초안을 서버 값으로 완전히 리셋한다(개별 API가 없어져 "초안 유지한 채 일부만 갱신"할 일이 없음)
-   useEffect(() => {
-      // activePeriodId가 null인 건 아직 기간 목록 로딩 중이거나(그때는 상위 isLoadingPeriods
-      // 분기가 화면을 대신 채움) 기간이 아예 없는 경우(그때는 빈 상태 분기가 이 섹션을 안 그림)뿐이라,
-      // 이 effect가 실제로 렌더링되는 상황에서는 도달하지 않는다 - 여기선 그냥 아무 것도 안 하고 끝낸다
       if (activePeriodId == null) return;
       let isMounted = true;
-      // isLoading/hasError는 이 effect가 아니라, activePeriodId/reloadKey를 바꾸는
-      // 이벤트 핸들러 쪽(switchPeriod/reloadTeams)에서 미리 세팅한다
+      // isLoading/hasError는 이 effect가 아니라,
+      // activePeriodId/reloadKey를 바꾸는 이벤트 핸들러 쪽(switchPeriod/reloadTeams)에서 미리 세팅
       Promise.all([getTeams(activePeriodId), getUnassignedStudents(activePeriodId)])
          .then(([teamsResult, unassignedResult]) => {
             if (!isMounted) return;
@@ -119,7 +113,7 @@ export default function ManagerTeamBoard() {
                });
             });
             unassignedResult.forEach((student) => {
-               // 서버가 내려준 팀 배정 정보가 이미 있으면 그걸 우선한다(두 응답이 불일치할 경우의 방어)
+               // 서버가 내려준 팀 배정 정보가 이미 있으면 그걸 우선함(두 응답이 불일치할 경우의 방어)
                if (student.userId in next) return;
                next[student.userId] = null;
             });
@@ -150,8 +144,8 @@ export default function ManagerTeamBoard() {
          });
       });
       unassigned.forEach((student) => {
-         // 서버가 내려준 팀 배정 정보가 이미 있으면 그걸 우선한다(두 응답이 불일치할 경우의 방어) -
-         // 안 그러면 isDirty 계산이 틀어지고 저장 payload에서 이 학생이 팀에서 빠질 수 있다
+         // 서버가 내려준 팀 배정 정보가 이미 있으면 그걸 우선함(두 응답이 불일치할 경우의 방어)
+         // 안 그러면 isDirty 계산이 틀어지고 저장 payload에서 이 학생이 팀에서 빠질 수 있음
          if (map.has(student.userId)) return;
          map.set(student.userId, {
             userId: student.userId,
@@ -195,15 +189,13 @@ export default function ManagerTeamBoard() {
       return memberDirty;
    }, [deletedTeamIds, draftTeams, serverTeams, memberInfoByUserId, draftAssignment]);
 
-   // 저장 안 한 변경사항이 있는 채로 화면을 떠나려는 시도(사이드바 이동, 새로고침/탭 닫기, 뒤로가기,
-   // 기간 탭 전환)를 공통으로 가드한다
    const { guardedAction, isLeaveConfirmOpen, onConfirmLeave, onCancelLeave } = useLeaveGuard(isDirty);
 
    const moveDraft = (userId: number, targetTeamId: number | null) => {
       setDraftAssignment((prev) => ({ ...prev, [userId]: targetTeamId }));
    };
 
-   // 팀 하나만 수정하는 API가 더 이상 없어(일괄 저장뿐), 이름 변경도 초안으로만 남았다가 저장 시 반영된다
+   // 팀 하나만 수정하는 API가 더 이상 없어(일괄 저장뿐), 이름 변경도 초안으로만 남았다가 저장 시 반영
    const handleRename = (teamId: number, name: string) => {
       setDraftTeams((prev) => prev.map((t) => (t.teamId === teamId ? { ...t, name } : t)));
    };
@@ -213,8 +205,8 @@ export default function ManagerTeamBoard() {
       [periods, activePeriodId],
    );
 
-   // activePeriodId/reloadKey를 바꿔 재조회 effect를 트리거하는 곳들은, effect 본문이 아니라
-   // 여기(호출 시점)에서 로딩 상태를 미리 세팅한다(effect 안에서 동기 setState를 피하기 위함)
+   // activePeriodId/reloadKey를 바꿔 재조회 effect를 트리거하는 곳들은, 
+   // effect 본문이 아니라 여기(호출 시점)에서 로딩 상태를 미리 세팅(effect 안에서 동기 setState를 피하기 위함)
    const switchPeriod = (periodId: number) => {
       setIsLoading(true);
       setHasError(false);
@@ -242,7 +234,7 @@ export default function ManagerTeamBoard() {
       ]);
    };
 
-   // 팀원이 있으면(TeamCard에서 인라인 확인을 거친 뒤) 전원 미배정으로 보내고 삭제한다
+   // 팀원이 있으면(TeamCard에서 인라인 확인을 거친 뒤) 전원 미배정으로 보내고 삭제
    const handleDeleteTeam = (teamId: number) => {
       setDraftTeams((prev) => prev.filter((t) => t.teamId !== teamId));
       if (teamId >= 0) {
@@ -262,7 +254,7 @@ export default function ManagerTeamBoard() {
       setIsPeriodAddOpen(false);
       const wasEditing = !!editingPeriod;
       setEditingPeriod(null);
-      setPeriods((prev) => {
+      queryClient.setQueryData<TeamPeriod[]>(['teamPeriods'], (prev = []) => {
          const exists = prev.some((p) => p.teamPeriodId === period.teamPeriodId);
          return exists
             ? prev.map((p) => (p.teamPeriodId === period.teamPeriodId ? period : p))
@@ -271,9 +263,9 @@ export default function ManagerTeamBoard() {
       if (!wasEditing) {
          guardedAction(() => switchPeriod(period.teamPeriodId));
       } else if (period.teamPeriodId === activePeriodId) {
-         // 팀 카드에 표시되는 시작/종료일은 기간 편성 시점에 서버에서 물려받은 값이라, 기간의
-         // 날짜만 바뀌었을 땐 그 값만 로컬에서 갱신한다 - reloadTeams()로 재조회하면 진행 중인
-         // 팀 구성 초안(이름 변경/삭제/팀원 이동)까지 서버 값으로 통째로 리셋돼버린다
+         // 팀 카드에 표시되는 시작/종료일은 기간 편성 시점에 서버에서 물려받은 값이라, \
+         // 기간의 날짜만 바뀌었을 땐 그 값만 로컬에서 갱신
+         // reloadTeams()로 재조회하면 진행 중인 팀 구성 초안(이름 변경/삭제/팀원 이동)까지 서버 값으로 통째로 리셋됨
          setDraftTeams((prev) =>
             prev.map((t) => ({ ...t, startDate: period.startDate, endDate: period.endDate })),
          );
@@ -305,15 +297,13 @@ export default function ManagerTeamBoard() {
          const deletedId = deletingPeriod.teamPeriodId;
          const remaining = periods.filter((p) => p.teamPeriodId !== deletedId);
          setDeletingPeriod(null);
-         setPeriods(remaining);
+         queryClient.setQueryData(['teamPeriods'], remaining);
          if (deletedId === activePeriodId) {
             if (remaining.length > 0) {
                switchPeriod(remaining[remaining.length - 1].teamPeriodId);
             } else {
                setActivePeriodId(null);
-               // 마지막 기간을 삭제했으니 이 기간에 속했던 팀 구성 초안/서버 데이터도 함께
-               // 비운다 - 안 그러면 이후 새 기간을 추가할 때 isDirty가 낡은 값 때문에 true가
-               // 되거나, 기간 전환을 취소했을 때 새 기간 화면에 삭제된 기간의 팀 구성이 표시된다
+               // 마지막 기간을 삭제했으니 이 기간에 속했던 팀 구성 초안/서버 데이터도 함께 비움
                setServerTeams([]);
                setDraftTeams([]);
                setDeletedTeamIds([]);
@@ -335,7 +325,7 @@ export default function ManagerTeamBoard() {
 
    const handleSaveClick = () => {
       if (!isDirty) return;
-      // 매번 새로 열 때마다 기본값(체크)으로 시작한다
+      // 매번 새로 열 때마다 기본값(체크)으로 시작
       setCreateChatChannel(true);
       setCreateNotionPage(true);
       setIsSaveConfirmOpen(true);
@@ -346,8 +336,9 @@ export default function ManagerTeamBoard() {
       isSavingRef.current = true;
       setIsSaving(true);
 
-      // payload 구성까지 try 안에 넣어야 한다 - 밖에 있으면 여기서 예외가 났을 때 finally를
-      // 못 타서 isSavingRef가 true로 눌러붙어, 이후로는 저장 버튼을 눌러도 조용히 아무 반응이 없어진다
+      // payload 구성까지 try 안에 넣어야 함
+      // 밖에 있으면 여기서 예외가 났을 때 finally를 못 타서 isSavingRef가 true로 눌러붙어, 
+      // 이후로는 저장 버튼을 눌러도 조용히 아무 반응이 없어짐
       try {
          const teamsPayload: TeamConfigurationTeamInput[] = draftTeams.map((t) => ({
             teamId: t.teamId < 0 ? null : t.teamId,
@@ -359,7 +350,7 @@ export default function ManagerTeamBoard() {
             teamPeriodId: activePeriodId,
             teams: teamsPayload,
             deletedTeamIds: deletedTeamIds.length > 0 ? deletedTeamIds : undefined,
-            // 저장 시점의 미배정 패널 전체를 매번 그대로 보낸다(생략하지 않음)
+            // 저장 시점의 미배정 패널 전체를 매번 그대로 보냄(생략하지 않음)
             unassignedUserIds: membersByTeamId.unassignedList.map((m) => m.userId),
             createChatChannel,
             createNotionPage,
@@ -384,7 +375,25 @@ export default function ManagerTeamBoard() {
    if (isLoadingPeriods) {
       return (
          <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
-            <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+            <div className="flex items-center justify-between">
+               <Skeleton width={100} height={28} className="rounded-md" />
+               <div className="flex items-center gap-2">
+                  <Skeleton width={90} height={36} className="rounded-xs" />
+                  <Skeleton width={64} height={36} className="rounded-xs" />
+               </div>
+            </div>
+            <div className="mt-5 flex gap-4 border-b border-gray-200 pb-3">
+               <Skeleton width={64} height={20} className="rounded-md" />
+               <Skeleton width={64} height={20} className="rounded-md" />
+            </div>
+            <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
+               <Skeleton width="100%" height={280} className="rounded-xs" />
+               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {[0, 1, 2].map((i) => (
+                     <Skeleton key={i} width="100%" height={220} className="rounded-xs" />
+                  ))}
+               </div>
+            </div>
          </div>
       );
    }
@@ -434,8 +443,7 @@ export default function ManagerTeamBoard() {
             </div>
          ) : (
             <>
-               {/* 이 페이지만 제목과 같은 줄에 "이력 보기"/"저장" 버튼이 있어 탭이 다른 페이지보다
-                   낮아 보인다 - 6px 끌어올려 시각적으로 맞춘다 */}
+               {/* 이 페이지만 제목과 같은 줄에 "이력 보기"/"저장" 버튼 있으므로 6px 끌어올려 시각적으로 맞춘다 */}
                <div className="-mt-1.5">
                   <TeamPeriodTabs
                      periods={periods}
@@ -457,7 +465,14 @@ export default function ManagerTeamBoard() {
                </div>
 
                {isLoading ? (
-                  <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+                  <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
+                     <Skeleton width="100%" height={280} className="rounded-xs" />
+                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        {[0, 1, 2].map((i) => (
+                           <Skeleton key={i} width="100%" height={220} className="rounded-xs" />
+                        ))}
+                     </div>
+                  </div>
                ) : hasError ? (
                   <div className="flex flex-col items-center gap-3 py-16">
                      <p className="text-sm text-gray-400">팀 정보를 불러오지 못했습니다.</p>

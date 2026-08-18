@@ -267,7 +267,7 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
             제출함 상세로
          </Link>
 
-         <div className="mt-5 grid grid-cols-[1fr_1.4fr] gap-6">
+         <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.4fr]">
             <div className="rounded-sm border border-[#E5E7EB] bg-white p-6">
                <h1 className="text-lg font-bold text-gray-900">{detail.projectName}</h1>
                <p className="mt-1 text-xs text-gray-400">
@@ -318,7 +318,7 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
             </div>
 
             <div className="rounded-sm border border-[#E5E7EB] bg-white p-6">
-               <div className="flex items-center justify-between">
+               <div className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className="text-sm font-bold text-gray-900">제출 항목</h2>
                   <div className="flex items-center gap-2">
                      {isEditing && (
@@ -343,8 +343,8 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
 
                      return (
                         <div key={item.submissionBoxItemId}>
-                           <div className="flex items-center justify-between">
-                              <span className="flex items-center gap-1.5 text-sm text-gray-700">
+                           <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                              <span className="flex flex-wrap items-center gap-1.5 text-sm text-gray-700">
                                  {item.itemName}
                                  {item.required ? (
                                     <span className="font-bold text-brand-gold">*</span>
@@ -356,7 +356,7 @@ export default function StudentBoxSubmitClient({ boxId }: StudentBoxSubmitClient
                                  </span>
                               </span>
                               <span
-                                 className={`text-xs ${filled ? 'text-brand-green' : 'text-gray-400'}`}
+                                 className={`shrink-0 text-xs ${filled ? 'text-brand-green' : 'text-gray-400'}`}
                               >
                                  {filled ? '입력됨' : '미입력'}
                               </span>

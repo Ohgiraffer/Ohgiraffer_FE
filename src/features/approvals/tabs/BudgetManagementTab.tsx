@@ -5,7 +5,7 @@ import BudgetDashboardSummary from '../components/BudgetDashboardSummary';
 import { BUDGET_SHEET_COLUMNS, useBudgetManagement } from '../hooks/useBudgetManagement';
 
 export default function BudgetManagementTab() {
-   const { summary, isLoading, isConnected, spreadsheetUrl, handleSaveMapping } =
+   const { summary, isLoading, isConnected, spreadsheetUrl, columnMapping, handleSaveMapping } =
       useBudgetManagement();
 
    if (isLoading) {
@@ -18,7 +18,11 @@ export default function BudgetManagementTab() {
          <GoogleSheetSync
             columns={BUDGET_SHEET_COLUMNS}
             onSave={handleSaveMapping}
-            initialConnection={isConnected ? { spreadsheetUrl } : undefined}
+            initialConnection={
+               isConnected && columnMapping
+                  ? { spreadsheetUrl, columnMapping: columnMapping as unknown as Record<string, string> }
+                  : undefined
+            }
          />
       </div>
    );

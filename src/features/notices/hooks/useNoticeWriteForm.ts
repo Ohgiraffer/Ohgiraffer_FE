@@ -118,6 +118,13 @@ export function useNoticeWriteForm(noticeId?: number, initialNotice?: NoticeDeta
    };
 
    const addFiles = (newFiles: File[]) => {
+      // 형식/용량 검증은 작성 모드와 동일하게 여기서 먼저 하고, 통과한 파일만 모드별로 처리한다
+      const invalidFile = findInvalidAttachmentFile(newFiles);
+      if (invalidFile) {
+         toast.error(`${invalidFile.name}: ${getAttachmentFileError(invalidFile)}`);
+         return;
+      }
+
       if (noticeId) {
          const activeExistingCount = existingAttachments.filter(
             (attachment) => !pendingDeleteIds.has(attachment.noticeAttachmentId),
@@ -128,12 +135,6 @@ export function useNoticeWriteForm(noticeId?: number, initialNotice?: NoticeDeta
             return;
          }
          setPendingNewFiles((prev) => [...prev, ...newFiles]);
-         return;
-      }
-
-      const invalidFile = findInvalidAttachmentFile(newFiles);
-      if (invalidFile) {
-         toast.error(`${invalidFile.name}: ${getAttachmentFileError(invalidFile)}`);
          return;
       }
 

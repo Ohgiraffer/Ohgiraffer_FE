@@ -81,8 +81,8 @@ export default function FileUploadTab({
                ) : (
                   extractedRows && (
                      <>
-                        <div className="mt-3 max-h-64 overflow-y-auto rounded-xs border border-[#E5E7EB]">
-                           <table className="w-full table-fixed text-left text-sm">
+                        <div className="mt-3 max-h-64 overflow-auto rounded-xs border border-[#E5E7EB]">
+                           <table className="w-full min-w-[560px] table-fixed text-left text-sm">
                               <thead className="sticky top-0 bg-[#F9FAFB] text-[#6B7280]">
                                  <tr className="border-b border-[#E5E7EB]">
                                     <th className="w-[6%] px-4 py-2 font-medium">

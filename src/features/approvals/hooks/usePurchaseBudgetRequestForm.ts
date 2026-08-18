@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import { createPurchaseApproval } from '@/services/approval.service';
-import { getBudgetSummary, type BudgetCategorySummary } from '@/services/budget.service';
+import { getBudgetSummary } from '@/services/budget.service';
 import type { PurchaseBudgetRequestFormData } from '../types';
 
 const INITIAL_FORM: PurchaseBudgetRequestFormData = {
@@ -18,33 +19,34 @@ export function usePurchaseBudgetRequestForm() {
    const [form, setForm] = useState<PurchaseBudgetRequestFormData>(INITIAL_FORM);
    const [hasSignature, setHasSignature] = useState(false);
 
-   const [categories, setCategories] = useState<BudgetCategorySummary[]>([]);
-   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+   // useBudgetManagement가 시트 동기화 후 최신 값을 이 캐시에 채워 넣어준다. 예산은 결재
+   // 승인에 따라 바뀌니 기본 5분보다 짧게 둔다
+   const {
+      data: budgetSummary,
+      isLoading: isLoadingCategories,
+      error: categoriesError,
+   } = useQuery({
+      queryKey: ['budgetSummary'],
+      queryFn: getBudgetSummary,
+      staleTime: 60 * 1000,
+   });
+   const categories = budgetSummary?.categories ?? [];
 
    useEffect(() => {
-      let isMounted = true;
-
-      getBudgetSummary()
-         .then((data) => {
-            if (isMounted) setCategories(data.categories);
-         })
-         .catch((err) => {
-            if (!isMounted) return;
-            if (err instanceof ApiError && err.status === 400 && err.code === 'COMMON_001') return;
-            toast.error(
-               err instanceof ApiError
-                  ? err.message
-                  : '예산 카테고리를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
-            );
-         })
-         .finally(() => {
-            if (isMounted) setIsLoadingCategories(false);
-         });
-
-      return () => {
-         isMounted = false;
-      };
-   }, []);
+      if (!categoriesError) return;
+      if (
+         categoriesError instanceof ApiError &&
+         categoriesError.status === 400 &&
+         categoriesError.code === 'COMMON_001'
+      ) {
+         return;
+      }
+      toast.error(
+         categoriesError instanceof ApiError
+            ? categoriesError.message
+            : '예산 카테고리를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+      );
+   }, [categoriesError]);
 
    const updateField = <K extends keyof PurchaseBudgetRequestFormData>(
       field: K,
@@ -64,6 +66,7 @@ export function usePurchaseBudgetRequestForm() {
 
    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
    const [isSubmitting, setIsSubmitting] = useState(false);
+   const isSubmittingRef = useRef(false);
 
    // "신청하기" 클릭 - 검증 통과 시 바로 제출하지 않고 확인 모달
    const submit = () => {
@@ -72,7 +75,8 @@ export function usePurchaseBudgetRequestForm() {
    };
 
    const confirmSubmit = async () => {
-      if (isSubmitting || form.category === '') return;
+      if (isSubmittingRef.current || form.category === '') return;
+      isSubmittingRef.current = true;
       setIsSubmitting(true);
 
       try {
@@ -92,6 +96,7 @@ export function usePurchaseBudgetRequestForm() {
                : '구매 예산 신청 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
          );
       } finally {
+         isSubmittingRef.current = false;
          setIsSubmitting(false);
       }
    };

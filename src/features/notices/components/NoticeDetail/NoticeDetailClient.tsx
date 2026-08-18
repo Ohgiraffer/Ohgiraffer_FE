@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { ChevronLeft, Pencil, Pin, Sparkles, Trash2, User, CalendarDays } from 'lucide-react';
 import DOMPurify from 'isomorphic-dompurify';
@@ -18,12 +19,15 @@ import {
 import { formatNoticeDate } from '../../formatNoticeDate';
 import { parseNoticeId } from '../../parseNoticeId';
 import { useAiScheduleExtraction } from '../../hooks/useAiScheduleExtraction';
-import AiScheduleExtractionModal from './AiScheduleExtractionModal';
 import NoticeAttachmentList from './NoticeAttachmentList';
 
 type Props = {
    noticeId: string;
 };
+
+const AiScheduleExtractionModal = dynamic(() => import('./AiScheduleExtractionModal'), {
+   ssr: false,
+});
 
 // 공지사항 상세 조회 페이지 - 뒤로가기 + 카드(배지/제목/본문/첨부파일) + AI 일정추출 배너 조립
 export default function NoticeDetailClient({ noticeId }: Props) {
@@ -39,6 +43,7 @@ export default function NoticeDetailClient({ noticeId }: Props) {
    const [retryKey, setRetryKey] = useState(0);
    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
    const [isDeleting, setIsDeleting] = useState(false);
+   const isDeletingRef = useRef(false);
    const [isConfirming, setIsConfirming] = useState(false);
 
    const aiSchedule = useAiScheduleExtraction(numericNoticeId ?? -1, () => {
@@ -89,19 +94,37 @@ export default function NoticeDetailClient({ noticeId }: Props) {
       setRetryKey((key) => key + 1);
    };
 
-   // 공지 확인 처리
    const handleConfirm = async () => {
       if (!notice || notice.confirmedByMe || isConfirming) return;
       setIsConfirming(true);
 
+      const { confirmedByMe: previousConfirmedByMe, confirmationCount: previousConfirmationCount } =
+         notice;
+      setNotice((prev) =>
+         prev ? { ...prev, confirmedByMe: true, confirmationCount: prev.confirmationCount + 1 } : prev,
+      );
+
       try {
          const result = await confirmNotice(notice.noticeId);
-         setNotice({
-            ...notice,
-            confirmationCount: result.confirmationCount,
-            confirmedByMe: result.confirmedByMe,
-         });
+         setNotice((prev) =>
+            prev
+               ? {
+                    ...prev,
+                    confirmationCount: result.confirmationCount,
+                    confirmedByMe: result.confirmedByMe,
+                 }
+               : prev,
+         );
       } catch (err) {
+         setNotice((prev) =>
+            prev
+               ? {
+                    ...prev,
+                    confirmedByMe: previousConfirmedByMe,
+                    confirmationCount: previousConfirmationCount,
+                 }
+               : prev,
+         );
          toast.error(
             err instanceof ApiError
                ? err.message
@@ -113,7 +136,8 @@ export default function NoticeDetailClient({ noticeId }: Props) {
    };
 
    const handleDelete = async () => {
-      if (isDeleting || numericNoticeId === undefined) return;
+      if (isDeletingRef.current || numericNoticeId === undefined) return;
+      isDeletingRef.current = true;
       setIsDeleting(true);
 
       try {
@@ -128,6 +152,7 @@ export default function NoticeDetailClient({ noticeId }: Props) {
                : '공지 삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
          );
       } finally {
+         isDeletingRef.current = false;
          setIsDeleting(false);
       }
    };
@@ -298,8 +323,9 @@ export default function NoticeDetailClient({ noticeId }: Props) {
             }
             confirmLabel={isDeleting ? '삭제 중' : '확인'}
             variant="danger"
+            busy={isDeleting}
             onConfirm={handleDelete}
-            onClose={() => !isDeleting && setIsDeleteConfirmOpen(false)}
+            onClose={() => setIsDeleteConfirmOpen(false)}
          />
 
          {aiSchedule.isModalOpen && (

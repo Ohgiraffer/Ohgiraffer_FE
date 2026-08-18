@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ClipboardCheck, TriangleAlert } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import {
    getAttendanceDashboardSummary,
    getMyAttendanceSummary,
@@ -20,7 +21,7 @@ interface StatDot {
 
 function CardShell({ children }: { children: React.ReactNode }) {
    return (
-      <div className="h-full rounded-xs border border-gray-200 bg-white p-6 lg:p-6">
+      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-6">
          <div className="mb-4 flex items-center justify-between lg:mb-4">
             <h2 className="flex items-center gap-1.5 -ml-1 text-sm font-bold text-gray-900">
                <ClipboardCheck size={16} className="text-gray-400" />
@@ -50,7 +51,20 @@ function LoadingOrError({ hasError, onRetry }: { hasError: boolean; onRetry: () 
          </div>
       );
    }
-   return <p className="py-6 text-center text-sm text-gray-400">불러오는 중...</p>;
+   return (
+      <div>
+         <Skeleton width={90} height={28} className="mb-1.5 rounded-md" />
+         <Skeleton width="100%" height={6} className="mb-4 rounded-full lg:mb-2" />
+         <ul className="flex flex-col gap-2 lg:gap-1">
+            {[0, 1, 2, 3].map((i) => (
+               <li key={i} className="flex items-center gap-2">
+                  <Skeleton width={8} height={8} className="shrink-0 rounded-full" />
+                  <Skeleton width="55%" height={14} className="rounded-md" />
+               </li>
+            ))}
+         </ul>
+      </div>
+   );
 }
 
 function StatDotList({ stats }: { stats: StatDot[] }) {
@@ -174,10 +188,10 @@ function ManagerAttendanceCard() {
       );
    }
 
-   // 구글 시트 동기화 전이면 서버가 이 값들을 null(또는 누락)로 내려줄 수 있어, 화면엔 항상 0으로 보정한다
+   // 구글 시트 동기화 전이면 서버가 이 값들을 null(또는 누락)로 내려줄 수 있어, 화면엔 항상 0으로 보정
    const attendedTodayCount = summary.attendedTodayCount ?? 0;
-   // managedStudents는 "관리 대상"(주의 이상) 인원이라 정상 인원이 아니다(features/tracker/tabs/StatusTab.tsx
-   // 참고) - 정상 인원은 진행 중인 전체 훈련생에서 관리 대상을 뺀 나머지다
+   // managedStudents는 "관리 대상"(주의 이상) 인원이라 정상 인원이 아님
+   // 정상 인원은 진행 중인 전체 훈련생에서 관리 대상을 뺀 나머지
    const managedStudents = summary.managedStudents ?? 0;
    const normalStudents = Math.max(summary.activeStudents - managedStudents, 0);
    const cautionStudents = summary.cautionStudents ?? 0;

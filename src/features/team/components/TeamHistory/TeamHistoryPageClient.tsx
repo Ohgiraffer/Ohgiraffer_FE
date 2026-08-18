@@ -1,21 +1,34 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { ApiError } from '@/lib/http';
 import { getTeamHistories, getTeamPeriods } from '@/services/team.service';
 import { formatTeamDateDot } from '../../formatTeamDate';
 import TeamPeriodTabs from '../TeamPeriodTabs';
-import type { TeamHistoryResult, TeamPeriod } from '../../types';
+import type { TeamHistoryResult } from '../../types';
 import TeamCompositionCard from './TeamCompositionCard';
 import TeamHistoryTimeline from './TeamHistoryTimeline';
 
 export default function TeamHistoryPageClient() {
-   const [periods, setPeriods] = useState<TeamPeriod[]>([]);
-   const [isLoadingPeriods, setIsLoadingPeriods] = useState(true);
-   const [periodsError, setPeriodsError] = useState(false);
+   // StudentTeamView/ManagerTeamBoard와 같은 queryKey를 써서 캐시를 공유한다
+   const {
+      data: periods = [],
+      isLoading: isLoadingPeriods,
+      isError: periodsError,
+   } = useQuery({
+      queryKey: ['teamPeriods'],
+      queryFn: getTeamPeriods,
+   });
    const [activePeriodId, setActivePeriodId] = useState<number | null>(null);
+   // 기간 목록이 도착하면 마지막(최신) 기간을 기본 선택한다 - 한 번만 시딩한다
+   const [hasSeededActivePeriod, setHasSeededActivePeriod] = useState(false);
+   if (!hasSeededActivePeriod && periods.length > 0) {
+      setHasSeededActivePeriod(true);
+      setActivePeriodId(periods[periods.length - 1].teamPeriodId);
+   }
 
    const [result, setResult] = useState<TeamHistoryResult | null>(null);
    // 기간이 정해지자마자 바로 조회를 시작하므로 처음부터 로딩 상태로 시작한다
@@ -24,25 +37,6 @@ export default function TeamHistoryPageClient() {
    // 같은 기간을 다시 조회하는 재시도용 - handleSelectPeriod는 activePeriodId가 그대로면
    // 아무 것도 안 하므로, 실패 후 재시도는 이 키를 올려서 effect를 다시 돌게 한다
    const [resultRetryKey, setResultRetryKey] = useState(0);
-
-   useEffect(() => {
-      let isMounted = true;
-      getTeamPeriods()
-         .then((result) => {
-            if (!isMounted) return;
-            setPeriods(result);
-            setActivePeriodId(result.length > 0 ? result[result.length - 1].teamPeriodId : null);
-         })
-         .catch(() => {
-            if (isMounted) setPeriodsError(true);
-         })
-         .finally(() => {
-            if (isMounted) setIsLoadingPeriods(false);
-         });
-      return () => {
-         isMounted = false;
-      };
-   }, []);
 
    const activePeriod = useMemo(
       () => periods.find((p) => p.teamPeriodId === activePeriodId) ?? null,

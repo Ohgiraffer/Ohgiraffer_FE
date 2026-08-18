@@ -1,8 +1,9 @@
 'use client';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import CounselingStatusBadge from './CounselingStatusBadge';
 import CounselorNoteSection from './CounselorNoteSection';
 import { useCounselingDetail } from '../hooks/useCounselingDetail';
@@ -11,15 +12,19 @@ type Props = {
    consultationId: string;
 };
 
+// 상담 이력 목록(/counseling)뿐 아니라 훈련생 상세의 상담 탭에서도 이 페이지로 들어올 수 있어서,
+// 특정 경로로 고정하지 않고 실제로 들어온 곳으로 되돌아가게 한다
 function BackLink() {
+   const router = useRouter();
    return (
-      <Link
-         href="/counseling"
+      <button
+         type="button"
+         onClick={() => router.back()}
          className="inline-flex cursor-pointer items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
       >
          <ChevronLeft size={16} />
          목록으로
-      </Link>
+      </button>
    );
 }
 
@@ -47,7 +52,41 @@ export default function CounselingDetailClient({ consultationId }: Props) {
          <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
             <div className="mx-auto w-full max-w-3xl">
                <BackLink />
-               <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+
+               <div className="mt-4 rounded-sm border border-[#E5E7EB] bg-white px-8 py-6">
+                  <div className="flex items-center gap-3">
+                     <Skeleton width="40%" height={22} className="rounded-md" />
+                     <Skeleton width={48} height={22} className="rounded-xs" />
+                  </div>
+
+                  <hr className="mt-4 border-[#F3F4F6]" />
+
+                  <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                     <div>
+                        <Skeleton width={40} height={12} className="rounded-md" />
+                        <Skeleton width="60%" height={15} className="mt-2 rounded-md" />
+                     </div>
+                     <div>
+                        <Skeleton width={40} height={12} className="rounded-md" />
+                        <Skeleton width="60%" height={15} className="mt-2 rounded-md" />
+                     </div>
+                  </div>
+
+                  <div className="mt-4">
+                     <Skeleton width={24} height={12} className="rounded-md" />
+                     <Skeleton width="35%" height={15} className="mt-2 rounded-md" />
+                  </div>
+
+                  <div className="mt-5">
+                     <Skeleton width={64} height={14} className="rounded-md" />
+                     <Skeleton width="100%" height={64} className="mt-2 rounded-xs" />
+                  </div>
+
+                  <div className="mt-5 border-t border-[#F3F4F6] pt-5">
+                     <Skeleton width={64} height={14} className="rounded-md" />
+                     <Skeleton width="100%" height={96} className="mt-2 rounded-xs" />
+                  </div>
+               </div>
             </div>
          </div>
       );
@@ -66,7 +105,7 @@ export default function CounselingDetailClient({ consultationId }: Props) {
 
                <hr className="mt-4 border-[#F3F4F6]" />
 
-               <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
+               <div className="mt-5 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
                   <div>
                      <p className="text-[13px] text-[#9CA3AF]">신청자</p>
                      <p className="mt-1 text-[15px] text-gray-900">{detail.requesterName}</p>

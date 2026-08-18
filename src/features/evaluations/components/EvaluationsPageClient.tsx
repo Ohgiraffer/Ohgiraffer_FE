@@ -23,10 +23,18 @@ export default function EvaluationsPageClient() {
    const router = useRouter();
    const requestedTab = useSearchParams().get('tab');
    const [activeTab, setActiveTab] = useState<TabKey>(() => resolveInitialTab(requestedTab));
-   const { isConnected, spreadsheetUrl, isLoading, loadError, handleSaveMapping } =
+   const { isConnected, spreadsheetUrl, columnMapping, isLoading, loadError, handleSaveMapping } =
       useEvaluationSheetSync();
-   const { history, isLoadingHistory, historyError, latestSync, isSyncing, runSync, notifyStaff } =
-      useSyncHistory();
+   const {
+      history,
+      isLoadingHistory,
+      historyError,
+      latestSync,
+      isSyncing,
+      runSync,
+      isNotifying,
+      notifyStaff,
+   } = useSyncHistory();
 
    const changeTab = (tab: TabKey) => {
       setActiveTab(tab);
@@ -59,12 +67,14 @@ export default function EvaluationsPageClient() {
                <SheetSyncTab
                   isConnected={isConnected}
                   spreadsheetUrl={spreadsheetUrl}
+                  columnMapping={columnMapping}
                   isLoading={isLoading}
                   loadError={loadError}
                   onSaveMapping={handleSaveMapping}
                   latestSync={latestSync}
                   isSyncing={isSyncing}
                   onRunSync={runSync}
+                  isNotifying={isNotifying}
                   onNotifyStaff={notifyStaff}
                />
             )}

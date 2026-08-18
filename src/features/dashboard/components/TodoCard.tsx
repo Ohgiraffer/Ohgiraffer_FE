@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { format, isToday } from 'date-fns';
 import { ChevronRight, ListChecks } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import type { UserRole } from '@/services/auth.service';
 import { getTodoSummary, type TodoItem, type TodoSourceDomain } from '@/services/todo.service';
 
@@ -18,8 +19,6 @@ const DOMAIN_META: Record<TodoSourceDomain, { href: string; badgeClassName: stri
 // 문서에 없는 sourceDomain이 내려올 때(훈련생/강사에서 확인됨) 링크가 깨지지 않도록 두는 기본값
 const DEFAULT_DOMAIN_META = { href: '/', badgeClassName: 'bg-gray-400' };
 
-// 서버가 내려주는 문구 대신 화면에서 더 명확하게 바꿔 보여주는 라벨 - APPROVAL은 role마다
-// 실제로 처리하는 결재 종류가 달라서(훈련생: 휴가, 강사: 예산, 매니저: 결재 처리 전반) role별로 다르게 둔다
 const LABEL_OVERRIDES: Partial<Record<UserRole, Partial<Record<TodoSourceDomain, string>>>> = {
    STUDENT: {
       APPROVAL: '휴가 처리 대기',
@@ -33,7 +32,7 @@ const LABEL_OVERRIDES: Partial<Record<UserRole, Partial<Record<TodoSourceDomain,
    },
 };
 
-// 오늘이면 시각(HH:mm), 오늘이 아니면 날짜(M/d)로 표시한다
+// 오늘이면 시각(HH:mm), 오늘이 아니면 날짜(M/d)로 표시
 function formatDueLabel(dueTimeIso: string) {
    const due = new Date(dueTimeIso);
    return isToday(due) ? format(due, 'HH:mm') : format(due, 'M/d');
@@ -64,12 +63,11 @@ export default function TodoCard() {
       };
    }, [retryKey]);
 
-   // 0건인 항목은 굳이 보여줄 필요가 없어 목록에서 뺀다. EVALUATION은 화면에서 안 쓰기로
-   // 했는데 백엔드는 여전히 내려줄 수 있어(문서상 sourceDomain enum에 남아 있음) role 불문 완전히 숨긴다
+   // 0건인 항목은 굳이 보여줄 필요가 없어 목록에서 제외
    const visibleTodos = todos.filter((todo) => todo.sourceDomain !== 'EVALUATION' && todo.count > 0);
 
    return (
-      <div className="h-full rounded-xs border border-gray-200 bg-white p-6 lg:p-6">
+      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-6">
          <div className="mb-4 flex items-center justify-between lg:mb-4">
             <h2 className="flex items-center gap-1.5 -ml-1 text-sm font-bold text-gray-900">
                <ListChecks size={16} className="text-gray-400" />
@@ -78,7 +76,17 @@ export default function TodoCard() {
          </div>
 
          {isLoading ? (
-            <p className="py-6 text-center text-sm text-gray-400">불러오는 중...</p>
+            <ul>
+               {[0, 1, 2].map((i) => (
+                  <li
+                     key={i}
+                     className="flex items-center justify-between gap-3 border-b border-gray-100 py-2 last:border-none lg:py-3"
+                  >
+                     <Skeleton width="55%" height={14} className="rounded-md" />
+                     <Skeleton width={40} height={18} className="rounded-xs" />
+                  </li>
+               ))}
+            </ul>
          ) : hasError ? (
             <div className="flex flex-col items-center gap-2 py-6">
                <p className="text-sm text-gray-400">할 일을 불러오지 못했습니다.</p>

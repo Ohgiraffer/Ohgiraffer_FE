@@ -51,7 +51,7 @@ export default function LeaveRequestForm() {
             </span>
          </div>
 
-         <div className="mt-4 grid grid-cols-2 gap-6">
+         <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
                <label htmlFor={birthDateId} className="text-[15px] font-semibold text-gray-900">
                   생년월일 <span className="font-bold text-[16px] text-brand-gold">*</span>
@@ -83,7 +83,7 @@ export default function LeaveRequestForm() {
             </div>
          </div>
 
-         <div className="mt-6 grid grid-cols-2 gap-6">
+         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
                <label className="text-[15px] font-semibold text-gray-900">
                   휴가 시작일 <span className="font-bold text-[16px] text-brand-gold">*</span>

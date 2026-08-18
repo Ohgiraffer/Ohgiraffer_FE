@@ -9,6 +9,7 @@ import { toast } from '@/lib/toast';
 import { getEvaluationSyncLogDetail, type EvaluationSyncLogSummary } from '@/services/evaluation.service';
 import { formatSyncedAt } from '../formatSyncedAt';
 import AiSyncSummaryCard from './AiSyncSummaryCard';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 
 interface SyncLogDetailClientProps {
    syncLogId: string;
@@ -76,7 +77,36 @@ export default function SyncLogDetailClient({ syncLogId }: SyncLogDetailClientPr
 
          <div className="mt-4">
             {isLoading ? (
-               <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+               <div className="rounded-sm border border-[#E5E7EB] bg-white p-6">
+                  <div className="flex items-center gap-2">
+                     <Skeleton width={16} height={16} className="rounded-full" />
+                     <Skeleton width={110} height={14} className="rounded-md" />
+                     <Skeleton width={140} height={12} className="rounded-md" />
+                  </div>
+                  <div className="mt-3 flex divide-x divide-[#F3F4F6] rounded-xs border border-[#F3F4F6] bg-[#F9FAFB]">
+                     {[0, 1, 2].map((i) => (
+                        <div key={i} className="flex-1 px-4 py-3 text-center">
+                           <Skeleton width={48} height={12} className="mx-auto rounded-md" />
+                           <Skeleton width={32} height={16} className="mx-auto mt-1 rounded-md" />
+                        </div>
+                     ))}
+                  </div>
+                  <div className="mt-3 flex flex-col gap-2">
+                     {[0, 1, 2].map((i) => (
+                        <div key={i} className="rounded-xs border border-[#F3F4F6] bg-[#F9FAFB] p-4">
+                           <div className="flex items-center gap-2">
+                              <Skeleton width={80} height={14} className="rounded-md" />
+                              <Skeleton width={48} height={18} className="rounded-full" />
+                           </div>
+                           <div className="mt-2 flex flex-col gap-1.5">
+                              <Skeleton width="90%" height={13} className="rounded-md" />
+                              <Skeleton width="70%" height={13} className="rounded-md" />
+                              <Skeleton width="80%" height={13} className="rounded-md" />
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               </div>
             ) : hasError || !detail ? (
                <div className="flex flex-col items-center gap-3 py-16">
                   <p className="text-sm text-gray-400">이력을 불러오지 못했습니다.</p>
@@ -91,10 +121,10 @@ export default function SyncLogDetailClient({ syncLogId }: SyncLogDetailClientPr
             ) : (
                <AiSyncSummaryCard
                   subtitle={`${formatSyncedAt(detail.syncedAt)} · ${
-                     detail.executedByName ?? '알 수 없음'
+                     detail.executedByName ?? '시스템'
                   }`}
                   changedCount={detail.changedCount}
-                  diffSummary={detail.diffSummary}
+                  summaries={detail.summaries}
                />
             )}
          </div>

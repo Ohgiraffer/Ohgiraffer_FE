@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import {
@@ -24,8 +25,19 @@ function getApiErrorMessage(err: unknown, fallback: string) {
 }
 
 export function useOrgAttendanceSettings() {
-   const [isLoading, setIsLoading] = useState(true);
-   const [loadError, setLoadError] = useState<string | null>(null);
+   const queryClient = useQueryClient();
+   // useManagerTrackerData/TeamPeriodAddModal과 같은 queryKey를 써서 캐시를 공유한다
+   const {
+      data,
+      isLoading,
+      error,
+   } = useQuery({
+      queryKey: ['bootcampSettings'],
+      queryFn: getBootcampSettings,
+   });
+   const loadError = error
+      ? getApiErrorMessage(error, '설정 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
+      : null;
 
    const [orgInfo, setOrgInfo] = useState<BootcampOrgInfo>({
       orgName: '',
@@ -41,37 +53,19 @@ export function useOrgAttendanceSettings() {
 
    const isSavingRef = useRef(false);
 
-   useEffect(() => {
-      let isMounted = true;
-
-      getBootcampSettings()
-         .then((data) => {
-            if (!isMounted) return;
-            setOrgInfo({
-               orgName: data.orgName,
-               courseName: data.proName,
-               startDate: data.startDate,
-               endDate: data.endDate,
-            });
-            setPeriods(data.periods.map(toLocalPeriod));
-         })
-         .catch((err) => {
-            if (!isMounted) return;
-            setLoadError(
-               getApiErrorMessage(
-                  err,
-                  '설정 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
-               ),
-            );
-         })
-         .finally(() => {
-            if (isMounted) setIsLoading(false);
-         });
-
-      return () => {
-         isMounted = false;
-      };
-   }, []);
+   // 쿼리 데이터가 도착하면 폼 초기값으로 한 번만 채운다(이후엔 사용자 편집이 우선이라 다시 덮어쓰지 않는다).
+   // effect 안에서 setState를 직접 호출할 수 없어(react-hooks/set-state-in-effect) 렌더 중에 처리한다
+   const [hasSeeded, setHasSeeded] = useState(false);
+   if (!hasSeeded && data) {
+      setHasSeeded(true);
+      setOrgInfo({
+         orgName: data.orgName,
+         courseName: data.proName,
+         startDate: data.startDate,
+         endDate: data.endDate,
+      });
+      setPeriods(data.periods.map(toLocalPeriod));
+   }
 
    const updateOrgInfo = (value: BootcampOrgInfo) => {
       setOrgInfo(value);
@@ -135,10 +129,11 @@ export function useOrgAttendanceSettings() {
          });
 
          toast.success('조직·출결 설정이 저장되었습니다.');
-         
+
          setPeriods(sortedLocalPeriods);
          setIsDirty(false);
          setSubmitAttempted(false);
+         queryClient.invalidateQueries({ queryKey: ['bootcampSettings'] });
       } catch (err) {
          toast.error(
             getApiErrorMessage(err, '설정 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'),

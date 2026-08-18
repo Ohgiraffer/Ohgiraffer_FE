@@ -1,13 +1,13 @@
 'use client';
 
-import { useCallback, useState } from 'react';
-import { Plus } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Bot, Plus } from 'lucide-react';
 import ChatRoomList from './ChatRoomList/ChatRoomList';
 import ChatConversation from './ChatConversation/ChatConversation';
 import NewChatModal from './ChatRoomList/NewChatModal';
 import ThreadPanel from './ChatConversation/ThreadPanel';
 import SidePanelShell from '@/components/ui/SidePanelShell';
-import { createChannel, type ChatChannel } from '@/services/chat.service';
+import { createChannel, getChatbotChannel, type ChatChannel } from '@/services/chat.service';
 import { ApiError } from '@/lib/http';
 import { getChatErrorMessage } from '../chatErrors';
 import { toast } from '@/lib/toast';
@@ -34,6 +34,15 @@ export default function ChatPanel({
    reloadUnreadCount,
 }: ChatPanelProps) {
    const [activeRoom, setActiveRoom] = useState<ChatChannel | null>(null);
+   // AI 비서 채널의 실제 channelId - 목록에서 클릭해 들어오든 상단 버튼으로 들어오든 항상 같은
+   // 기준으로 "지금 연 방이 AI 비서인지"를 판단하기 위해 한 번 조회해 캐싱해둔다(버튼 클릭 시에도 갱신)
+   const [botChannelId, setBotChannelId] = useState<string | null>(null);
+   useEffect(() => {
+      getChatbotChannel()
+         .then(({ channel_url }) => setBotChannelId(channel_url))
+         .catch(() => {}); // 아직 채널이 없거나 조회 실패해도 조용히 무시 - "AI 비서" 버튼 클릭 시 다시 시도된다
+   }, []);
+   const isChatbotRoom = activeRoom !== null && activeRoom.channelId === botChannelId;
    const [isNewChatOpen, setIsNewChatOpen] = useState(false);
    const [threadRoot, setThreadRoot] = useState<ChatMessage | null>(null);
    // 방을 열 때 서버에서 실제 답글 수를 받아와 채우고(handleReplyCountsLoaded), 그 이후 이번
@@ -110,6 +119,27 @@ export default function ChatPanel({
       }
    };
 
+   // 백엔드가 미리 만들어둔 사용자-AI 비서 채널을 열기만 하면 되므로, 다른 방과 달리
+   // 목록에 없어도 channel_url만 받아 바로 handleSelectRoom으로 진입시킨다
+   const handleOpenChatbot = async () => {
+      try {
+         const { channel_url: channelUrl } = await getChatbotChannel();
+         setBotChannelId(channelUrl);
+         handleSelectRoom({
+            channelId: channelUrl,
+            name: 'AI 비서',
+            channelType: 'DM',
+            lastMessageContent: null,
+            lastMessageSentAt: null,
+            unreadCount: 0,
+            profileImageUrl: null,
+            isOnline: null,
+         });
+      } catch (err) {
+         toast.error(getChatErrorMessage(err, 'AI 비서 채널을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'));
+      }
+   };
+
    return (
       <SidePanelShell
          open={open}
@@ -133,6 +163,7 @@ export default function ChatPanel({
             <ChatConversation
                key={activeRoom.channelId}
                room={activeRoom}
+               isChatbot={isChatbotRoom}
                replyCounts={replyCounts}
                onReplySent={handleReplySent}
                onOpenThread={setThreadRoot}
@@ -154,13 +185,23 @@ export default function ChatPanel({
                         </span>
                      )}
                   </span>
-                  <button
-                     type="button"
-                     onClick={() => setIsNewChatOpen(true)}
-                     className="flex cursor-pointer items-center gap-1 rounded-xs border border-brand-green bg-white px-3 py-1.5 text-xs font-medium text-brand-green hover:bg-gray-50"
-                  >
-                     <Plus size={14} />새 채팅
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                     <button
+                        type="button"
+                        onClick={handleOpenChatbot}
+                        className="flex cursor-pointer items-center gap-1 rounded-xs border border-brand-green bg-brand-green px-3 py-1.5 text-xs font-medium text-white hover:bg-[#4D655A]"
+                     >
+                        <Bot size={14} />
+                        AI 비서
+                     </button>
+                     <button
+                        type="button"
+                        onClick={() => setIsNewChatOpen(true)}
+                        className="flex cursor-pointer items-center gap-1 rounded-xs border border-brand-green bg-white px-3 py-1.5 text-xs font-medium text-brand-green hover:bg-gray-50"
+                     >
+                        <Plus size={14} />새 채팅
+                     </button>
+                  </div>
                </div>
 
                <ChatRoomList

@@ -9,6 +9,7 @@ type Props = {
    latestSync: SyncHistoryEntry | null;
    isSyncing: boolean;
    onRunSync: () => Promise<void>;
+   isNotifying: boolean;
    onNotifyStaff: () => Promise<void>;
 };
 
@@ -17,6 +18,7 @@ export default function SyncRunTab({
    latestSync,
    isSyncing,
    onRunSync,
+   isNotifying,
    onNotifyStaff,
 }: Props) {
    if (!isConnected) {
@@ -53,25 +55,37 @@ export default function SyncRunTab({
             </div>
          </div>
 
-         {latestSync && (
-            <AiSyncSummaryCard
-               subtitle="방금 동기화"
-               addedCount={latestSync.addedCount}
-               updatedCount={latestSync.updatedCount}
-               changedCount={latestSync.changedCount}
-               diffSummary={latestSync.diffSummary}
-               skipped={latestSync.skipped}
-               footer={
-                  <button
-                     type="button"
-                     onClick={onNotifyStaff}
-                     className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                     수정 완료 알림 보내기
-                  </button>
-               }
-            />
-         )}
+         {latestSync &&
+            (() => {
+               const hasNoChanges = latestSync.syncLogId === null;
+               const hasNothingToShow = hasNoChanges && !latestSync.skipped?.length;
+               if (hasNothingToShow) return null;
+
+               const notifyLabel = isNotifying ? '보내는 중...' : '수정 완료 알림 보내기';
+
+               return (
+                  <AiSyncSummaryCard
+                     subtitle="방금 동기화"
+                     addedCount={latestSync.addedCount}
+                     updatedCount={latestSync.updatedCount}
+                     changedCount={latestSync.changedCount}
+                     summaries={latestSync.summaries}
+                     skipped={latestSync.skipped}
+                     footer={
+                        hasNoChanges ? undefined : (
+                           <button
+                              type="button"
+                              onClick={onNotifyStaff}
+                              disabled={isNotifying}
+                              className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                           >
+                              {notifyLabel}
+                           </button>
+                        )
+                     }
+                  />
+               );
+            })()}
       </div>
    );
 }

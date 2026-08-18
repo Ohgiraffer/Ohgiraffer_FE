@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { ExternalLink } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { Skeleton, SkeletonListRow } from '@/components/ui/loading/Skeleton';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
 import {
@@ -10,10 +12,31 @@ import {
    getSurveyFormDetail,
    getSurveyForms,
 } from '@/services/surveyForm.service';
-import FormCreateModal from './FormCreateModal';
-import FormEditModal from './FormEditModal';
 import FormListTable from './FormListTable';
 import type { SurveyFormDetail, SurveyFormListItem } from '../../types';
+
+// 모달 코드 자체가 로딩되는 동안 배경 클릭을 막고 자리표시자를 보여준다(Modal.tsx의 배경 스타일과 동일)
+function FormModalSkeleton() {
+   return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+         <div className="w-full max-w-md rounded-sm bg-white p-6">
+            <Skeleton width="50%" height={20} className="rounded-md" />
+            <Skeleton width="100%" height={40} className="mt-4 rounded-xs" />
+            <Skeleton width="100%" height={40} className="mt-3 rounded-xs" />
+         </div>
+      </div>
+   );
+}
+
+// 생성/수정 버튼을 눌러야만 필요한 날짜선택 모달이라 지연 로딩한다
+const FormCreateModal = dynamic(() => import('./FormCreateModal'), {
+   ssr: false,
+   loading: FormModalSkeleton,
+});
+const FormEditModal = dynamic(() => import('./FormEditModal'), {
+   ssr: false,
+   loading: FormModalSkeleton,
+});
 
 interface FormsTabProps {
    isCreating: boolean;
@@ -140,7 +163,11 @@ export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps
          )}
 
          {isLoading ? (
-            <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+            <div className="mt-4 overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
+               {[0, 1, 2, 3].map((i) => (
+                  <SkeletonListRow key={i} index={i} />
+               ))}
+            </div>
          ) : hasError ? (
             <div className="flex flex-col items-center gap-3 py-16">
                <p className="text-sm text-gray-400">

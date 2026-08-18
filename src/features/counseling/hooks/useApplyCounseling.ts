@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
@@ -10,7 +11,6 @@ import {
    getCounselorAvailableDates,
    getCounselors,
    type AvailableTimeSlot,
-   type Counselor,
 } from '@/services/counseling.service';
 
 const DATE_KEY_FORMAT = 'yyyy-MM-dd';
@@ -23,9 +23,29 @@ function getApiErrorMessage(err: unknown, fallback: string) {
 // 훈련생 "상담 신청" 탭
 // 운영진 선택 → 그 달의 상담 가능일 조회 → 날짜 선택 → 가능 시간 조회 → 주제·내용 입력 → [신청하기] → 확인 모달 → 신청
 export function useApplyCounseling() {
-   const [counselors, setCounselors] = useState<Counselor[]>([]);
-   const [isLoadingCounselors, setIsLoadingCounselors] = useState(true);
+   // useStaffCounselingHistory와 같은 queryKey를 써서 캐시를 공유한다
+   const {
+      data: counselors = [],
+      isLoading: isLoadingCounselors,
+      error: counselorsError,
+   } = useQuery({
+      queryKey: ['counselors'],
+      queryFn: getCounselors,
+   });
+
+   useEffect(() => {
+      if (counselorsError) {
+         toast.error(getApiErrorMessage(counselorsError, '상담 가능 운영진 목록을 불러오지 못했습니다.'));
+      }
+   }, [counselorsError]);
+
    const [selectedCounselorId, setSelectedCounselorId] = useState<number | null>(null);
+   // 운영진 목록이 도착하면 첫 번째를 기본 선택한다 - 한 번만 시딩한다
+   const [hasSeededCounselor, setHasSeededCounselor] = useState(false);
+   if (!hasSeededCounselor && counselors.length > 0) {
+      setHasSeededCounselor(true);
+      setSelectedCounselorId(counselors[0].counselorId);
+   }
 
    const [viewMonth, setViewMonth] = useState<Date | null>(null);
    const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
@@ -44,29 +64,6 @@ export function useApplyCounseling() {
    const isSubmittingRef = useRef(false);
 
    const selectionGenerationRef = useRef(0);
-
-   // 상담 가능 운영진 목록 최초 조회 - 첫 번째 운영진 기본 선택
-   useEffect(() => {
-      let isMounted = true;
-
-      getCounselors()
-         .then((data) => {
-            if (!isMounted) return;
-            setCounselors(data);
-            if (data.length > 0) setSelectedCounselorId(data[0].counselorId);
-         })
-         .catch((err) => {
-            if (!isMounted) return;
-            toast.error(getApiErrorMessage(err, '상담 가능 운영진 목록을 불러오지 못했습니다.'));
-         })
-         .finally(() => {
-            if (isMounted) setIsLoadingCounselors(false);
-         });
-
-      return () => {
-         isMounted = false;
-      };
-   }, []);
 
    // 운영진 또는 보고 있는 달이 바뀌면 그 달의 상담 가능일을 다시 조회
    useEffect(() => {

@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import withBundleAnalyzer from '@next/bundle-analyzer';
 
 const nextConfig: NextConfig = {
    /* config options here */
@@ -12,6 +13,11 @@ const nextConfig: NextConfig = {
          {
             protocol: 'https',
             hostname: 'be.campflow.co.kr',
+            pathname: '/**',
+         },
+         {
+            protocol: 'https',
+            hostname: 'ohgiraffer-media.s3.ap-northeast-2.amazonaws.com',
             pathname: '/**',
          },
       ],
@@ -30,4 +36,10 @@ const nextConfig: NextConfig = {
    },
 };
 
-export default nextConfig;
+// 번들 분석기 설정
+const bundleAnalyzer = withBundleAnalyzer({
+   enabled: process.env.ANALYZE === 'true',
+   openAnalyzer: true,
+});
+
+export default bundleAnalyzer(nextConfig);

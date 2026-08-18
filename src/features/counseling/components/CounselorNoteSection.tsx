@@ -104,7 +104,7 @@ export default function CounselorNoteSection({ detail, onSaved }: Props) {
                   type="button"
                   onClick={handleSave}
                   disabled={!canSave}
-                  className={`rounded-sm px-5 py-2.5 text-sm font-semibold transition-colors ${
+                  className={`rounded-xs px-5 py-2.5 text-sm font-semibold transition-colors ${
                      canSave
                         ? 'cursor-pointer bg-brand-green text-white hover:bg-[#4D655A]'
                         : 'cursor-not-allowed bg-[#E5E7EB] text-[#9CA3AF]'
@@ -116,7 +116,7 @@ export default function CounselorNoteSection({ detail, onSaved }: Props) {
                <button
                   type="button"
                   onClick={startEdit}
-                  className="cursor-pointer rounded-sm border border-[#E5E7EB] px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                  className="cursor-pointer rounded-xs border border-[#E5E7EB] px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50"
                >
                   수정
                </button>

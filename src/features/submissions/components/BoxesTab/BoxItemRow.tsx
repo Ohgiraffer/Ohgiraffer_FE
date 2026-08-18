@@ -17,7 +17,7 @@ export interface ItemDraft {
 // 항목명 / 파일 업로드 / 외부 링크 / 삭제 버튼 컬럼 너비 비율.
 // 각 항목 행과 그 아래 힌트 입력란이 항상 같은 그리드를 써야 세로로 열이 어긋나지 않는다
 const ITEM_GRID_COLUMNS =
-   'grid-cols-1 sm:grid-cols-[24px_minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_28px]';
+   'grid-cols-1 md:grid-cols-[24px_minmax(0,1.6fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_28px]';
 
 interface BoxItemRowProps {
    item: ItemDraft;
@@ -30,9 +30,9 @@ interface BoxItemRowProps {
 export default function BoxItemRow({ item, index, disableRemove, onUpdate, onRemove }: BoxItemRowProps) {
    return (
       <div className="rounded-xs border border-gray-200 p-3">
-         <div className={cn('grid items-start gap-3 sm:items-center', ITEM_GRID_COLUMNS)}>
-            <div className="flex items-center gap-3 sm:contents">
-               <span className="shrink-0 text-sm text-gray-400 sm:order-1">{index + 1}</span>
+         <div className={cn('grid items-start gap-3 md:items-center', ITEM_GRID_COLUMNS)}>
+            <div className="flex items-center gap-3 md:contents">
+               <span className="shrink-0 text-sm text-gray-400 md:order-1">{index + 1}</span>
                <label htmlFor={`item-name-${item.draftId}`} className="sr-only">
                   항목 {index + 1} 이름
                </label>
@@ -41,28 +41,28 @@ export default function BoxItemRow({ item, index, disableRemove, onUpdate, onRem
                   value={item.name}
                   onChange={(e) => onUpdate({ name: e.target.value })}
                   placeholder="항목명 (예: 발표자료)"
-                  className="h-10 min-w-0 flex-1 rounded-xs border border-[#E5E7EB] px-3 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-green sm:order-2 sm:w-full"
+                  className="h-10 min-w-0 flex-1 rounded-xs border border-[#E5E7EB] px-3 text-sm text-gray-900 focus:outline-none focus:ring-1 focus:ring-brand-green md:order-2 md:w-full"
                />
                <button
                   type="button"
                   onClick={onRemove}
                   disabled={disableRemove}
                   aria-label="항목 삭제"
-                  className="shrink-0 cursor-pointer rounded-xs p-1.5 text-gray-400 hover:bg-gray-50 hover:text-brand-maroon disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-400 sm:order-5"
+                  className="shrink-0 cursor-pointer rounded-xs p-1.5 text-gray-400 hover:bg-gray-50 hover:text-brand-maroon disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-400 md:order-5"
                >
                   <X size={16} />
                </button>
             </div>
-            <div className="flex gap-2 sm:contents">
+            <div className="flex gap-2 md:contents">
                <ToggleButton
-                  className="flex-1 sm:order-3 sm:flex-none"
+                  className="flex-1 md:order-3 md:flex-none"
                   selected={item.type === 'FILE'}
                   onClick={() => onUpdate({ type: 'FILE' })}
                >
                   파일 업로드
                </ToggleButton>
                <ToggleButton
-                  className="flex-1 sm:order-4 sm:flex-none"
+                  className="flex-1 md:order-4 md:flex-none"
                   selected={item.type === 'LINK'}
                   onClick={() => onUpdate({ type: 'LINK' })}
                >
@@ -71,8 +71,8 @@ export default function BoxItemRow({ item, index, disableRemove, onUpdate, onRem
             </div>
          </div>
          <div className={cn('mt-2 grid gap-3', ITEM_GRID_COLUMNS)}>
-            <span className="hidden sm:block" />
-            <div className="flex min-w-0 items-center gap-3 sm:col-span-3">
+            <span className="hidden md:block" />
+            <div className="flex min-w-0 items-center gap-3 md:col-span-3">
                <div className="min-w-0 flex-1">
                   {item.type === 'FILE' ? (
                      <input

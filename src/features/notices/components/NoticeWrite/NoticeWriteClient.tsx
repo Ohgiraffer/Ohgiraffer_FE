@@ -1,10 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
+import type { Editor } from '@tiptap/react';
 import { ChevronLeft } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import {
@@ -19,9 +23,27 @@ import AiSentenceImprovePanel from './AiSentenceImprovePanel';
 import NoticeContentPanel from './NoticeContentPanel';
 import NoticeSettingsPanel from './NoticeSettingsPanel';
 import { useAiSentenceImprove } from '../../hooks/useAiSentenceImprove';
-import { useNoticeEditor } from '../../hooks/useNoticeEditor';
 import { useNoticeWriteForm } from '../../hooks/useNoticeWriteForm';
 import { parseNoticeId } from '../../parseNoticeId';
+
+const NoticeEditorArea = dynamic(() => import('./NoticeEditorArea'), {
+   ssr: false,
+   loading: () => <NoticeEditorAreaSkeleton />,
+});
+
+function NoticeEditorAreaSkeleton() {
+   return (
+      <div>
+         <div className="flex items-center gap-3 border-b border-[#E5E7EB] bg-[#F9FAFB] px-4 py-1.5">
+            <Skeleton width={140} height={28} className="rounded-xs" />
+            <Skeleton width={100} height={28} className="rounded-xs" />
+         </div>
+         <div className="px-6 py-5">
+            <Skeleton width="100%" height={375} className="rounded-md" />
+         </div>
+      </div>
+   );
+}
 
 function escapeHtml(text: string) {
    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -47,36 +69,28 @@ export default function NoticeWriteClient({ noticeId }: Props) {
    const isEditMode = Boolean(noticeId);
    const isInvalidNoticeId = isEditMode && numericNoticeId === undefined;
 
-   const [categories, setCategories] = useState<NoticeCategory[]>([]);
-   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+   const {
+      data: categories = [],
+      isLoading: isLoadingCategories,
+      error: categoriesError,
+   } = useQuery({
+      queryKey: ['noticeCategories'],
+      queryFn: getNoticeCategories,
+   });
+
+   useEffect(() => {
+      if (categoriesError) {
+         toast.error(
+            categoriesError instanceof ApiError
+               ? categoriesError.message
+               : '카테고리를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
+         );
+      }
+   }, [categoriesError]);
 
    const [initialNotice, setInitialNotice] = useState<NoticeDetail | null>(null);
    const [isLoadingNotice, setIsLoadingNotice] = useState(isEditMode && !isInvalidNoticeId);
    const [hasNoticeError, setHasNoticeError] = useState(false);
-
-   useEffect(() => {
-      let isMounted = true;
-
-      getNoticeCategories()
-         .then((data) => {
-            if (isMounted) setCategories(data);
-         })
-         .catch((err) => {
-            if (!isMounted) return;
-            toast.error(
-               err instanceof ApiError
-                  ? err.message
-                  : '카테고리를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
-            );
-         })
-         .finally(() => {
-            if (isMounted) setIsLoadingCategories(false);
-         });
-
-      return () => {
-         isMounted = false;
-      };
-   }, []);
 
    useEffect(() => {
       if (!isEditMode || isInvalidNoticeId || numericNoticeId === undefined) return;
@@ -156,7 +170,7 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
    const router = useRouter();
    const isEditMode = Boolean(noticeId);
    const form = useNoticeWriteForm(noticeId, initialNotice);
-   const editor = useNoticeEditor(initialNotice?.content, form.setContent);
+   const [editor, setEditor] = useState<Editor | null>(null);
    const {
       isImproving,
       suggestions,
@@ -167,6 +181,9 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
    } = useAiSentenceImprove();
    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
    const [isSubmitting, setIsSubmitting] = useState(false);
+   // isSubmitting(state)만으로는 연타를 못 막는다 - state 반영 전(같은 tick)에 두 번째 클릭이
+   // 새어나갈 수 있어서 그 사이에도 항상 최신값인 ref로 먼저 막는다
+   const isSubmittingRef = useRef(false);
 
    // 수정 모드는 실질적인 변경이 있어야 저장 가능
    const canSave = isEditMode ? form.isSubmitEnabled && form.hasChanges : form.isSubmitEnabled;
@@ -177,7 +194,8 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
    };
 
    const handleConfirmRegister = async () => {
-      if (isSubmitting || form.category === '') return;
+      if (isSubmittingRef.current || form.category === '') return;
+      isSubmittingRef.current = true;
       setIsSubmitting(true);
 
       try {
@@ -222,18 +240,22 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
                  : '공지 등록 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
          );
       } finally {
+         isSubmittingRef.current = false;
          setIsSubmitting(false);
       }
    };
 
-   if (!editor) return null;
-
-   const handleImproveClick = () => improve(editor.getText());
+   const handleImproveClick = () => {
+      if (!editor) return;
+      improve(editor.getText());
+   };
 
    // 전체 적용 - 개선된 텍스트로 본문을 통째로 교체
    const handleApplyAllSuggestions = (text: string) => {
+      if (!editor) return;
       editor.commands.setContent(plainTextToHtml(text));
       closeImproveSuggestions();
+      toast.success('전체 문장 적용이 완료되었습니다.');
    };
 
    return (
@@ -242,14 +264,28 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
             {isEditMode ? '공지 수정' : '공지 작성'}
          </h1>
 
-         <div className="mt-5 flex items-stretch gap-5">
-            <NoticeContentPanel
-               title={form.title}
-               onTitleChange={form.setTitle}
-               editor={editor}
-               isImproving={isImproving}
-               onImproveClick={handleImproveClick}
-            />
+         <div className="flex flex-col items-stretch gap-5 mt-5 lg:flex-row">
+            <div className="flex min-w-0 flex-1 flex-col">
+               <NoticeContentPanel title={form.title} onTitleChange={form.setTitle}>
+                  <NoticeEditorArea
+                     initialContentHtml={initialNotice?.content}
+                     onContentChange={form.setContent}
+                     isImproving={isImproving}
+                     onImproveClick={handleImproveClick}
+                     onEditorReady={setEditor}
+                  />
+               </NoticeContentPanel>
+
+               {suggestions.length > 0 && (
+                  <AiSentenceImprovePanel
+                     suggestions={suggestions}
+                     improvedFullText={improvedFullText}
+                     onCopySuggestion={copySuggestion}
+                     onApplyAll={handleApplyAllSuggestions}
+                     onClose={closeImproveSuggestions}
+                  />
+               )}
+            </div>
             <NoticeSettingsPanel
                category={form.category}
                onCategoryChange={form.setCategory}
@@ -272,18 +308,6 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
                onFileRemove={form.removeFile}
             />
          </div>
-
-         {suggestions.length > 0 && (
-            <div className="mt-5">
-               <AiSentenceImprovePanel
-                  suggestions={suggestions}
-                  improvedFullText={improvedFullText}
-                  onCopySuggestion={copySuggestion}
-                  onApplyAll={handleApplyAllSuggestions}
-                  onClose={closeImproveSuggestions}
-               />
-            </div>
-         )}
 
          <div className="mt-5 flex justify-end gap-2">
             <button
@@ -318,8 +342,9 @@ function NoticeWriteForm({ noticeId, initialNotice, categories, isLoadingCategor
                   : '등록 즉시 설정한 공개 대상에게 공개됩니다.'
             }
             confirmLabel={isSubmitting ? '처리 중' : '확인'}
+            busy={isSubmitting}
             onConfirm={handleConfirmRegister}
-            onClose={() => !isSubmitting && setIsConfirmOpen(false)}
+            onClose={() => setIsConfirmOpen(false)}
          />
       </div>
    );

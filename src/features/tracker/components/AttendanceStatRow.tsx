@@ -34,9 +34,9 @@ export default function AttendanceStatRow({
    ];
 
    return (
-      <div className="grid grid-cols-7 divide-x divide-gray-100 rounded-sm border border-gray-200 bg-white">
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-gray-200 bg-gray-100 sm:grid-cols-4 lg:grid-cols-7">
          {stats.map((stat) => (
-            <div key={stat.label} className="flex flex-col items-center gap-1.5 py-4">
+            <div key={stat.label} className="flex flex-col items-center gap-1.5 bg-white py-4">
                <span className="text-xs text-gray-400">{stat.label}</span>
                <span className="text-lg font-bold text-gray-900">{stat.value}</span>
             </div>

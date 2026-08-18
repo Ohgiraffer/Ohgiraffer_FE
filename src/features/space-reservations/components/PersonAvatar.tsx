@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { User } from 'lucide-react';
 
 type Props = {
@@ -15,15 +16,17 @@ export default function PersonAvatar({ name, profileImgUrl, isCurrentUser }: Pro
 
    return (
       <span
-         className={`flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full ${
+         className={`relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full ${
             isCurrentUser ? 'bg-brand-green text-white' : 'bg-gray-100 text-gray-600'
          }`}
       >
          {showImage ? (
-            <img
-               src={profileImgUrl ?? undefined}
+            <Image
+               src={profileImgUrl ?? ''}
                alt=""
-               className="h-full w-full object-cover"
+               fill
+               sizes="36px"
+               className="object-cover"
                onError={() => setFailedUrl(profileImgUrl ?? null)}
             />
          ) : (

@@ -63,7 +63,41 @@ export default function SubmissionDetailTab({ traineeId }: { traineeId: number }
             전체 {data.totalCount}건 중{' '}
             <span className="font-semibold text-gray-700">{data.completedCount}건</span> 완료
          </p>
-         <div className="overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
+         <div className="divide-y divide-[#F3F4F6] overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:hidden">
+            {data.items.length === 0 ? (
+               <p className="px-6 py-10 text-center text-sm text-gray-400">제출함/설문 이력이 없습니다.</p>
+            ) : (
+               data.items.map((item) => (
+                  <div key={`${item.sourceType}-${item.targetId}`} className="p-4">
+                     <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                           <div className="flex items-center gap-2">
+                              <StatusBadge
+                                 tone={item.sourceType === 'SUBMISSION_BOX' ? 'neutral' : 'muted'}
+                                 className="shrink-0"
+                              >
+                                 {SOURCE_TYPE_LABELS[item.sourceType]}
+                              </StatusBadge>
+                              <p className="truncate text-sm font-medium text-gray-900" title={item.title}>
+                                 {item.title}
+                              </p>
+                           </div>
+                        </div>
+                        <StatusBadge tone={item.completed ? 'success' : 'danger'} className="shrink-0">
+                           {STATUS_LABELS[item.status]}
+                        </StatusBadge>
+                     </div>
+                     <p className="mt-2 text-xs text-gray-400">
+                        완료 {formatDateTime(item.completedAt)}
+                        {item.late && <span className="text-brand-red"> (지각)</span>} · 마감{' '}
+                        {formatDateTime(item.dueAt)}
+                     </p>
+                  </div>
+               ))
+            )}
+         </div>
+
+         <div className="hidden overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:block">
             <table className="w-full table-fixed text-left text-sm">
                <thead>
                   <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
@@ -92,7 +126,11 @@ export default function SubmissionDetailTab({ traineeId }: { traineeId: number }
                                  {SOURCE_TYPE_LABELS[item.sourceType]}
                               </StatusBadge>
                            </td>
-                           <td className="px-3 py-4 font-medium text-gray-900">{item.title}</td>
+                           <td className="px-3 py-4 font-medium text-gray-900">
+                              <p className="truncate" title={item.title}>
+                                 {item.title}
+                              </p>
+                           </td>
                            <td className="px-3 py-4">
                               <StatusBadge tone={item.completed ? 'success' : 'danger'}>
                                  {STATUS_LABELS[item.status]}

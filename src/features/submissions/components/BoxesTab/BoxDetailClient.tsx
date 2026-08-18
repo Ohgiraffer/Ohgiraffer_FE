@@ -91,24 +91,42 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
    };
 
    const handleSearch = (value: string) => {
+      setIsLoading(true);
+      setHasError(false);
       setKeyword(value);
       setCurrentPage(1);
    };
 
    const handleStatusChange = (value: SubmissionStatusFilter) => {
+      setIsLoading(true);
+      setHasError(false);
       setStatusFilter(value);
       setCurrentPage(1);
    };
 
+   const handlePageChange = (page: number) => {
+      setIsLoading(true);
+      setHasError(false);
+      setCurrentPage(page);
+   };
+
    const handleDownload = async (value: SubmissionItemValue) => {
       try {
-         const { blob } = await downloadSubmissionItem(value.submissionItemValueId);
-         const url = URL.createObjectURL(blob);
+         // 더 이상 302로 파일을 직접 안 내려주고, 매 클릭마다 새로 발급받은 임시 URL로만 이동한다.
+         // presigned URL은 교차 출처라 a.download가 무시될 수 있어, blob으로 받아와야
+         // originalFileName이 실제 저장 파일명으로 보장된다
+         const { downloadUrl, originalFileName } = await downloadSubmissionItem(
+            value.submissionItemValueId,
+         );
+         const res = await fetch(downloadUrl);
+         if (!res.ok) throw new Error('파일 다운로드에 실패했습니다.');
+         const blob = await res.blob();
+         const objectUrl = URL.createObjectURL(blob);
          const a = document.createElement('a');
-         a.href = url;
-         a.download = value.originalFileName ?? '다운로드';
+         a.href = objectUrl;
+         a.download = originalFileName ?? '다운로드';
          a.click();
-         URL.revokeObjectURL(url);
+         URL.revokeObjectURL(objectUrl);
       } catch (err) {
          toast.error(
             err instanceof ApiError
@@ -161,10 +179,12 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
             </div>
          ) : (
             <>
-               <div className="mt-5 rounded-xs border border-[#E5E7EB] bg-white p-6">
-                  <div className="flex items-start justify-between">
-                     <div>
-                        <h2 className="text-lg font-bold text-gray-900">{detail.projectName}</h2>
+               <div className="mt-5 rounded-sm border border-[#E5E7EB] bg-white p-6">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                     <div className="min-w-0">
+                        <h2 className="truncate text-lg font-bold text-gray-900">
+                           {detail.projectName}
+                        </h2>
                         <div className="mt-2 flex items-center gap-2">
                            <StatusBadge tone="neutral">
                               {detail.targetScope === 'TEAM' ? '팀 제출' : '개인 제출'}
@@ -174,7 +194,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                            </StatusBadge>
                         </div>
                      </div>
-                     <div className="text-right">
+                     <div className="shrink-0 sm:text-right">
                         <p className="text-xs text-gray-400">시작일</p>
                         <p className="mt-1 text-sm font-medium text-gray-900">
                            {formatDateTime(detail.startAt)}
@@ -201,7 +221,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                   </div>
                </div>
 
-               <div className="mt-6 rounded-xs border border-[#E5E7EB] bg-white">
+               <div className="mt-6 rounded-sm border border-[#E5E7EB] bg-white">
                   <div className="flex flex-wrap items-center justify-between gap-3 p-5">
                      <div className="flex items-center gap-3">
                         <span className="text-sm font-bold text-gray-900">
@@ -211,7 +231,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                         <ProgressBar
                            value={detail.submittedCount}
                            max={detail.targetCount}
-                           className="w-40"
+                           className="w-35 sm:w-40"
                         />
                      </div>
                      <div className="flex flex-wrap items-center gap-2">
@@ -249,7 +269,9 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                      </div>
                   </div>
 
-                  {detail.submissions.length === 0 ? (
+                  {isLoading ? (
+                     <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+                  ) : detail.submissions.length === 0 ? (
                      <p className="py-16 text-center text-sm text-gray-400">
                         {keyword || statusFilter !== 'ALL'
                            ? '검색 결과가 없습니다.'
@@ -257,7 +279,64 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                      </p>
                   ) : (
                      <>
-                        <table className="w-full table-fixed text-left text-sm">
+                        <div className="divide-y divide-[#F3F4F6] border-t border-[#E5E7EB] md:hidden">
+                           {detail.submissions.map((entry) => (
+                              <div key={entry.targetId} className="p-4">
+                                 <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                       <p
+                                          className="truncate text-sm font-bold text-gray-900"
+                                          title={entry.targetName}
+                                       >
+                                          {entry.targetName}
+                                       </p>
+                                       {detail.targetScope === 'INDIVIDUAL' && entry.targetEmail && (
+                                          <p
+                                             className="mt-0.5 truncate text-xs text-gray-400"
+                                             title={entry.targetEmail}
+                                          >
+                                             {entry.targetEmail}
+                                          </p>
+                                       )}
+                                    </div>
+                                    <div className="flex shrink-0 items-center gap-1">
+                                       <StatusBadge tone={entry.submitted ? 'success' : 'danger'}>
+                                          {entry.submitted ? '완료' : '미제출'}
+                                       </StatusBadge>
+                                       {entry.late && <StatusBadge tone="gold">지각</StatusBadge>}
+                                    </div>
+                                 </div>
+
+                                 <p className="mt-1 text-xs text-gray-400">
+                                    제출 일시 {formatDateTime(entry.submittedAt)}
+                                 </p>
+
+                                 <div className="mt-3 flex flex-col gap-2">
+                                    {detail.items.map((item) => {
+                                       const value = entry.values.find(
+                                          (v) => v.submissionBoxItemId === item.submissionBoxItemId,
+                                       );
+                                       return (
+                                          <div key={item.submissionBoxItemId} className="flex items-center gap-2">
+                                             <span className="w-20 shrink-0 truncate text-xs text-gray-400">
+                                                {item.itemName}
+                                             </span>
+                                             <div className="min-w-0 flex-1">
+                                                <SubmissionValueCell
+                                                   value={value}
+                                                   onPreview={setPreviewTarget}
+                                                   onDownload={handleDownload}
+                                                />
+                                             </div>
+                                          </div>
+                                       );
+                                    })}
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+
+                        <table className="hidden w-full table-fixed text-left text-sm md:table">
                            <thead>
                               <tr className="border-y border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
                                  <th className="w-[16%] px-6 py-3 font-medium">
@@ -276,48 +355,61 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                               </tr>
                            </thead>
                            <tbody>
-                              {detail.submissions.map((entry) => (
-                                 <tr
-                                    key={entry.targetId}
-                                    className="border-b border-[#F3F4F6] last:border-b-0"
-                                 >
-                                    <td className="px-6 py-4 font-medium text-gray-900">
-                                       {entry.targetName}
-                                       {detail.targetScope === 'INDIVIDUAL' && entry.targetEmail && (
-                                          <p className="mt-0.5 text-xs font-normal text-gray-400">
-                                             {entry.targetEmail}
+                              {detail.submissions.map((entry) => {
+                                 const [submittedDate, submittedTime] = formatDateTime(
+                                    entry.submittedAt,
+                                 ).split(' ');
+                                 return (
+                                    <tr
+                                       key={entry.targetId}
+                                       className="border-b border-[#F3F4F6] last:border-b-0"
+                                    >
+                                       <td className="px-6 py-4 font-medium text-gray-900">
+                                          <p className="truncate" title={entry.targetName}>
+                                             {entry.targetName}
                                           </p>
-                                       )}
-                                    </td>
-                                    {detail.items.map((item) => {
-                                       const value = entry.values.find(
-                                          (v) => v.submissionBoxItemId === item.submissionBoxItemId,
-                                       );
-                                       return (
-                                          <td key={item.submissionBoxItemId} className="px-6 py-4">
-                                             <div className="flex justify-center">
-                                                <SubmissionValueCell
-                                                   value={value}
-                                                   onPreview={setPreviewTarget}
-                                                   onDownload={handleDownload}
-                                                />
-                                             </div>
-                                          </td>
-                                       );
-                                    })}
-                                    <td className="px-6 py-4">
-                                       <div className="flex items-center justify-center gap-1">
-                                          <StatusBadge tone={entry.submitted ? 'success' : 'danger'}>
-                                             {entry.submitted ? '완료' : '미제출'}
-                                          </StatusBadge>
-                                          {entry.late && <StatusBadge tone="gold">지각</StatusBadge>}
-                                       </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-center text-gray-500">
-                                       {formatDateTime(entry.submittedAt)}
-                                    </td>
-                                 </tr>
-                              ))}
+                                          {detail.targetScope === 'INDIVIDUAL' && entry.targetEmail && (
+                                             <p
+                                                className="mt-0.5 truncate text-xs font-normal text-gray-400"
+                                                title={entry.targetEmail}
+                                             >
+                                                {entry.targetEmail}
+                                             </p>
+                                          )}
+                                       </td>
+                                       {detail.items.map((item) => {
+                                          const value = entry.values.find(
+                                             (v) => v.submissionBoxItemId === item.submissionBoxItemId,
+                                          );
+                                          return (
+                                             <td key={item.submissionBoxItemId} className="px-6 py-4">
+                                                <div className="flex justify-center">
+                                                   <SubmissionValueCell
+                                                      value={value}
+                                                      onPreview={setPreviewTarget}
+                                                      onDownload={handleDownload}
+                                                   />
+                                                </div>
+                                             </td>
+                                          );
+                                       })}
+                                       <td className="px-6 py-4">
+                                          <div className="flex items-center justify-center gap-1">
+                                             <StatusBadge tone={entry.submitted ? 'success' : 'danger'}>
+                                                {entry.submitted ? '완료' : '미제출'}
+                                             </StatusBadge>
+                                             {entry.late && <StatusBadge tone="gold">지각</StatusBadge>}
+                                          </div>
+                                       </td>
+                                       <td className="px-6 py-4 text-center text-gray-500">
+                                          <div className="flex flex-col items-center leading-tight xl:flex-row xl:justify-center xl:gap-1 xl:leading-normal">
+                                             <span className="whitespace-nowrap">{submittedDate}</span>
+                                             <span className="whitespace-nowrap">{submittedTime}</span>
+                                          </div>
+                                       </td>
+                                    </tr>
+                                 );
+                              })}
                            </tbody>
                         </table>
 
@@ -325,7 +417,7 @@ export default function BoxDetailClient({ boxId }: BoxDetailClientProps) {
                            <Pagination
                               currentPage={currentPage}
                               totalPages={detail.totalPages}
-                              onPageChange={setCurrentPage}
+                              onPageChange={handlePageChange}
                            />
                         </div>
                      </>

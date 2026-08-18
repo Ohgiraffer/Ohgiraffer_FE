@@ -3,6 +3,7 @@
 import { CalendarDays } from 'lucide-react';
 import { format } from 'date-fns';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { ROLE_LABELS } from '@/services/auth.service';
 import CounselingCalendar from '../components/CounselingCalendar';
 import CounselorList from '../components/CounselorList';
@@ -38,7 +39,39 @@ export default function ApplyCounselingTab() {
    } = useApplyCounseling();
 
    if (isLoadingCounselors) {
-      return <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>;
+      return (
+         <div>
+            <div className="flex flex-wrap gap-2">
+               {[0, 1, 2].map((i) => (
+                  <Skeleton key={i} width={140} height={40} className="rounded-sm" />
+               ))}
+            </div>
+
+            <div className="mt-3 grid grid-cols-1 items-start gap-6 sm:grid-cols-[4.5fr_5.5fr]">
+               <Skeleton width="100%" height={420} className="rounded-sm" />
+
+               <div className="flex flex-col gap-3">
+                  <div className="rounded-sm border border-gray-200 bg-white px-6 py-4">
+                     <Skeleton width={80} height={16} className="rounded-md" />
+                     <div className="mt-4 grid grid-cols-7 gap-2">
+                        {Array.from({ length: 14 }).map((_, i) => (
+                           <Skeleton key={i} width="100%" height={38} className="rounded-xs" />
+                        ))}
+                     </div>
+                  </div>
+
+                  <div className="rounded-sm border border-gray-200 bg-white px-6 py-4">
+                     <Skeleton width={64} height={16} className="rounded-md" />
+                     <Skeleton width="100%" height={40} className="mt-2 rounded-xs" />
+                     <Skeleton width={96} height={16} className="mt-4 rounded-md" />
+                     <Skeleton width="100%" height={100} className="mt-2 rounded-xs" />
+                  </div>
+
+                  <Skeleton width="100%" height={48} className="rounded-sm" />
+               </div>
+            </div>
+         </div>
+      );
    }
 
    if (counselors.length === 0) {
@@ -61,7 +94,7 @@ export default function ApplyCounselingTab() {
             onSelect={selectCounselor}
          />
 
-         <div className="mt-3 grid grid-cols-[4.5fr_5.5fr] items-start gap-6">
+         <div className="mt-3 grid grid-cols-1 items-start gap-6 md:grid-cols-[4.5fr_5.5fr]">
             <CounselingCalendar
                selectedDate={selectedDate}
                onSelectDate={selectDate}
@@ -81,7 +114,11 @@ export default function ApplyCounselingTab() {
                            날짜를 먼저 선택해주세요
                         </div>
                      ) : isLoadingTimes ? (
-                        <p className="py-15 text-center text-sm text-gray-400">불러오는 중...</p>
+                        <div className="grid grid-cols-7 gap-2">
+                           {Array.from({ length: 14 }).map((_, i) => (
+                              <Skeleton key={i} width="100%" height={38} className="rounded-xs" />
+                           ))}
+                        </div>
                      ) : (
                         <AvailableTimeSlots
                            times={availableTimes}

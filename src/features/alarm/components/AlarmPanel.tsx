@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Bell, Trash2, X } from 'lucide-react';
 import { Switch } from '@/components/ui/shadcn/switch';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import SidePanelShell, { PanelHeaderBar } from '@/components/ui/SidePanelShell';
 import { useSidePanel } from '@/components/layout/SidePanelContext';
 import type { useNotifications } from '../hooks/useNotifications';
@@ -63,7 +64,7 @@ export default function NotificationPanel({
 
          <div className="flex items-center justify-between border-b border-[#E5E7EB] px-6 py-3">
             <div className="flex items-center gap-3">
-               <label className="flex cursor-pointer rounded-sm items-center gap-2 text-sm px-2.5 py-1.5 border border-[#E5E7EB] text-gray-700">
+               <label className="flex cursor-pointer rounded-xs items-center gap-2 text-sm px-2.5 py-1.5 border border-[#E5E7EB] text-gray-700">
                   <input
                      type="checkbox"
                      checked={isAllSelected}
@@ -77,7 +78,7 @@ export default function NotificationPanel({
                   type="button"
                   onClick={removeSelected}
                   disabled={selectedIds.length === 0}
-                  className={`flex items-center gap-1 rounded-sm px-2.5 py-1.5 text-sm font-medium ${
+                  className={`flex items-center gap-1 rounded-xs px-2.5 py-1.5 text-sm font-medium ${
                      selectedIds.length > 0
                         ? 'cursor-pointer border border-brand-maroon text-brand-maroon hover:bg-[#FEF2F2]'
                         : 'bg-[#F3F4F6] text-[#9CA3AF]'
@@ -99,7 +100,23 @@ export default function NotificationPanel({
 
          <div className="flex-1 overflow-y-auto">
             {isLoading ? (
-               <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+               <div>
+                  {[0, 1, 2, 3].map((i) => (
+                     <div
+                        key={i}
+                        className="flex items-start gap-3 border-b border-[#F3F4F6] px-6 py-4"
+                        style={{ '--row-delay': `${i * 0.15}s` } as React.CSSProperties}
+                     >
+                        <Skeleton width={16} height={16} className="mt-0.5 shrink-0 rounded-xs" />
+                        <div className="min-w-0 flex-1">
+                           <Skeleton width="55%" height={14} className="rounded-md" />
+                           <Skeleton width="85%" height={12} className="mt-2 rounded-md" />
+                           <Skeleton width="30%" height={10} className="mt-2 rounded-md" />
+                        </div>
+                        <Skeleton width={14} height={14} className="mt-0.5 shrink-0 rounded-xs" />
+                     </div>
+                  ))}
+               </div>
             ) : hasError ? (
                <div className="flex flex-col items-center gap-3 py-16">
                   <p className="text-sm text-gray-400">알림을 불러오지 못했습니다.</p>
@@ -149,7 +166,7 @@ export default function NotificationPanel({
                            removeOne(item.id);
                         }}
                         aria-label={`${item.title} 알림 삭제`}
-                        className="shrink-0 cursor-pointer rounded-sm p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+                        className="shrink-0 cursor-pointer rounded-xs p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
                      >
                         <X size={14} />
                      </button>

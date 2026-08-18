@@ -5,6 +5,7 @@ import type { GoogleSheetColumnField, GoogleSheetSaveResult } from '@/components
 import {
    getEvaluationSheetLink,
    saveEvaluationSheetLink,
+   type EvaluationSheetColumnMapping,
 } from '@/services/evaluation.service';
 
 // GoogleSheetSync에 넘기는 컬럼 목록
@@ -19,6 +20,7 @@ export const EVALUATION_SHEET_COLUMNS: GoogleSheetColumnField[] = [
 export function useEvaluationSheetSync() {
    const [isConnected, setIsConnected] = useState(false);
    const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
+   const [columnMapping, setColumnMapping] = useState<EvaluationSheetColumnMapping | null>(null);
    const [isLoading, setIsLoading] = useState(true);
    const [loadError, setLoadError] = useState(false);
 
@@ -28,10 +30,11 @@ export function useEvaluationSheetSync() {
       getEvaluationSheetLink()
          .then((link) => {
             if (!isMounted) return;
-            
+
             if (link) {
                setIsConnected(true);
                setSpreadsheetUrl(link.spreadsheetUrl);
+               setColumnMapping(link.columnMapping);
             } else {
                setIsConnected(false);
             }
@@ -51,20 +54,23 @@ export function useEvaluationSheetSync() {
 
    // GoogleSheetSync의 [설정 저장] 버튼이 연결 확인을 마친 뒤 호출
    const handleSaveMapping = useCallback(async (result: GoogleSheetSaveResult) => {
+      const mapping: EvaluationSheetColumnMapping = {
+         traineeIdentifier: result.columnMapping.traineeIdentifier.columnName,
+         evaluationType: result.columnMapping.evaluationType.columnName,
+         item: result.columnMapping.item.columnName,
+         score: result.columnMapping.score.columnName,
+         comment: result.columnMapping.comment?.columnName ?? null,
+      };
+
       await saveEvaluationSheetLink({
          spreadsheetUrl: result.spreadsheetUrl,
          tabName: result.sheetName,
-         columnMapping: {
-            traineeIdentifier: result.columnMapping.traineeIdentifier.columnName,
-            evaluationType: result.columnMapping.evaluationType.columnName,
-            item: result.columnMapping.item.columnName,
-            score: result.columnMapping.score.columnName,
-            comment: result.columnMapping.comment?.columnName ?? null,
-         },
+         columnMapping: mapping,
       });
       setIsConnected(true);
       setSpreadsheetUrl(result.spreadsheetUrl);
+      setColumnMapping(mapping);
    }, []);
 
-   return { isConnected, spreadsheetUrl, isLoading, loadError, handleSaveMapping };
+   return { isConnected, spreadsheetUrl, columnMapping, isLoading, loadError, handleSaveMapping };
 }

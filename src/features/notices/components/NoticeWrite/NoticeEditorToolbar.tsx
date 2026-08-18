@@ -184,7 +184,7 @@ export default function NoticeEditorToolbar({ editor, isImproving, onImproveClic
          <div className="flex items-center gap-2">
             <button
                type="button"
-               disabled={isImproving || editor.isEmpty}
+               disabled={isImproving}
                onClick={onImproveClick}
                className="flex cursor-pointer items-center gap-1.5 rounded-xs border border-brand-green bg-white px-3 py-1.5 text-sm text-brand-green transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
             >

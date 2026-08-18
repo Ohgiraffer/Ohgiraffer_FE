@@ -71,7 +71,7 @@ export default function PurchaseBudgetRequestForm() {
             </Select>
          </div>
 
-         <div className="mt-6 grid grid-cols-2 gap-6">
+         <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
                <label className="text-[15px] font-semibold text-gray-900">신청 날짜</label>
                <input
@@ -156,8 +156,9 @@ export default function PurchaseBudgetRequestForm() {
             title="구매 예산 결재 서류를 신청하시겠습니까?"
             description="신청 후 결재 담당자에게 알림이 발송됩니다."
             confirmLabel={isSubmitting ? '처리 중...' : '확인'}
+            busy={isSubmitting}
             onConfirm={confirmSubmit}
-            onClose={() => !isSubmitting && cancelSubmit()}
+            onClose={cancelSubmit}
          />
       </div>
    );

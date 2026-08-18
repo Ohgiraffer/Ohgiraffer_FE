@@ -226,7 +226,7 @@ export default function BoxCreateForm({ editTarget, onCancel, onSaved }: BoxCrea
    };
 
    return (
-      <div className="rounded-xs border border-[#E5E7EB] bg-white p-6">
+      <div className="rounded-sm border border-[#E5E7EB] bg-white p-6">
          <h2 className="text-sm font-bold text-gray-900">
             {isEditing ? '제출함 수정' : '새 제출함 생성'}
          </h2>

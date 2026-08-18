@@ -8,6 +8,7 @@ import {
    SelectTrigger,
    SelectValue,
 } from '@/components/ui/shadcn/select';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import StaffConsultationRow from '../components/StaffConsultationRow';
 import {
    HISTORY_PAGE_SIZE,
@@ -28,6 +29,38 @@ const STATUS_FILTER_OPTIONS: Array<{ value: ConsultationStatusFilter; label: str
    { value: 'COMPLETED', label: '완료' },
    { value: 'CANCELLED', label: '취소' },
 ];
+
+// StaffConsultationRow(카드/구분선 두 variant 공용) 자리표시
+function StaffConsultationRowSkeleton({
+   index = 0,
+   variant = 'divider',
+}: {
+   index?: number;
+   variant?: 'card' | 'divider';
+}) {
+   return (
+      <div
+         className={`flex items-center justify-between ${
+            variant === 'card'
+               ? 'rounded-xs border border-[#E5E7EB] bg-[#F9FAFB] px-5 py-3'
+               : 'px-6 py-3'
+         }`}
+         style={{ '--row-delay': `${index * 0.15}s` } as React.CSSProperties}
+      >
+         <div className="flex items-center gap-4">
+            <Skeleton width={20} height={12} className="rounded-md" />
+            <div>
+               <Skeleton width={140} height={14} className="rounded-md" />
+               <Skeleton width={180} height={11} className="mt-1.5 rounded-md" />
+            </div>
+         </div>
+         <div className="flex items-center gap-3">
+            <Skeleton width={56} height={22} className="rounded-xs" />
+            <Skeleton width={16} height={16} className="rounded-full" />
+         </div>
+      </div>
+   );
+}
 
 // 운영진 "상담 이력 조회" 탭
 export default function StaffHistoryTab() {
@@ -69,7 +102,11 @@ export default function StaffHistoryTab() {
                다가오는 상담 — {upcoming.length}건
             </h3>
             {isLoadingUpcoming ? (
-               <p className="py-10 text-center text-sm text-gray-400">불러오는 중...</p>
+               <div className="mt-3 flex flex-col gap-2">
+                  {[0, 1, 2].map((i) => (
+                     <StaffConsultationRowSkeleton key={i} index={i} variant="card" />
+                  ))}
+               </div>
             ) : hasUpcomingError ? (
                <p className="py-10 text-center text-sm text-brand-red">
                   다가오는 상담을 불러오지 못했습니다.
@@ -138,7 +175,11 @@ export default function StaffHistoryTab() {
                <span className="text-sm text-gray-400">{history.length}건</span>
             </div>
             {isLoadingHistory ? (
-               <p className="py-10 text-center text-sm text-gray-400">불러오는 중...</p>
+               <div className="divide-y divide-[#F3F4F6]">
+                  {[0, 1, 2, 3].map((i) => (
+                     <StaffConsultationRowSkeleton key={i} index={i} />
+                  ))}
+               </div>
             ) : hasHistoryError ? (
                <p className="py-10 text-center text-sm text-brand-red">
                   상담 이력을 불러오지 못했습니다.

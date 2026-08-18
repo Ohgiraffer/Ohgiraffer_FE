@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/shadcn/select';
 import Pagination from '@/components/ui/Pagination';
 import SearchInput from '@/components/ui/SearchInput';
+import { Skeleton } from '@/components/ui/loading/Skeleton';
 import StatusBadge from '@/features/submissions/components/StatusBadge';
 import { useManagerTrackerData } from '../hooks/useManagerTrackerData';
 import { TRAINEE_RISK_LABELS, TRAINEE_RISK_TONES, type TraineeRiskStatus } from '../types';
@@ -36,6 +37,66 @@ const OVERVIEW_STATS = [
    { label: '위기 훈련생', valueKey: 'atRiskStudents', suffix: '명', caption: '경고·제적위험' },
    { label: '중도 이탈', valueKey: 'dropoutStudents', suffix: '명', caption: '수강 철회' },
 ] as const;
+
+function StatusTabSkeleton() {
+   return (
+      <div>
+         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xs border border-gray-200 bg-gray-100 sm:grid-cols-4 lg:grid-cols-7">
+            {OVERVIEW_STATS.map((stat) => (
+               <div key={stat.label} className="flex flex-col items-center gap-1.5 bg-white py-4">
+                  <Skeleton width={48} height={11} className="rounded-md" />
+                  <Skeleton width={36} height={20} className="rounded-md" />
+                  <Skeleton width={40} height={10} className="rounded-md" />
+               </div>
+            ))}
+         </div>
+
+         <div className="mt-6 rounded-xs border border-gray-200 bg-white p-6">
+            <div className="mb-4 flex items-center justify-between">
+               <Skeleton width={80} height={16} className="rounded-md" />
+               <Skeleton width={140} height={36} className="rounded-xs" />
+            </div>
+            <Skeleton width="100%" height={180} className="rounded-md" />
+         </div>
+
+         <div className="mt-6 flex flex-wrap items-center gap-2">
+            <Skeleton width={128} height={36} className="rounded-xs" />
+            <Skeleton width={128} height={36} className="rounded-xs" />
+            <Skeleton width={112} height={36} className="rounded-xs" />
+            <Skeleton width={256} height={36} className="ml-auto rounded-xs" />
+         </div>
+
+         <div className="mt-4 divide-y divide-[#F3F4F6] overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:hidden">
+            {[0, 1, 2, 3, 4].map((i) => (
+               <div key={i} className="p-4">
+                  <div className="flex items-center justify-between gap-2">
+                     <Skeleton width="40%" height={14} className="rounded-md" />
+                     <Skeleton width={48} height={20} className="rounded-xs" />
+                  </div>
+                  <Skeleton width="60%" height={6} className="mt-3 rounded-full" />
+               </div>
+            ))}
+         </div>
+
+         <div className="mt-4 hidden overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:block">
+            {[0, 1, 2, 3, 4].map((i) => (
+               <div
+                  key={i}
+                  className="flex items-center gap-4 border-b border-[#F3F4F6] px-6 py-4 last:border-none"
+               >
+                  <Skeleton width="18%" height={14} className="rounded-md" />
+                  <Skeleton width="24%" height={6} className="rounded-full" />
+                  <Skeleton width="8%" height={14} className="rounded-md" />
+                  <Skeleton width="8%" height={14} className="rounded-md" />
+                  <Skeleton width="8%" height={14} className="rounded-md" />
+                  <Skeleton width="8%" height={14} className="rounded-md" />
+                  <Skeleton width={64} height={22} className="ml-auto rounded-xs" />
+               </div>
+            ))}
+         </div>
+      </div>
+   );
+}
 
 interface StatusTabProps {
    onGoToSheetSync: () => void;
@@ -82,13 +143,15 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
    }, [trainees, riskFilter, dangerOnly, teamFilter, searchText]);
 
    const totalPages = Math.max(1, Math.ceil(filteredTrainees.length / PAGE_SIZE));
+   // 필터 변경이 아닌 이유(재조회 등)로 목록 자체가 줄어들어도 범위 밖 페이지에 머물지 않도록 보정
+   const safePage = Math.min(currentPage, totalPages);
    const pagedTrainees = filteredTrainees.slice(
-      (currentPage - 1) * PAGE_SIZE,
-      currentPage * PAGE_SIZE,
+      (safePage - 1) * PAGE_SIZE,
+      safePage * PAGE_SIZE,
    );
 
    if (isLoading) {
-      return <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>;
+      return <StatusTabSkeleton />;
    }
 
    if (error || !stats) {
@@ -120,9 +183,9 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
 
    return (
       <div>
-         <div className="grid grid-cols-7 divide-x divide-gray-100 rounded-xs border border-gray-200 bg-white">
+         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-gray-200 bg-gray-100 sm:grid-cols-4 lg:grid-cols-7">
             {OVERVIEW_STATS.map((stat) => (
-               <div key={stat.label} className="flex flex-col items-center gap-1 py-4">
+               <div key={stat.label} className="flex flex-col items-center gap-1 bg-white py-4">
                   <span className="text-xs text-gray-400">{stat.label}</span>
                   <span className="text-xl font-bold text-gray-900">
                      {stats[stat.valueKey] ?? 0}
@@ -133,7 +196,7 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
             ))}
          </div>
 
-         <div className="mt-6 rounded-xs border border-gray-200 bg-white p-6">
+         <div className="mt-6 rounded-sm border border-gray-200 bg-white p-6">
             <div className="flex items-center justify-between">
                <p className="text-sm font-bold text-gray-900">출석 추이</p>
                <Select
@@ -251,7 +314,74 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
             />
          </div>
 
-         <div className="mt-4 overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
+         <div className="mt-4 divide-y divide-[#F3F4F6] overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:hidden">
+            {pagedTrainees.length === 0 ? (
+               <p className="px-6 py-10 text-center text-sm text-gray-400">
+                  조건에 맞는 훈련생이 없습니다.
+               </p>
+            ) : (
+               pagedTrainees.map((trainee, index) => (
+                  <div
+                     key={`${trainee.name}-${index}`}
+                     onClick={() => router.push(`/tracker/${trainee.traineeId}`)}
+                     className="cursor-pointer p-4 transition-colors hover:bg-[#F9FAFB]"
+                  >
+                     <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                           <Link
+                              href={`/tracker/${trainee.traineeId}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="block truncate text-sm font-bold text-gray-900"
+                           >
+                              {trainee.name}
+                           </Link>
+                           {trainee.email && (
+                              <p className="mt-0.5 truncate text-xs text-gray-400">{trainee.email}</p>
+                           )}
+                        </div>
+                        <StatusBadge tone={TRAINEE_RISK_TONES[trainee.riskStatus]} className="shrink-0">
+                           {TRAINEE_RISK_LABELS[trainee.riskStatus]}
+                        </StatusBadge>
+                     </div>
+
+                     <div className="mt-2 flex items-center gap-2">
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100">
+                           <div
+                              className="h-full rounded-full bg-brand-sage"
+                              style={{ width: `${trainee.attendanceRate}%` }}
+                           />
+                        </div>
+                        <span className="whitespace-nowrap text-xs text-gray-700">
+                           {trainee.attendanceRate}%
+                        </span>
+                     </div>
+
+                     <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+                        <div>
+                           <p className="text-[11px] text-gray-400">지각</p>
+                           <p className="mt-0.5 text-sm font-medium text-gray-900">{trainee.lateCount}</p>
+                        </div>
+                        <div>
+                           <p className="text-[11px] text-gray-400">조퇴</p>
+                           <p className="mt-0.5 text-sm font-medium text-gray-900">
+                              {trainee.earlyLeaveCount}
+                           </p>
+                        </div>
+                        <div>
+                           <p className="text-[11px] text-gray-400">외출</p>
+                           <p className="mt-0.5 text-sm font-medium text-gray-900">{trainee.outingCount}</p>
+                        </div>
+                        <div>
+                           <p className="text-[11px] text-gray-400">결석</p>
+                           <p className="mt-0.5 text-sm font-medium text-gray-900">{trainee.absentCount}</p>
+                        </div>
+                     </div>
+                  </div>
+               ))
+            )}
+         </div>
+
+         <div className="mt-4 hidden overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:block">
             <table className="w-full table-fixed text-left text-sm">
                <thead>
                   <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
@@ -283,23 +413,31 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
                               <Link
                                  href={`/tracker/${trainee.traineeId}`}
                                  onClick={(e) => e.stopPropagation()}
-                                 className="group-hover:underline"
+                                 title={trainee.name}
+                                 className="block truncate group-hover:underline"
                               >
                                  {trainee.name}
                               </Link>
                               {trainee.email && (
-                                 <p className="mt-0.5 text-xs font-normal text-gray-400">{trainee.email}</p>
+                                 <p
+                                    className="mt-0.5 truncate text-xs font-normal text-gray-400"
+                                    title={trainee.email}
+                                 >
+                                    {trainee.email}
+                                 </p>
                               )}
                            </td>
                            <td className="px-3 py-4">
-                              <div className="flex items-center justify-center gap-2">
-                                 <div className="h-1.5 w-40 shrink-0 overflow-hidden rounded-full bg-gray-100">
+                              <div className="flex flex-col items-center gap-1 xl:flex-row xl:justify-center xl:gap-2">
+                                 <div className="h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-gray-100 lg:w-28 xl:w-40">
                                     <div
                                        className="h-full rounded-full bg-brand-sage"
                                        style={{ width: `${trainee.attendanceRate}%` }}
                                     />
                                  </div>
-                                 <span className="text-gray-700">{trainee.attendanceRate}%</span>
+                                 <span className="whitespace-nowrap text-xs text-gray-700 md:text-sm">
+                                    {trainee.attendanceRate}%
+                                 </span>
                               </div>
                            </td>
                            <td className="px-3 py-4 text-center text-gray-700">{trainee.lateCount}</td>
@@ -322,7 +460,7 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
          </div>
 
          <div className="mt-6">
-            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+            <Pagination currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} />
          </div>
       </div>
    );

@@ -15,7 +15,7 @@ export default function OrgInfoFields({ value, onChange, dateOrderError }: Props
    };
 
    return (
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
          <div>
             <label className="text-[15px] font-semibold text-gray-900">
                조직명 <span className="font-bold text-[16px] text-brand-gold">*</span>
@@ -25,7 +25,7 @@ export default function OrgInfoFields({ value, onChange, dateOrderError }: Props
                value={value.orgName}
                onChange={(e) => updateField('orgName', e.target.value)}
                placeholder="조직명을 입력해주세요"
-               className="mt-2 w-full rounded-sm border border-[#E5E7EB] px-4 py-2.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-green"
+               className="mt-2 w-full rounded-xs border border-[#E5E7EB] px-4 py-2.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
          </div>
          <div>
@@ -37,7 +37,7 @@ export default function OrgInfoFields({ value, onChange, dateOrderError }: Props
                value={value.courseName}
                onChange={(e) => updateField('courseName', e.target.value)}
                placeholder="부트캠프 과정명을 입력해주세요."
-               className="mt-2 w-full rounded-sm border border-[#E5E7EB] px-4 py-2.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-green"
+               className="mt-2 w-full rounded-xs border border-[#E5E7EB] px-4 py-2.5 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
          </div>
          <div>
