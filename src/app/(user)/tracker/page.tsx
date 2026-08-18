@@ -1,4 +1,4 @@
-import { getVerifiedRole } from '@/lib/auth/getVerifiedRole';
+import { getVerifiedRole } from '@/lib/auth/serverAuth';
 import ManagerTrackerBoard from '@/features/tracker/components/ManagerTrackerBoard';
 import StudentTracker from '@/features/tracker/components/StudentTracker';
 import TrackerPageClient from '@/features/tracker/components/TrackerPageClient';

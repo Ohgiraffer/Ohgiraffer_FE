@@ -9,15 +9,17 @@ import type { Space } from '../types';
 export type SpaceViewMode = 'grid' | 'list';
 
 // 공간 예약 페이지 전체 상태
-export function useSpaceReservation() {
-   const [spaces, setSpaces] = useState<Space[]>([]);
-   const [isLoading, setIsLoading] = useState(true);
+export function useSpaceReservation(initialSpaces?: Space[]) {
+   const [spaces, setSpaces] = useState<Space[]>(initialSpaces ?? []);
+   const [isLoading, setIsLoading] = useState(!initialSpaces);
    const [hasError, setHasError] = useState(false);
    const [viewMode, setViewMode] = useState<SpaceViewMode>('grid');
    const [searchKeyword, setSearchKeyword] = useState('');
    const [searchTrigger, setSearchTrigger] = useState(0);
    const [isChangingLocation, setIsChangingLocation] = useState(false);
    const isChangingLocationRef = useRef(false);
+   // 서버가 이미 initialSpaces를 넘겨줬으면, 마운트 시점의 첫 조회 한 번은 건너뛴다
+   const skipInitialFetchRef = useRef(initialSpaces != null);
 
    const fetchSpaces = () =>
       getSpaces()
@@ -35,6 +37,10 @@ export function useSpaceReservation() {
          });
 
    useEffect(() => {
+      if (skipInitialFetchRef.current) {
+         skipInitialFetchRef.current = false;
+         return;
+      }
       fetchSpaces().finally(() => setIsLoading(false));
    }, []);
 

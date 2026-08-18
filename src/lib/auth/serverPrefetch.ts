@@ -1,4 +1,5 @@
 import { API_BASE_URL, ApiError } from '@/lib/http';
+import { getServerAccessToken } from './serverAuth';
 
 // 서버 컴포넌트 전용 - getServerAccessToken()으로 받은 토큰을 파라미터로 직접 받는다(클라이언트의
 // token-store.ts는 서버 런타임에 존재하지 않아 apiFetch를 그대로 못 씀). 렌더링 1회성이라
@@ -15,4 +16,15 @@ export async function serverApiFetch<T>(path: string, accessToken: string): Prom
    }
 
    return res.json() as Promise<T>;
+}
+
+// 페이지마다 반복되던 "토큰 있으면 프리페치, 없거나 실패하면 undefined로 폴백" 보일러플레이트를
+// 한 곳에 모은다. 실패를 조용히 삼키는 이유는 프리페치가 어디까지나 최적화라서 - 실패해도
+// 클라이언트가 그대로 다시 불러온다
+export async function prefetchIfAuthed<T>(
+   fetcher: (accessToken: string) => Promise<T>,
+): Promise<T | undefined> {
+   const accessToken = await getServerAccessToken();
+   if (!accessToken) return undefined;
+   return fetcher(accessToken).catch(() => undefined);
 }

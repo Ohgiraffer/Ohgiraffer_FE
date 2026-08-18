@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import { useQueryClient } from '@tanstack/react-query';
 import { getSessionEpoch, setAccessTokenForNewSession, subscribeAccessToken } from '@/lib/auth/token-store';
-import { VERIFIED_AUTH_CACHE_COOKIE } from '@/lib/auth/verifiedAuthCookie';
 import * as authService from '@/services/auth.service';
 import type { UserRole } from '@/services/auth.service';
 import { getMe, type Me } from '@/services/user.service';
@@ -82,10 +81,11 @@ export function AuthProvider({
       try {
          await authService.logout();
       } finally {
-         // 미들웨어(proxy.ts)가 캐싱해둔 롤 검증 결과 쿠키 - TTL(60초)까지 기다리지 않고
-         // 로그아웃 즉시 지워야 그 사이 뒤로가기 등으로 보호된 라우트에 들어가도 이전 세션의
-         // 롤로 서버 렌더링되지 않는다
-         document.cookie = `${VERIFIED_AUTH_CACHE_COOKIE}=; Max-Age=0; path=/`;
+         // 미들웨어(proxy.ts)가 캐싱해둔 롤 검증 결과 쿠키(accessToken 포함, httpOnly) - TTL(60초)
+         // 까지 기다리지 않고 로그아웃 즉시 지워야 그 사이 뒤로가기 등으로 보호된 라우트에 들어가도
+         // 이전 세션으로 서버 렌더링되지 않는다. httpOnly라 document.cookie로는 못 지우므로
+         // 서버 라우트를 불러 대신 지운다 - 실패해도 로그아웃 자체는 계속 진행(best-effort)
+         fetch('/api/auth/clear-verified-cache', { method: 'POST' }).catch(() => {});
          if (getSessionEpoch() === epoch) {
             setAccessTokenForNewSession(null);
             setRole(null);
