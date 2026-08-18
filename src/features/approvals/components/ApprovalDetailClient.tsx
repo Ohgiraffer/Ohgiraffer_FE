@@ -19,7 +19,7 @@ import {
 } from '@/services/approval.service';
 import ApprovalStatusTimeline from './ApprovalStatusTimeline';
 import RejectReasonModal from './RejectReasonModal';
-import { useApprovalLivePolling } from '../hooks/useApprovalLivePolling';
+import { useApprovalFocusRefetch } from '../hooks/useApprovalFocusRefetch';
 import { useApprovalPdfDownload } from '../hooks/useApprovalPdfDownload';
 import { formatApprovalDate } from '../formatApprovalDate';
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_TONES } from '../types';
@@ -136,7 +136,7 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
       setRetryKey((key) => key + 1);
    };
 
-   const { isPollingStopped } = useApprovalLivePolling(
+   useApprovalFocusRefetch(
       numericApprovalId,
       detail?.status,
       !isProcessor && Boolean(detail) && !hasError,
@@ -212,12 +212,6 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
          <h1 className="mt-3 text-2xl font-bold text-gray-900">
             {isProcessor ? '결재 상세' : '결재 이력 상세'}
          </h1>
-
-         {!isProcessor && isPollingStopped && (
-            <p className="mt-3 rounded-xs border border-[#F3DFA0] bg-[#FFF9EC] px-4 py-2.5 text-sm text-gray-700">
-               실시간 갱신이 중단됐습니다. 최신 상태를 보려면 새로고침해주세요.
-            </p>
-         )}
 
          {isLoading ? (
             <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>

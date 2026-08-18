@@ -83,14 +83,9 @@ export default function SyncLogDetailClient({ syncLogId }: SyncLogDetailClientPr
                      <Skeleton width={110} height={14} className="rounded-md" />
                      <Skeleton width={140} height={12} className="rounded-md" />
                   </div>
-                  <div className="mt-3 flex divide-x divide-[#F3F4F6] rounded-xs border border-[#F3F4F6] bg-[#F9FAFB]">
-                     {[0, 1, 2].map((i) => (
-                        <div key={i} className="flex-1 px-4 py-3 text-center">
-                           <Skeleton width={48} height={12} className="mx-auto rounded-md" />
-                           <Skeleton width={32} height={16} className="mx-auto mt-1 rounded-md" />
-                        </div>
-                     ))}
-                  </div>
+                  {/* 이력 상세는 addedCount/updatedCount 없이 changedCount만 넘기므로,
+                      AiSyncSummaryCard는 3분할 통계 박스 대신 "총 변경 N건" 한 줄만 렌더링한다 */}
+                  <Skeleton width={120} height={14} className="mt-3 rounded-md" />
                   <div className="mt-3 flex flex-col gap-2">
                      {[0, 1, 2].map((i) => (
                         <div key={i} className="rounded-xs border border-[#F3F4F6] bg-[#F9FAFB] p-4">
