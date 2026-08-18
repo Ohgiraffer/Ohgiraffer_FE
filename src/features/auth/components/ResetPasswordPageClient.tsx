@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/shadcn/button';
 import { useAuth } from '@/components/auth/AuthContext';
 import { resetPassword } from '@/services/auth.service';
-import { setAccessToken } from '@/lib/auth/token-store';
+import { setAccessTokenForNewSession } from '@/lib/auth/token-store';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import FullScreenLoader from '@/components/ui/loading/FullScreenLoader';
@@ -60,8 +60,11 @@ export default function ResetPasswordPageClient() {
          const data = await resetPassword(password);
          toast.success(data.message);
          clearNeedResetPw();
-         // 응답 메시지가 재로그인을 안내하므로 로컬 세션을 정리하고 로그인 페이지로 보낸다
-         setAccessToken(null);
+         // 응답 메시지가 재로그인을 안내하므로 로컬 세션을 정리하고 로그인 페이지로 보낸다.
+         // setAccessToken이 아니라 setAccessTokenForNewSession을 써서 세션 세대를 올려야,
+         // 이 시점에 이미 진행 중이던 자동 갱신(refresh)이 늦게 응답해도 낡은 결과로 처리돼
+         // 방금 지운 토큰을 되살리지 못한다
+         setAccessTokenForNewSession(null);
          router.push('/login');
       } catch (err) {
          if (err instanceof ApiError) {
