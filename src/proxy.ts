@@ -26,12 +26,20 @@ function stripVerifiedHeaders(headers: Headers) {
    headers.delete('x-verified-role');
    headers.delete('x-verified-status');
    headers.delete('x-verified-bootcamp-id');
+   headers.delete('x-verified-access-token');
 }
 
 interface VerifiedAuthData {
    role: string;
    status: string;
    bootcampId: number | null;
+}
+
+// /auth/refresh 응답 전체(캐시 쿠키에 저장하는 VerifiedAuthData보다 accessToken이 더 있음) -
+// 이 accessToken은 절대 캐시 쿠키에 넣지 않는다(수명이 짧은 값이라 오래 남기면 안 됨).
+// 캐시 히트 경로에서는 애초에 이 응답 자체를 안 받으므로 x-verified-access-token도 안 채워진다
+interface VerifiedAuthResponse extends VerifiedAuthData {
+   accessToken: string;
 }
 
 function applyVerifiedHeaders(headers: Headers, data: VerifiedAuthData) {
@@ -72,15 +80,24 @@ export async function proxy(request: NextRequest) {
       });
 
       if (res.ok) {
-         const data = (await res.json()) as VerifiedAuthData;
+         const data = (await res.json()) as VerifiedAuthResponse;
          applyVerifiedHeaders(requestHeaders, data);
+         // 캐시 미스(방금 실제로 백엔드를 검증한) 경로에서만 채워진다 - 서버 컴포넌트가 이 요청에
+         // 한해서만 사용자 대신 보호된 API를 부를 수 있다(팀 데이터 프리페치 등)
+         requestHeaders.set('x-verified-access-token', data.accessToken);
          const response = NextResponse.next({ request: { headers: requestHeaders } });
-         response.cookies.set(VERIFIED_AUTH_CACHE_COOKIE, JSON.stringify(data), {
-            maxAge: VERIFIED_CACHE_MAX_AGE_SECONDS,
-            path: '/',
-            sameSite: 'lax',
-            secure: process.env.NODE_ENV === 'production',
-         });
+         // 캐시 쿠키에는 role/status/bootcampId만 저장 - accessToken은 절대 안 남긴다
+         const { role, status, bootcampId } = data;
+         response.cookies.set(
+            VERIFIED_AUTH_CACHE_COOKIE,
+            JSON.stringify({ role, status, bootcampId }),
+            {
+               maxAge: VERIFIED_CACHE_MAX_AGE_SECONDS,
+               path: '/',
+               sameSite: 'lax',
+               secure: process.env.NODE_ENV === 'production',
+            },
+         );
          return response;
       }
       // 401 등 실패면 헤더를 세팅하지 않은 채(= 비로그인 취급) 그대로 통과시킨다 - AuthGuard가

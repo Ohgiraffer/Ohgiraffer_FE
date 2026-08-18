@@ -1,4 +1,5 @@
 import { apiFetch, apiFetchBlob } from '@/lib/http';
+import { getSessionEpoch } from '@/lib/auth/token-store';
 import type { UserRole } from '@/services/auth.service';
 
 export interface Me {
@@ -16,8 +17,25 @@ export interface Me {
    needResetPw: boolean;
 }
 
-export function getMe() {
-   return apiFetch<Me>('/user/me');
+// http.ts의 refreshAccessToken()과 같은 이유 - (user)/layout.tsx의 중첩 AuthProvider가
+// 생기면서 같은 페이지에서 두 AuthProvider가 거의 동시에 마운트되어 각자 getMe()를 부르는
+// 경우가 생겼다. 진행 중인 요청을 공유해 실제 네트워크 호출은 한 번만 나가게 한다
+let mePromise: Promise<Me> | null = null;
+let mePromiseEpoch: number | null = null;
+
+export function getMe(): Promise<Me> {
+   const epochAtStart = getSessionEpoch();
+   if (!mePromise || mePromiseEpoch !== epochAtStart) {
+      mePromiseEpoch = epochAtStart;
+      const promise = apiFetch<Me>('/user/me').finally(() => {
+         if (mePromise === promise) {
+            mePromise = null;
+            mePromiseEpoch = null;
+         }
+      });
+      mePromise = promise;
+   }
+   return mePromise;
 }
 
 export interface AlarmSettingResponse {

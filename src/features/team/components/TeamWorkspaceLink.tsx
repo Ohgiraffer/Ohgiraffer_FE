@@ -45,7 +45,9 @@ export default function TeamWorkspaceLink({ teamId }: TeamWorkspaceLinkProps) {
       return (
          <div className="mt-3 flex items-center justify-between rounded-xs border border-dashed border-gray-200 px-2.5 py-2 text-xs text-gray-400">
             <span>Notion 페이지</span>
-            <span className="rounded-xs bg-gray-100 px-2 py-0.5 font-medium">저장 후 생성</span>
+            <span className="flex h-5 items-center rounded-xs bg-gray-100 px-2 font-medium">
+               저장 후 생성
+            </span>
          </div>
       );
    }
@@ -54,7 +56,9 @@ export default function TeamWorkspaceLink({ teamId }: TeamWorkspaceLinkProps) {
       return (
          <div className="mt-3 flex items-center justify-between rounded-xs border border-dashed border-gray-200 px-2.5 py-2 text-xs text-gray-400">
             <span>Notion 페이지</span>
-            <span className="rounded-xs bg-gray-100 px-2 py-0.5 font-medium">확인 중</span>
+            <span className="flex h-5 items-center rounded-xs bg-gray-100 px-2 font-medium">
+               확인 중
+            </span>
          </div>
       );
    }
@@ -63,7 +67,9 @@ export default function TeamWorkspaceLink({ teamId }: TeamWorkspaceLinkProps) {
       return (
          <div className="mt-3 flex items-center justify-between rounded-xs border border-dashed border-gray-200 px-2.5 py-2 text-xs text-gray-400">
             <span>Notion 페이지</span>
-            <span className="rounded-xs bg-gray-100 px-2 py-0.5 font-medium">아직 없음</span>
+            <span className="flex h-5 items-center rounded-xs bg-gray-100 px-2 font-medium">
+               아직 없음
+            </span>
          </div>
       );
    }
@@ -76,7 +82,12 @@ export default function TeamWorkspaceLink({ teamId }: TeamWorkspaceLinkProps) {
          className="mt-3 flex items-center justify-between rounded-xs border border-gray-200 px-2.5 py-2 text-xs text-gray-600 hover:bg-gray-50"
       >
          <span>Notion 페이지</span>
-         <ExternalLink size={12} className="shrink-0 text-gray-400" />
+         {/* 나머지 상태(아직 없음/확인 중/저장 후 생성)의 배지와 높이(h-5)를 고정으로 맞춘다 -
+         패딩만 맞추면 텍스트 배지(line-height 기준)와 아이콘(고정 12px)의 실제 높이가 미묘하게
+         달라서, 팀 카드 목록을 스크롤할 때 카드 높이가 덜컥거렸다 */}
+         <span className="flex h-5 items-center justify-center rounded-xs bg-gray-100 px-2">
+            <ExternalLink size={12} className="shrink-0 text-gray-400" />
+         </span>
       </a>
    );
 }

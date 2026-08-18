@@ -118,7 +118,7 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
       changePeriod,
       retryTrend,
    } = useManagerTrackerData();
-   const [riskFilter, setRiskFilter] = useState<TraineeRiskStatus | ''>('');
+   const [riskFilter, setRiskFilter] = useState<TraineeRiskStatus | 'ALL'>('ALL');
    const [dangerOnly, setDangerOnly] = useState<'ALL' | 'AT_RISK'>('ALL');
    const [teamFilter, setTeamFilter] = useState('ALL');
    const [searchText, setSearchText] = useState('');
@@ -134,7 +134,7 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
 
    const filteredTrainees = useMemo(() => {
       return trainees.filter((trainee) => {
-         if (riskFilter && trainee.riskStatus !== riskFilter) return false;
+         if (riskFilter !== 'ALL' && trainee.riskStatus !== riskFilter) return false;
          if (dangerOnly === 'AT_RISK' && trainee.riskStatus === 'NORMAL') return false;
          if (teamFilter !== 'ALL' && trainee.teamName !== teamFilter) return false;
          if (searchText.trim() && !trainee.name.includes(searchText.trim())) return false;
@@ -244,7 +244,7 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
             <Select
                value={riskFilter}
                onValueChange={(value) => {
-                  setRiskFilter((value as TraineeRiskStatus) ?? '');
+                  setRiskFilter((value as TraineeRiskStatus | 'ALL') ?? 'ALL');
                   setCurrentPage(1);
                }}
             >
@@ -256,6 +256,7 @@ export default function StatusTab({ onGoToSheetSync }: StatusTabProps) {
                   </SelectValue>
                </SelectTrigger>
                <SelectContent alignItemWithTrigger={false} align="start" sideOffset={4}>
+                  <SelectItem value="ALL">전체</SelectItem>
                   {RISK_FILTER_OPTIONS.map((option) => (
                      <SelectItem key={option.value} value={option.value}>
                         {option.label}
