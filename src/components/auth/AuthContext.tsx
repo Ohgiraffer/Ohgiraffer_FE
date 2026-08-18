@@ -5,12 +5,19 @@ import { usePathname } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import { useQueryClient } from '@tanstack/react-query';
 import { getSessionEpoch, setAccessTokenForNewSession, subscribeAccessToken } from '@/lib/auth/token-store';
+import { VERIFIED_AUTH_CACHE_COOKIE } from '@/lib/auth/verifiedAuthCookie';
 import * as authService from '@/services/auth.service';
 import type { UserRole } from '@/services/auth.service';
 import { getMe, type Me } from '@/services/user.service';
 import { getBootcampBasicInfo } from '@/services/bootcamp.service';
 
 export class RoleMismatchError extends Error {}
+
+export interface InitialAuth {
+   role: UserRole;
+   status: string;
+   bootcampId: number | null;
+}
 
 interface AuthContextValue {
    accessToken: string | null;
@@ -23,6 +30,9 @@ interface AuthContextValue {
    updateBootcampId: (bootcampId: number) => void;
    isAuthenticated: boolean;
    isInitializing: boolean;
+   // 이 세션에 롤이 있는지 한 번이라도 결론이 났는지 - initialAuth로 즉시 시작하거나,
+   // 세션 복구용 /auth/refresh가 성공/실패 어느 쪽으로든 끝났을 때 true가 된다
+   isSessionVerified: boolean;
    // 최초 로그인 시 강제 비밀번호 변경이 필요한지 - /user/me가 이 값을 내려주므로
    // verifyAndSetMe가 호출될 때마다(로그인/새로고침/토큰 자동갱신) 항상 최신 값으로 복구된다
    needResetPw: boolean;
@@ -42,19 +52,29 @@ interface LoginResult {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({
+   children,
+   initialAuth = null,
+}: {
+   children: React.ReactNode;
+   // 미들웨어(proxy.ts)가 쿠키로 미리 검증해준 롤 - (user)/layout.tsx에서만 넘어온다.
+   // 이게 있으면 클라이언트의 /auth/refresh 왕복을 기다리지 않고 role/status/bootcampId를
+   // 즉시 확정 상태로 시작할 수 있다(AuthGuard의 초기 로더/깜빡임 제거가 목적)
+   initialAuth?: InitialAuth | null;
+}) {
    const queryClient = useQueryClient();
    const pathname = usePathname();
    // 세션 복구 이펙트는 최초 마운트 시점의 경로만 필요하다(ref라 값이 바뀌어도 이 이펙트를 다시
    // 실행시키지 않음 - SPA 네비게이션마다 refresh를 다시 호출하면 안 되기 때문)
    const initialPathnameRef = useRef(pathname);
    const [accessToken, setAccessTokenState] = useState<string | null>(null);
-   const [role, setRole] = useState<UserRole | null>(null);
-   const [status, setStatus] = useState<string | null>(null);
-   const [bootcampId, setBootcampId] = useState<number | null>(null);
+   const [role, setRole] = useState<UserRole | null>(initialAuth?.role ?? null);
+   const [status, setStatus] = useState<string | null>(initialAuth?.status ?? null);
+   const [bootcampId, setBootcampId] = useState<number | null>(initialAuth?.bootcampId ?? null);
    const [me, setMe] = useState<Me | null>(null);
    const [needResetPw, setNeedResetPw] = useState(false);
    const [isInitializing, setIsInitializing] = useState(true);
+   const [isSessionVerified, setIsSessionVerified] = useState(initialAuth != null);
    const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
    const logout = useCallback(async (expectedEpoch?: number) => {
@@ -62,6 +82,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
          await authService.logout();
       } finally {
+         // 미들웨어(proxy.ts)가 캐싱해둔 롤 검증 결과 쿠키 - TTL(60초)까지 기다리지 않고
+         // 로그아웃 즉시 지워야 그 사이 뒤로가기 등으로 보호된 라우트에 들어가도 이전 세션의
+         // 롤로 서버 렌더링되지 않는다
+         document.cookie = `${VERIFIED_AUTH_CACHE_COOKIE}=; Max-Age=0; path=/`;
          if (getSessionEpoch() === epoch) {
             setAccessTokenForNewSession(null);
             setRole(null);
@@ -172,9 +196,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await verifyAndSetMe(data.role, epochAtStart);
          })
          .catch(() => {
-            // 리프레시 토큰이 없거나 만료됨(또는 role 불일치로 강제 로그아웃됨) → 비로그인 상태
+            // 리프레시 토큰이 없거나 만료됨(또는 role 불일치로 강제 로그아웃됨) → 비로그인 상태.
+            // initialAuth로 낙관적으로 세팅해뒀던 role 등이 남아있으면(미들웨어 검증 직후 짧은
+            // 사이에 세션이 끊긴 경우) 지워야 한다 - 안 지우면 accessToken은 끝내 안 채워지는데
+            // role만 남아 AuthGuard가 로그인 상태로 착각하고 보호된 화면을 계속 보여주게 된다
+            if (getSessionEpoch() === epochAtStart) {
+               setRole(null);
+               setStatus(null);
+               setBootcampId(null);
+            }
          })
-         .finally(() => setIsInitializing(false));
+         .finally(() => {
+            setIsInitializing(false);
+            // 성공/실패 어느 쪽이든 여기서 true로 세팅해야 한다 - then()에만 넣으면 진짜
+            // 비로그인 사용자는 실패 케이스라 isSessionVerified가 영영 false로 남아
+            // AuthGuard의 /login 리다이렉트가 걸리지 않는다
+            setIsSessionVerified(true);
+         });
 
       return () => {
          if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
@@ -230,6 +268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             updateBootcampId,
             isAuthenticated: !!accessToken,
             isInitializing,
+            isSessionVerified,
             needResetPw,
             clearNeedResetPw,
             login,
