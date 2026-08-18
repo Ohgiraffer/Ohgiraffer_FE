@@ -137,11 +137,18 @@ export function useManagerTrackerData() {
       refetchBootcampSettings();
    }, [refetchUsers, refetchBootcampSettings]);
 
-   const changePeriod = useCallback((periodId: number | null) => {
-      setIsLoadingTrend(true);
-      setTrendError(false);
-      setSelectedPeriodId(periodId);
-   }, []);
+   const changePeriod = useCallback(
+      (periodId: number | null) => {
+         // 이미 선택된 기간이면 아무것도 안 한다 - setSelectedPeriodId(같은 값)은 상태가 안 바뀌어
+         // 재조회 useEffect가 다시 안 도는데, 그 위에서 setIsLoadingTrend(true)만 무조건 실행되면
+         // 로딩 상태를 꺼줄 효과가 다시 안 돌아 "불러오는 중"에 영원히 머문다
+         if (periodId === selectedPeriodId) return;
+         setIsLoadingTrend(true);
+         setTrendError(false);
+         setSelectedPeriodId(periodId);
+      },
+      [selectedPeriodId],
+   );
 
    const retryTrend = useCallback(() => {
       setIsLoadingTrend(true);
