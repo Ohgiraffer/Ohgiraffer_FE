@@ -8,7 +8,7 @@ import HeaderLogoPlaceholder from '@/components/layout/HeaderLogoPlaceholder';
 import Menubar from '@/components/layout/Menubar';
 import { SidePanelProvider } from '@/components/layout/SidePanelContext';
 import SendbirdProvider from '@/features/chat/components/SendbirdProvider';
-import { getVerifiedRole } from '@/lib/auth/getVerifiedRole';
+import { getVerifiedRole } from '@/lib/auth/serverAuth';
 
 // headers()를 여기서만 호출한다 - 이 레이아웃 서브트리((user)/*)만 동적 렌더링이 되고,
 // /login·/reset-password·/onboarding-wizard는 headers()를 안 쓰는 루트 레이아웃의

@@ -1,14 +1,15 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { VERIFIED_AUTH_CACHE_COOKIE } from '@/lib/auth/verifiedAuthCookie';
+import { VERIFIED_AUTH_CACHE_COOKIE } from '@/lib/auth/serverAuth';
 
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '');
 
 // (user)/* 안에서 페이지를 옮겨다닐 때마다 매번 백엔드에 검증 요청을 보내면 이동할 때마다
 // 100ms 이상의 왕복 지연이 그대로 체감된다(동적 라우트는 Link 프리페치도 전체 콘텐츠까지는
-// 안 해줌). 그래서 한 번 검증에 성공하면 그 결과를 이 TTL 동안 쿠키에 캐싱해 재검증을 건너뛴다.
-// role/status는 실제 데이터 접근 권한이 아니라 "어느 화면을 그릴지"에만 쓰이고, 진짜 인가는
-// accessToken으로 백엔드가 매 요청 다시 검사하므로 이 정도 지연 허용은 안전하다
+// 안 해줌). 그래서 한 번 검증에 성공하면 그 결과(accessToken 포함)를 이 TTL 동안 쿠키에
+// 캐싱해 재검증을 건너뛴다. role/status·데이터 프리페치 둘 다 "어느 화면을 보여줄지/미리
+// 뭘 불러올지"에만 쓰는 최적화용 힌트이고, 진짜 인가는 accessToken 자체를 백엔드가 매 요청
+// 다시 검사하므로 최대 60초 지연된 상태를 잠깐 더 쓰는 정도는 안전하다
 const VERIFIED_CACHE_MAX_AGE_SECONDS = 60;
 
 // (auth)/(setting) 레이아웃은 이 헤더들을 전혀 읽지 않는다 - 검증 자체를 생략해야 정적
@@ -33,12 +34,9 @@ interface VerifiedAuthData {
    role: string;
    status: string;
    bootcampId: number | null;
-}
-
-// /auth/refresh 응답 전체(캐시 쿠키에 저장하는 VerifiedAuthData보다 accessToken이 더 있음) -
-// 이 accessToken은 절대 캐시 쿠키에 넣지 않는다(수명이 짧은 값이라 오래 남기면 안 됨).
-// 캐시 히트 경로에서는 애초에 이 응답 자체를 안 받으므로 x-verified-access-token도 안 채워진다
-interface VerifiedAuthResponse extends VerifiedAuthData {
+   // 캐시 쿠키에도 같이 저장한다 - 그래서 이 쿠키는 httpOnly여야 한다(브라우저 JS가 못 읽게).
+   // 캐시 히트 경로에서도 서버 컴포넌트가 프리페치에 쓸 토큰을 받아야 하는데, 캐시 미스일 때만
+   // 채워지면 60초 캐시 TTL 동안의 탐색 대부분에서 프리페치가 통째로 스킵돼버린다
    accessToken: string;
 }
 
@@ -46,6 +44,7 @@ function applyVerifiedHeaders(headers: Headers, data: VerifiedAuthData) {
    headers.set('x-verified-role', data.role);
    headers.set('x-verified-status', data.status);
    headers.set('x-verified-bootcamp-id', data.bootcampId === null ? '' : String(data.bootcampId));
+   headers.set('x-verified-access-token', data.accessToken);
 }
 
 export async function proxy(request: NextRequest) {
@@ -80,24 +79,18 @@ export async function proxy(request: NextRequest) {
       });
 
       if (res.ok) {
-         const data = (await res.json()) as VerifiedAuthResponse;
+         const data = (await res.json()) as VerifiedAuthData;
          applyVerifiedHeaders(requestHeaders, data);
-         // 캐시 미스(방금 실제로 백엔드를 검증한) 경로에서만 채워진다 - 서버 컴포넌트가 이 요청에
-         // 한해서만 사용자 대신 보호된 API를 부를 수 있다(팀 데이터 프리페치 등)
-         requestHeaders.set('x-verified-access-token', data.accessToken);
          const response = NextResponse.next({ request: { headers: requestHeaders } });
-         // 캐시 쿠키에는 role/status/bootcampId만 저장 - accessToken은 절대 안 남긴다
-         const { role, status, bootcampId } = data;
-         response.cookies.set(
-            VERIFIED_AUTH_CACHE_COOKIE,
-            JSON.stringify({ role, status, bootcampId }),
-            {
-               maxAge: VERIFIED_CACHE_MAX_AGE_SECONDS,
-               path: '/',
-               sameSite: 'lax',
-               secure: process.env.NODE_ENV === 'production',
-            },
-         );
+         // accessToken까지 같이 캐싱하므로 httpOnly 필수(브라우저 JS가 못 읽게) - 로그아웃 시엔
+         // JS로 못 지우니 /api/auth/clear-verified-cache 라우트가 대신 지워준다
+         response.cookies.set(VERIFIED_AUTH_CACHE_COOKIE, JSON.stringify(data), {
+            maxAge: VERIFIED_CACHE_MAX_AGE_SECONDS,
+            path: '/',
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+            httpOnly: true,
+         });
          return response;
       }
       // 401 등 실패면 헤더를 세팅하지 않은 채(= 비로그인 취급) 그대로 통과시킨다 - AuthGuard가

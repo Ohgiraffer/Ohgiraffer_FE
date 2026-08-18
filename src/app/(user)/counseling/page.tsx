@@ -1,4 +1,4 @@
-import { getVerifiedRole } from '@/lib/auth/getVerifiedRole';
+import { getVerifiedRole } from '@/lib/auth/serverAuth';
 import StaffCounselingView from '@/features/counseling/components/StaffCounselingView';
 import StudentCounselingView from '@/features/counseling/components/StudentCounselingView';
 import CounselingPageClient from '@/features/counseling/components/CounselingPageClient';

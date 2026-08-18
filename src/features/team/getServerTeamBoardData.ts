@@ -1,4 +1,4 @@
-import { serverApiFetch } from '@/lib/serverApiFetch';
+import { serverApiFetch } from '@/lib/auth/serverPrefetch';
 import type { Team, TeamPeriod, UnassignedStudent } from './types';
 
 export interface ServerTeamBoardData {
