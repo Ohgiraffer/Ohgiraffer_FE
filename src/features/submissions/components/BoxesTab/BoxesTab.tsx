@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import AnimatedHeight from '@/components/ui/loading/AnimatedHeight';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
@@ -27,9 +28,7 @@ function BoxesTableSkeleton({ hideManage }: { hideManage: boolean }) {
                <th className="w-[13%] px-6 py-3 font-medium text-center">마감일</th>
                <th className="w-[22%] px-6 py-3 font-medium text-center">제출 현황</th>
                <th className="w-[11%] px-6 py-3 font-medium text-center">지각 제출</th>
-               {!hideManage && (
-                  <th className="w-[15%] px-6 py-3 font-medium text-center">관리</th>
-               )}
+               {!hideManage && <th className="w-[15%] px-6 py-3 font-medium text-center">관리</th>}
             </tr>
          </thead>
          <tbody>
@@ -213,33 +212,49 @@ export default function BoxesTab({ isCreating, onCreatingChange, initialBoxes }:
             </div>
          )}
 
-         {isLoading ? (
-            <div className="mt-4 overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
-               <BoxesTableSkeleton hideManage={isCreating} />
-            </div>
-         ) : hasError ? (
-            <div className="flex flex-col items-center gap-3 py-16">
-               <p className="text-sm text-gray-400">
-                  {errorMessage || '제출함 목록을 불러오지 못했습니다.'}
-               </p>
-               <button
-                  type="button"
-                  onClick={refetch}
-                  className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-               >
-                  다시 시도
-               </button>
-            </div>
-         ) : boxes.length === 0 ? (
-            <p className="py-16 text-center text-sm text-gray-400">생성된 제출함이 없습니다</p>
-         ) : (
-            <BoxListTable
-               boxes={boxes}
-               onEdit={handleEditClick}
-               onDelete={setDeleteTarget}
-               hideManage={isCreating}
-            />
-         )}
+         {/* 결재 처리 탭(ApprovalProcessingList)과 동일한 구조 - 테두리 카드를 AnimatedHeight
+            바깥에 하나만 두고, 안쪽 상태(로딩/에러/빈/목록)는 이 카드를 갈아끼우지 않고 내용물만
+            바뀐다. 상태마다 따로 카드를 두면(예전 구조) 전환될 때마다 카드 자체가 통째로
+            사라졌다 다시 생겨서, 하나의 카드가 부드럽게 늘었다 줄었다 하는 것처럼 안 보였다 */}
+         <div className="mt-4 overflow-hidden rounded-sm border border-[#E5E7EB] bg-white">
+            <AnimatedHeight
+               transitionKey={
+                  isLoading
+                     ? 'loading'
+                     : hasError
+                       ? 'error'
+                       : boxes.length === 0
+                         ? 'empty'
+                         : 'content'
+               }
+            >
+               {isLoading ? (
+                  <BoxesTableSkeleton hideManage={isCreating} />
+               ) : hasError ? (
+                  <div className="flex flex-col items-center gap-3 px-6 py-16">
+                     <p className="text-sm text-gray-400">
+                        {errorMessage || '제출함 목록을 불러오지 못했습니다.'}
+                     </p>
+                     <button
+                        type="button"
+                        onClick={refetch}
+                        className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                     >
+                        다시 시도
+                     </button>
+                  </div>
+               ) : boxes.length === 0 ? (
+                  <p className="px-6 py-10 text-center text-gray-400">생성된 제출함이 없습니다</p>
+               ) : (
+                  <BoxListTable
+                     boxes={boxes}
+                     onEdit={handleEditClick}
+                     onDelete={setDeleteTarget}
+                     hideManage={isCreating}
+                  />
+               )}
+            </AnimatedHeight>
+         </div>
 
          <ConfirmModal
             open={!!deleteTarget}

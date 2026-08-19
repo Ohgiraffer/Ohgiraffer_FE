@@ -271,6 +271,9 @@ export default function ManagerTeamBoard({
    // activePeriodId/reloadKey를 바꿔 재조회 effect를 트리거하는 곳들은,
    // effect 본문이 아니라 여기(호출 시점)에서 로딩 상태를 미리 세팅(effect 안에서 동기 setState를 피하기 위함)
    const switchPeriod = (periodId: number) => {
+      // 이미 선택된 기간을 다시 클릭한 경우 - activePeriodId가 안 바뀌므로 조회 effect가 다시
+      // 돌지 않아 isLoading(false)로 되돌릴 기회가 없다. 그대로 두면 흐림 처리가 영영 안 풀린다
+      if (periodId === activePeriodId) return;
       setIsLoading(true);
       setHasError(false);
       setActivePeriodId(periodId);

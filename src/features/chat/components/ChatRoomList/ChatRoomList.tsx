@@ -8,13 +8,18 @@ import DirectChatListItem from './DirectChatListItem';
 import GroupChatListItem from './GroupChatListItem';
 import type { ChatChannel } from '@/services/chat.service';
 
+export type ChatRoomListTab = 'direct' | 'group';
+
 interface ChatRoomListProps {
    channels: ChatChannel[];
    isLoading: boolean;
    onSelectRoom: (room: ChatChannel) => void;
+   // 채팅방 상세에 들어갔다 뒤로 나와도 보던 탭이 유지되도록 부모(ChatPanel)가 들고 있는 상태를
+   // 그대로 받아 쓴다 - 이 컴포넌트가 직접 들고 있으면 상세 화면과 목록 화면이 서로 자리를
+   // 바꿔 그릴 때마다(ChatPanel의 activeRoom 분기) 매번 언마운트/재마운트되면서 초기값으로 리셋된다
+   tab: ChatRoomListTab;
+   onTabChange: (tab: ChatRoomListTab) => void;
 }
-
-type Tab = 'direct' | 'group';
 
 // 최근 메시지가 있는 방이 위로 오도록 최신순 정렬 - 아직 메시지가 없는 방(lastMessageSentAt이
 // null)은 맨 아래로 보낸다. ISO 8601 문자열은 사전순 비교가 곧 시간순 비교와 같다
@@ -27,8 +32,13 @@ function sortByLatestMessage(channels: ChatChannel[]) {
    });
 }
 
-export default function ChatRoomList({ channels, isLoading, onSelectRoom }: ChatRoomListProps) {
-   const [tab, setTab] = useState<Tab>('direct');
+export default function ChatRoomList({
+   channels,
+   isLoading,
+   onSelectRoom,
+   tab,
+   onTabChange,
+}: ChatRoomListProps) {
    const [query, setQuery] = useState('');
 
    const sortedChannels = useMemo(() => sortByLatestMessage(channels), [channels]);
@@ -61,7 +71,7 @@ export default function ChatRoomList({ channels, isLoading, onSelectRoom }: Chat
                   key={item.key}
                   type="button"
                   onClick={() => {
-                     setTab(item.key);
+                     onTabChange(item.key);
                      setQuery('');
                   }}
                   className={cn(

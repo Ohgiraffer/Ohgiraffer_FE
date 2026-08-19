@@ -21,7 +21,11 @@ export default function BoxListTable({ boxes, onEdit, onDelete, hideManage }: Bo
 
    return (
       <>
-         <div className="mt-4 divide-y divide-[#F3F4F6] overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:hidden">
+         {/* 테두리/배경은 BoxesTab의 바깥 카드(AnimatedHeight를 감싸는 div)가 로딩/빈 상태와
+            공통으로 담당한다 - 여기서 또 border를 주면 상태가 바뀔 때마다 카드 프레임 자체가
+            통째로 갈아끼워져서(다른 DOM), 결재 처리 탭처럼 하나의 카드가 부드럽게 늘었다 줄었다
+            하는 게 아니라 카드가 사라졌다 다시 나타나는 것처럼 보인다 */}
+         <div className="divide-y divide-[#F3F4F6] md:hidden">
             {boxes.map((box, index) => (
                <div
                   key={box.submissionBoxId}
@@ -89,8 +93,7 @@ export default function BoxListTable({ boxes, onEdit, onDelete, hideManage }: Bo
             ))}
          </div>
 
-         <div className="mt-4 hidden overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:block">
-         <table className="w-full table-fixed text-left text-sm">
+         <table className="hidden w-full table-fixed text-left text-sm md:table">
             <thead>
                <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
                   <th className="w-[4%] px-6 py-3 font-medium">#</th>
@@ -190,7 +193,6 @@ export default function BoxListTable({ boxes, onEdit, onDelete, hideManage }: Bo
                })}
             </tbody>
          </table>
-         </div>
       </>
    );
 }
