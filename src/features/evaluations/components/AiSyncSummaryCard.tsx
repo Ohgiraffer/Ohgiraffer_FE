@@ -1,5 +1,9 @@
+import { useState } from 'react';
 import { Sparkles, TriangleAlert } from 'lucide-react';
+import Pagination from '@/components/ui/Pagination';
 import type { EvaluationSyncSkippedRow, EvaluationSyncSummaryCard } from '@/services/evaluation.service';
+
+const PAGE_SIZE = 3;
 
 type Props = {
    subtitle: string;
@@ -22,6 +26,17 @@ export default function AiSyncSummaryCard({
    skipped,
    footer,
 }: Props) {
+   const [currentPage, setCurrentPage] = useState(1);
+   // 다른 동기화 실행/이력의 카드로 전환되면 이전에 보던 페이지 번호가 그대로 남지 않도록 초기화
+   const [prevSummaries, setPrevSummaries] = useState(summaries);
+   if (summaries !== prevSummaries) {
+      setPrevSummaries(summaries);
+      setCurrentPage(1);
+   }
+
+   const totalPages = Math.max(1, Math.ceil(summaries.length / PAGE_SIZE));
+   const pagedSummaries = summaries.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
    return (
       <div className="rounded-sm border border-[#E5E7EB] bg-white p-6">
          <div className="flex items-center gap-2 text-sm font-bold text-gray-900">
@@ -61,7 +76,7 @@ export default function AiSyncSummaryCard({
 
          {summaries.length > 0 && (
             <div className="mt-3 flex flex-col gap-2">
-               {summaries.map((summary, index) => (
+               {pagedSummaries.map((summary, index) => (
                   <div
                      key={`${summary.traineeName}-${index}`}
                      className="rounded-xs border border-[#F3F4F6] bg-[#F9FAFB] p-4"
@@ -94,6 +109,16 @@ export default function AiSyncSummaryCard({
                      )}
                   </div>
                ))}
+            </div>
+         )}
+
+         {summaries.length > 0 && (
+            <div className="mt-3">
+               <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+               />
             </div>
          )}
 

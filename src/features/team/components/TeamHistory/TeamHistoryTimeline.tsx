@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ChatAvatar from '@/features/chat/components/ChatAvatar';
+import Pagination from '@/components/ui/Pagination';
 import { formatTeamDateDot } from '../../formatTeamDate';
 import type { TeamChangeHistoryEntry } from '../../types';
+
+const PAGE_SIZE = 5;
 
 function TeamPill({ name }: { name: string }) {
    const isUnassigned = name === '미배정';
@@ -40,44 +44,65 @@ interface TeamHistoryTimelineProps {
 }
 
 export default function TeamHistoryTimeline({ entries }: TeamHistoryTimelineProps) {
+   const [currentPage, setCurrentPage] = useState(1);
+   // 조회 기간(entries)이 바뀌면 이전 기간에서 보던 페이지 번호가 그대로 남지 않도록 초기화
+   const [prevEntries, setPrevEntries] = useState(entries);
+   if (entries !== prevEntries) {
+      setPrevEntries(entries);
+      setCurrentPage(1);
+   }
+
    if (entries.length === 0) {
       return <p className="mt-3 text-sm text-gray-400">조회 기간 내 변경 이력이 없습니다.</p>;
    }
 
+   const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
+   const pagedEntries = entries.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
    return (
-      <div className="relative mt-3">
-         <div className="absolute top-2 bottom-2 left-0.75 w-px bg-gray-200" />
-         <div className="flex flex-col gap-3">
-            {entries.map((entry, index) => {
-               const changeType = getChangeType(entry);
-               const meta = CHANGE_TYPE_META[changeType];
-               return (
-                  <div
-                     key={`${entry.userId}-${entry.changedAt}-${index}`}
-                     className="relative flex items-start pl-6"
-                  >
-                     <span className={cn('absolute top-2 left-0 h-1.5 w-1.5 shrink-0 rounded-full', meta.dot)} />
-                     <div className="flex-1 rounded-sm border border-[#E5E7EB] bg-white px-4 py-4">
-                        <div className="flex items-center justify-between mb-3">
-                           <span className="flex items-center gap-1.5">
-                              <ChatAvatar name={entry.userName} imageUrl={entry.profileImgUrl} size="sm" />
-                              <span className="text-sm font-bold text-gray-900">
-                                 {entry.userName || '이름 없음'}
+      <div className="mt-3">
+         <div className="relative">
+            <div className="absolute top-2 bottom-2 left-0.75 w-px bg-gray-200" />
+            <div className="flex flex-col gap-3">
+               {pagedEntries.map((entry, index) => {
+                  const changeType = getChangeType(entry);
+                  const meta = CHANGE_TYPE_META[changeType];
+                  return (
+                     <div
+                        key={`${entry.userId}-${entry.changedAt}-${index}`}
+                        className="relative flex items-start pl-6"
+                     >
+                        <span className={cn('absolute top-2 left-0 h-1.5 w-1.5 shrink-0 rounded-full', meta.dot)} />
+                        <div className="flex-1 rounded-sm border border-[#E5E7EB] bg-white px-4 py-4">
+                           <div className="flex items-center justify-between mb-3">
+                              <span className="flex items-center gap-1.5">
+                                 <ChatAvatar name={entry.userName} imageUrl={entry.profileImgUrl} size="sm" />
+                                 <span className="text-sm font-bold text-gray-900">
+                                    {entry.userName || '이름 없음'}
+                                 </span>
                               </span>
-                           </span>
-                           <span className="text-xs text-gray-400">
-                              {formatTeamDateDot(entry.changedAt)}
-                           </span>
-                        </div>
-                        <div className="mt-1.5 flex items-center gap-1.5">
-                           <TeamPill name={entry.fromTeamName} />
-                           <ArrowRight size={12} className="shrink-0 text-gray-300" />
-                           <TeamPill name={entry.toTeamName} />
+                              <span className="text-xs text-gray-400">
+                                 {formatTeamDateDot(entry.changedAt)}
+                              </span>
+                           </div>
+                           <div className="mt-1.5 flex items-center gap-1.5">
+                              <TeamPill name={entry.fromTeamName} />
+                              <ArrowRight size={12} className="shrink-0 text-gray-300" />
+                              <TeamPill name={entry.toTeamName} />
+                           </div>
                         </div>
                      </div>
-                  </div>
-               );
-            })}
+                  );
+               })}
+            </div>
+         </div>
+
+         <div className="mt-4">
+            <Pagination
+               currentPage={currentPage}
+               totalPages={totalPages}
+               onPageChange={setCurrentPage}
+            />
          </div>
       </div>
    );
