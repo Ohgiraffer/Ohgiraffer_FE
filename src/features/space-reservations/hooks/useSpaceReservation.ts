@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import { createSpace, deleteSpace, getSpaces, updateMyLocation } from '@/services/space.service';
@@ -10,39 +11,28 @@ export type SpaceViewMode = 'grid' | 'list';
 
 // 공간 예약 페이지 전체 상태
 export function useSpaceReservation(initialSpaces?: Space[]) {
-   const [spaces, setSpaces] = useState<Space[]>(initialSpaces ?? []);
-   const [isLoading, setIsLoading] = useState(!initialSpaces);
-   const [hasError, setHasError] = useState(false);
+   const {
+      data: spaces = [],
+      isLoading,
+      isError: hasError,
+      refetch,
+   } = useQuery({
+      queryKey: ['spaces'],
+      queryFn: getSpaces,
+      initialData: initialSpaces,
+      // QueryProvider의 기본 staleTime은 5분(자주 안 바뀌는 데이터 기준) - 재실 인원은 다른 사람
+      // 행동으로 실시간으로 바뀌는 값이라 여기서 개별적으로 0으로 낮춘다(QueryProvider.tsx 주석의
+      // 컨벤션). initialDataUpdatedAt도 0으로 줘서, initialData가 "방금 막 받아온 것"으로 취급되어
+      // 마운트 시 재검증이 스킵되는 경우까지 방어한다
+      staleTime: 0,
+      initialDataUpdatedAt: 0,
+   });
+
    const [viewMode, setViewMode] = useState<SpaceViewMode>('grid');
    const [searchKeyword, setSearchKeyword] = useState('');
    const [searchTrigger, setSearchTrigger] = useState(0);
    const [isChangingLocation, setIsChangingLocation] = useState(false);
    const isChangingLocationRef = useRef(false);
-   // 서버가 이미 initialSpaces를 넘겨줬으면, 마운트 시점의 첫 조회 한 번은 건너뛴다
-   const skipInitialFetchRef = useRef(initialSpaces != null);
-
-   const fetchSpaces = () =>
-      getSpaces()
-         .then((data) => {
-            setSpaces(data);
-            setHasError(false);
-         })
-         .catch((err) => {
-            setHasError(true);
-            toast.error(
-               err instanceof ApiError
-                  ? err.message
-                  : '공간 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.',
-            );
-         });
-
-   useEffect(() => {
-      if (skipInitialFetchRef.current) {
-         skipInitialFetchRef.current = false;
-         return;
-      }
-      fetchSpaces().finally(() => setIsLoading(false));
-   }, []);
 
    const handleSearch = (value: string) => {
       setSearchKeyword(value);
@@ -56,7 +46,7 @@ export function useSpaceReservation(initialSpaces?: Space[]) {
       setIsChangingLocation(true);
       try {
          await updateMyLocation(spaceId);
-         await fetchSpaces();
+         await refetch();
       } catch (err) {
          toast.error(
             err instanceof ApiError
@@ -77,19 +67,19 @@ export function useSpaceReservation(initialSpaces?: Space[]) {
 
    const addSpace = async (name: string, capacity: number) => {
       await createSpace({ spaceName: name, capacity });
-      await fetchSpaces();
+      await refetch();
    };
 
    const removeSpace = async (spaceId: number) => {
       await deleteSpace(spaceId);
-      await fetchSpaces();
+      await refetch();
    };
 
    return {
       spaces,
       isLoading,
       hasError,
-      refetch: fetchSpaces,
+      refetch,
       viewMode,
       setViewMode,
       searchKeyword,

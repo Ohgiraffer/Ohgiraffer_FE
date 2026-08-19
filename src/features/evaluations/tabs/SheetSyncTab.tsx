@@ -5,6 +5,7 @@ import GoogleSheetSync, {
    type GoogleSheetSaveResult,
 } from '@/components/ui/googlesheet/GoogleSheetSync';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
+import AnimatedHeight from '@/components/ui/loading/AnimatedHeight';
 import { EVALUATION_SHEET_COLUMNS } from '../hooks/useEvaluationSheetSync';
 import SyncRunTab from './SyncRunTab';
 import type { SyncHistoryEntry } from '../types';
@@ -24,6 +25,25 @@ type Props = {
    onNotifyStaff: () => Promise<void>;
 };
 
+// 연동 전(입력 폼)/연동 후(연결됨 카드)가 서로 완전히 다른 모양이라 로딩 중엔 어느 쪽이 나올지
+// 알 수 없다 - 특정 상태를 확신하는 스켈레톤 대신, 두 카드 자리만 중립적으로 표시해둔다.
+// 실제 크기 차이는 AnimatedHeight가 흡수한다
+function SheetSyncTabSkeleton() {
+   return (
+      <div className="flex flex-col gap-4">
+         <div className="rounded-sm border border-gray-200 bg-white p-5">
+            <Skeleton width={140} height={16} className="rounded-md" />
+            <Skeleton width="100%" height={56} className="mt-4 rounded-xs" />
+         </div>
+         <div className="rounded-sm border border-gray-200 bg-white p-6">
+            <Skeleton width={100} height={16} className="rounded-md" />
+            <Skeleton width="70%" height={14} className="mt-2 rounded-md" />
+            <Skeleton width={120} height={36} className="mt-3 rounded-xs" />
+         </div>
+      </div>
+   );
+}
+
 export default function SheetSyncTab({
    isConnected,
    spreadsheetUrl,
@@ -39,46 +59,12 @@ export default function SheetSyncTab({
 }: Props) {
    const [isEditingSheetLink, setIsEditingSheetLink] = useState(false);
 
+   let content: React.ReactNode;
+
    if (isLoading) {
-      return (
-         <div className="rounded-sm border bg-white border-gray-200 p-5">
-            <Skeleton width={140} height={14} className="rounded-md" />
-
-            <div className="mt-4 rounded-xs border border-[#C8D9CE] bg-[#F0F4F2] px-6 py-5">
-               <Skeleton width="70%" height={12} className="rounded-md" />
-               <div className="mt-2 flex gap-2">
-                  <Skeleton width="100%" height={32} className="flex-1 rounded-xs" />
-                  <Skeleton width={64} height={32} className="shrink-0 rounded-xs" />
-               </div>
-
-               <Skeleton width={90} height={12} className="mt-4 rounded-md" />
-               <div className="mt-2 flex gap-2">
-                  <Skeleton width="100%" height={32} className="flex-1 rounded-xs" />
-                  <Skeleton width={72} height={32} className="shrink-0 rounded-xs" />
-               </div>
-            </div>
-
-            <div className="mt-5">
-               <Skeleton width={70} height={14} className="rounded-md" />
-               <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {EVALUATION_SHEET_COLUMNS.map((column) => (
-                     <div key={column.key} className="px-1.5">
-                        <Skeleton width={70} height={13} className="rounded-md" />
-                        <Skeleton width="100%" height={40} className="mt-2 rounded-xs" />
-                     </div>
-                  ))}
-               </div>
-            </div>
-
-            <div className="mt-6 flex justify-end border-t border-gray-100 pt-4">
-               <Skeleton width={88} height={36} className="rounded-xs" />
-            </div>
-         </div>
-      );
-   }
-
-   if (loadError) {
-      return (
+      content = <SheetSyncTabSkeleton />;
+   } else if (loadError) {
+      content = (
          <div className="flex flex-col items-center gap-3 py-16">
             <p className="text-sm text-gray-400">연동 설정을 불러오지 못했습니다.</p>
             <button
@@ -90,28 +76,37 @@ export default function SheetSyncTab({
             </button>
          </div>
       );
+   } else {
+      content = (
+         <div className="flex flex-col gap-4">
+            <GoogleSheetSync
+               columns={EVALUATION_SHEET_COLUMNS}
+               onSave={onSaveMapping}
+               initialConnection={
+                  isConnected && columnMapping
+                     ? {
+                          spreadsheetUrl,
+                          columnMapping: columnMapping as unknown as Record<string, string>,
+                       }
+                     : undefined
+               }
+               onSavedStateChange={(saved) => setIsEditingSheetLink(!saved)}
+            />
+            <SyncRunTab
+               isConnected={isConnected && !isEditingSheetLink}
+               latestSync={latestSync}
+               isSyncing={isSyncing}
+               onRunSync={onRunSync}
+               isNotifying={isNotifying}
+               onNotifyStaff={onNotifyStaff}
+            />
+         </div>
+      );
    }
 
    return (
-      <div className="flex flex-col gap-4">
-         <GoogleSheetSync
-            columns={EVALUATION_SHEET_COLUMNS}
-            onSave={onSaveMapping}
-            initialConnection={
-               isConnected && columnMapping
-                  ? { spreadsheetUrl, columnMapping: columnMapping as unknown as Record<string, string> }
-                  : undefined
-            }
-            onSavedStateChange={(saved) => setIsEditingSheetLink(!saved)}
-         />
-         <SyncRunTab
-            isConnected={isConnected && !isEditingSheetLink}
-            latestSync={latestSync}
-            isSyncing={isSyncing}
-            onRunSync={onRunSync}
-            isNotifying={isNotifying}
-            onNotifyStaff={onNotifyStaff}
-         />
-      </div>
+      <AnimatedHeight transitionKey={isLoading ? 'loading' : loadError ? 'error' : 'content'}>
+         {content}
+      </AnimatedHeight>
    );
 }

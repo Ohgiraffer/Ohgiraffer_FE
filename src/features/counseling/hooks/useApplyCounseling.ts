@@ -12,6 +12,7 @@ import {
    getCounselors,
    type AvailableTimeSlot,
 } from '@/services/counseling.service';
+import type { ServerStudentCounselingData } from '../getServerCounselingData';
 
 const DATE_KEY_FORMAT = 'yyyy-MM-dd';
 const MONTH_KEY_FORMAT = 'yyyy-MM';
@@ -22,7 +23,7 @@ function getApiErrorMessage(err: unknown, fallback: string) {
 
 // 훈련생 "상담 신청" 탭
 // 운영진 선택 → 그 달의 상담 가능일 조회 → 날짜 선택 → 가능 시간 조회 → 주제·내용 입력 → [신청하기] → 확인 모달 → 신청
-export function useApplyCounseling() {
+export function useApplyCounseling(initial?: ServerStudentCounselingData) {
    // useStaffCounselingHistory와 같은 queryKey를 써서 캐시를 공유한다
    const {
       data: counselors = [],
@@ -31,6 +32,7 @@ export function useApplyCounseling() {
    } = useQuery({
       queryKey: ['counselors'],
       queryFn: getCounselors,
+      initialData: initial?.initialCounselors,
    });
 
    useEffect(() => {

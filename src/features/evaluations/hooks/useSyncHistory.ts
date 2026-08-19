@@ -8,6 +8,7 @@ import {
    getEvaluationSyncLogs,
    notifyEvaluationSyncResult,
    runEvaluationSheetSync,
+   type EvaluationSyncLogSummary,
    type EvaluationSyncSummaryCard,
 } from '@/services/evaluation.service';
 import type { SyncHistoryEntry } from '../types';
@@ -44,10 +45,12 @@ function toHistoryEntry(log: {
    };
 }
 
-export function useSyncHistory() {
+export function useSyncHistory(initial?: EvaluationSyncLogSummary[]) {
    const { me } = useAuth();
-   const [history, setHistory] = useState<SyncHistoryEntry[]>([]);
-   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+   const [history, setHistory] = useState<SyncHistoryEntry[]>(
+      () => initial?.map(toHistoryEntry) ?? [],
+   );
+   const [isLoadingHistory, setIsLoadingHistory] = useState(!initial);
    const [historyError, setHistoryError] = useState(false);
    const [latestSync, setLatestSync] = useState<SyncHistoryEntry | null>(null);
    const [isSyncing, setIsSyncing] = useState(false);
@@ -59,6 +62,8 @@ export function useSyncHistory() {
    const isSyncingRef = useRef(false);
    const isNotifyingRef = useRef(false);
 
+   // initial이 있어도(프리페치 성공) 마운트 시 한 번은 항상 다시 조회한다 - isLoadingHistory를
+   // 안 건드리므로(이미 initial 유무로 초기값이 정해짐) 스켈레톤 없이 조용히 갱신된다
    useEffect(() => {
       let isMounted = true;
       const requestId = ++latestHistoryRequestId.current;

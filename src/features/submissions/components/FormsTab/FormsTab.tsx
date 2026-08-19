@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { ExternalLink } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -87,11 +87,14 @@ const FormEditModal = dynamic(() => import('./FormEditModal'), {
 interface FormsTabProps {
    isCreating: boolean;
    onCreatingChange: (value: boolean) => void;
+   // submissions/page.tsx가 서버에서 미리 불러와 넘겨주는 초기 목록 - 없으면 지금처럼
+   // 클라이언트에서 직접 불러온다
+   initialForms?: SurveyFormListItem[];
 }
 
-export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps) {
-   const [forms, setForms] = useState<SurveyFormListItem[]>([]);
-   const [isLoading, setIsLoading] = useState(true);
+export default function FormsTab({ isCreating, onCreatingChange, initialForms }: FormsTabProps) {
+   const [forms, setForms] = useState<SurveyFormListItem[]>(initialForms ?? []);
+   const [isLoading, setIsLoading] = useState(!initialForms);
    const [hasError, setHasError] = useState(false);
    const [errorMessage, setErrorMessage] = useState('');
    const [reloadKey, setReloadKey] = useState(0);
@@ -99,8 +102,14 @@ export default function FormsTab({ isCreating, onCreatingChange }: FormsTabProps
    const [deleteTarget, setDeleteTarget] = useState<SurveyFormListItem | null>(null);
    const [pendingEditUrl, setPendingEditUrl] = useState<string | null>(null);
    const [isDeleting, setIsDeleting] = useState(false);
+   // 서버가 이미 initialForms를 넘겨줬으면, 마운트 시점의 첫 조회 한 번은 건너뛴다
+   const skipInitialFetchRef = useRef(initialForms != null);
 
    useEffect(() => {
+      if (skipInitialFetchRef.current) {
+         skipInitialFetchRef.current = false;
+         return;
+      }
       let isMounted = true;
       getSurveyForms()
          .then((result) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
@@ -12,6 +12,7 @@ import {
    type ConsultationStatus,
    type StaffConsultationSummary,
 } from '@/services/counseling.service';
+import type { ServerStaffCounselingData } from '../getServerCounselingData';
 
 function getApiErrorMessage(err: unknown, fallback: string) {
    return err instanceof ApiError ? err.message : fallback;
@@ -24,20 +25,30 @@ export const UPCOMING_PAGE_SIZE = 3;
 export const HISTORY_PAGE_SIZE = 5;
 
 // 운영진 "상담 이력 조회" 탭
-export function useStaffCounselingHistory() {
-   const [upcoming, setUpcoming] = useState<StaffConsultationSummary[]>([]);
-   const [isLoadingUpcoming, setIsLoadingUpcoming] = useState(true);
+export function useStaffCounselingHistory(initial?: ServerStaffCounselingData) {
+   const [upcoming, setUpcoming] = useState<StaffConsultationSummary[]>(initial?.initialUpcoming ?? []);
+   const [isLoadingUpcoming, setIsLoadingUpcoming] = useState(!initial);
    const [hasUpcomingError, setHasUpcomingError] = useState(false);
 
-   const [history, setHistory] = useState<StaffConsultationSummary[]>([]);
-   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+   const [history, setHistory] = useState<StaffConsultationSummary[]>(() =>
+      initial
+         ? [...initial.initialHistory].sort(
+              (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
+           )
+         : [],
+   );
+   const [isLoadingHistory, setIsLoadingHistory] = useState(!initial);
    const [hasHistoryError, setHasHistoryError] = useState(false);
+   // 서버가 이미 초기 데이터를 넘겨줬으면, 마운트 시점의 첫 조회들은 건너뛴다
+   const skipInitialUpcomingFetchRef = useRef(initial != null);
+   const skipInitialHistoryFetchRef = useRef(initial != null);
 
    // useApplyCounseling과 같은 queryKey를 써서 캐시를 공유한다. 필터를 보조하는 정보일 뿐이라
    // 실패해도 조용히 무시한다(목록 자체는 그대로 보여준다)
    const { data: counselors = [] } = useQuery({
       queryKey: ['counselors'],
       queryFn: getCounselors,
+      initialData: initial?.initialCounselors,
    });
    const roleByName = useMemo(
       () => new Map<string, UserRole>(counselors.map((counselor) => [counselor.name, counselor.role])),
@@ -51,6 +62,10 @@ export function useStaffCounselingHistory() {
    const [historyPage, setHistoryPage] = useState(1);
 
    useEffect(() => {
+      if (skipInitialUpcomingFetchRef.current) {
+         skipInitialUpcomingFetchRef.current = false;
+         return;
+      }
       let isMounted = true;
 
       getUpcomingConsultations()
@@ -72,6 +87,10 @@ export function useStaffCounselingHistory() {
    }, []);
 
    useEffect(() => {
+      if (skipInitialHistoryFetchRef.current) {
+         skipInitialHistoryFetchRef.current = false;
+         return;
+      }
       let isMounted = true;
 
       getConsultationHistory()

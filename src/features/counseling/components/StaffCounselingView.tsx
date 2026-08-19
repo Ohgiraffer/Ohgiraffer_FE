@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import AvailabilityRegisterTab from '../tabs/AvailabilityRegisterTab';
 import StaffHistoryTab from '../tabs/StaffHistoryTab';
+import type { ServerStaffCounselingData } from '../getServerCounselingData';
 
 type StaffTab = 'history' | 'availability';
 
@@ -11,8 +12,12 @@ const TABS: Array<{ key: StaffTab; label: string }> = [
    { key: 'availability', label: '가능 시간 등록' },
 ];
 
+interface StaffCounselingViewProps {
+   initialData?: ServerStaffCounselingData;
+}
+
 // 운영진(강사·매니저) "상담 관리" - 탭 바 + 탭 전환
-export default function StaffCounselingView() {
+export default function StaffCounselingView({ initialData }: StaffCounselingViewProps) {
    const [activeTab, setActiveTab] = useState<StaffTab>('history');
 
    return (
@@ -35,7 +40,7 @@ export default function StaffCounselingView() {
          </div>
 
          <div className="mt-6">
-            {activeTab === 'history' && <StaffHistoryTab />}
+            {activeTab === 'history' && <StaffHistoryTab initialData={initialData} />}
             {activeTab === 'availability' && <AvailabilityRegisterTab />}
          </div>
       </div>

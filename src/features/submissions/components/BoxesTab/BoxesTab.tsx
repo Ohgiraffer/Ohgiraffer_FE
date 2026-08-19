@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
@@ -80,32 +80,41 @@ const BoxCreateForm = dynamic(() => import('./BoxCreateForm'), {
    ),
 });
 
+function sortByDueAt(boxes: SubmissionBoxListItem[]) {
+   return [...boxes].sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
+}
+
 interface BoxesTabProps {
    isCreating: boolean;
    onCreatingChange: (value: boolean) => void;
+   // submissions/page.tsx가 서버에서 미리 불러와 넘겨주는 초기 목록 - 없으면 지금처럼
+   // 클라이언트에서 직접 불러온다
+   initialBoxes?: SubmissionBoxListItem[];
 }
 
-export default function BoxesTab({ isCreating, onCreatingChange }: BoxesTabProps) {
-   const [boxes, setBoxes] = useState<SubmissionBoxListItem[]>([]);
-   const [isLoading, setIsLoading] = useState(true);
+export default function BoxesTab({ isCreating, onCreatingChange, initialBoxes }: BoxesTabProps) {
+   const [boxes, setBoxes] = useState<SubmissionBoxListItem[]>(() =>
+      initialBoxes ? sortByDueAt(initialBoxes) : [],
+   );
+   const [isLoading, setIsLoading] = useState(!initialBoxes);
    const [hasError, setHasError] = useState(false);
    const [errorMessage, setErrorMessage] = useState('');
    const [reloadKey, setReloadKey] = useState(0);
    const [editTarget, setEditTarget] = useState<EditableBox | null>(null);
    const [deleteTarget, setDeleteTarget] = useState<SubmissionBoxListItem | null>(null);
    const [isDeleting, setIsDeleting] = useState(false);
+   // 서버가 이미 initialBoxes를 넘겨줬으면, 마운트 시점의 첫 조회 한 번은 건너뛴다
+   const skipInitialFetchRef = useRef(initialBoxes != null);
 
    useEffect(() => {
+      if (skipInitialFetchRef.current) {
+         skipInitialFetchRef.current = false;
+         return;
+      }
       let isMounted = true;
       getSubmissionBoxes()
          .then((result) => {
-            if (isMounted) {
-               setBoxes(
-                  [...result].sort(
-                     (a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime(),
-                  ),
-               );
-            }
+            if (isMounted) setBoxes(sortByDueAt(result));
          })
          .catch((err) => {
             if (!isMounted) return;
