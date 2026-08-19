@@ -93,7 +93,7 @@ export default function StaffHistoryTab() {
                다가오는 상담 — {upcoming.length}건
             </h3>
             {isLoadingUpcoming ? (
-               <div className="flex flex-col items-center justify-center gap-2 py-10">
+               <div className="flex flex-col items-center justify-center gap-2 py-8">
                   <InlineProgressBar />
                   <p className="text-xs text-gray-400">다가오는 상담을 불러오는 중...</p>
                </div>

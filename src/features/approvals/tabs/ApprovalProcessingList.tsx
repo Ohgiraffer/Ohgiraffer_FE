@@ -13,7 +13,7 @@ import { formatApprovalDate } from '../formatApprovalDate';
 import { APPROVAL_STATUS_LABELS, APPROVAL_STATUS_TONES } from '../types';
 import type { ApprovalSummary } from '@/services/approval.service';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 8;
 
 function formatRequesterLabel(approval: ApprovalSummary) {
    return `${approval.requesterName} (${approval.requestType === 'LEAVE' ? '학생' : '강사'})`;

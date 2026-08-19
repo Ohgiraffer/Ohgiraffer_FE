@@ -10,6 +10,7 @@ import { ApiError } from '@/lib/http';
 import { toast } from '@/lib/toast';
 import { useAuth } from '@/components/auth/AuthContext';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import InlineProgressBar from '@/components/ui/loading/InlineProgressBar';
 import StatusBadge from '@/features/submissions/components/StatusBadge';
 import {
    approveApproval,
@@ -214,7 +215,10 @@ export default function ApprovalDetailClient({ approvalId }: ApprovalDetailClien
          </h1>
 
          {isLoading ? (
-            <p className="py-16 text-center text-sm text-gray-400">불러오는 중...</p>
+            <div className="flex flex-col items-center justify-center gap-2 py-16">
+               <InlineProgressBar />
+               <p className="text-sm text-gray-400">불러오는 중...</p>
+            </div>
          ) : hasError || !detail ? (
             <div className="flex flex-col items-center gap-3 py-16">
                <p className="text-sm text-gray-400">결재 정보를 불러오지 못했습니다.</p>
