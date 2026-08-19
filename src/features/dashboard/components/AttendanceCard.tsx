@@ -20,10 +20,20 @@ interface StatDot {
    colorClassName: string;
 }
 
-function CardShell({ children }: { children: React.ReactNode }) {
+function CardShell({
+   children,
+   cardHeight,
+}: {
+   children: React.ReactNode;
+   // 캘린더 높이의 절반으로 카드 높이를 고정한다. 아직 측정 전(undefined)이면 자연스러운 높이로 그린다
+   cardHeight?: number;
+}) {
    return (
-      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-6">
-         <div className="mb-4 flex items-center justify-between lg:mb-4">
+      <div
+         className="flex h-full flex-col rounded-sm border border-gray-200 bg-white p-6 lg:p-6"
+         style={cardHeight ? { height: cardHeight } : undefined}
+      >
+         <div className="mb-4 flex shrink-0 items-center justify-between lg:mb-4">
             <h2 className="flex items-center gap-1.5 -ml-1 text-sm font-bold text-gray-900">
                <ClipboardCheck size={16} className="text-gray-400" />
                출결 현황
@@ -32,7 +42,11 @@ function CardShell({ children }: { children: React.ReactNode }) {
                상세
             </Link>
          </div>
-         <AnimatedHeight>{children}</AnimatedHeight>
+         {/* height는 헤더+패딩까지 포함한 카드 전체(바깥 div)에 고정으로 건다 - 안쪽 콘텐츠에만
+            걸면 헤더/패딩만큼 카드 실제 높이가 캘린더 절반보다 더 커진다 */}
+         <div className="min-h-0 flex-1">
+            <AnimatedHeight>{children}</AnimatedHeight>
+         </div>
       </div>
    );
 }
@@ -97,7 +111,7 @@ function StatDotList({ stats }: { stats: StatDot[] }) {
    );
 }
 
-function StudentAttendanceCard() {
+function StudentAttendanceCard({ cardHeight }: { cardHeight?: number }) {
    const [summary, setSummary] = useState<AttendanceSummaryResponse | null>(null);
    const [isLoading, setIsLoading] = useState(true);
    const [hasError, setHasError] = useState(false);
@@ -123,7 +137,7 @@ function StudentAttendanceCard() {
    // 아래 stats 배열 항목 수(5개)와 맞춰야 스켈레톤→실제 데이터 전환 시 카드 높이가 안 변한다
    if (isLoading || hasError || !summary) {
       return (
-         <CardShell>
+         <CardShell cardHeight={cardHeight}>
             <LoadingOrError
                hasError={hasError}
                rowCount={5}
@@ -147,7 +161,7 @@ function StudentAttendanceCard() {
    ];
 
    return (
-      <CardShell>
+      <CardShell cardHeight={cardHeight}>
          <div className="mb-1.5 flex items-baseline gap-1.5">
             <span className="text-3xl font-bold text-gray-900 lg:text-2xl">
                {summary.attendanceRate}%
@@ -170,7 +184,7 @@ function StudentAttendanceCard() {
    );
 }
 
-function ManagerAttendanceCard() {
+function ManagerAttendanceCard({ cardHeight }: { cardHeight?: number }) {
    const [summary, setSummary] = useState<AttendanceDashboardSummary | null>(null);
    const [isLoading, setIsLoading] = useState(true);
    const [hasError, setHasError] = useState(false);
@@ -196,7 +210,7 @@ function ManagerAttendanceCard() {
    // 아래 stats 배열 항목 수(4개)와 맞춰야 스켈레톤→실제 데이터 전환 시 카드 높이가 안 변한다
    if (isLoading || hasError || !summary) {
       return (
-         <CardShell>
+         <CardShell cardHeight={cardHeight}>
             <LoadingOrError
                hasError={hasError}
                rowCount={4}
@@ -229,7 +243,7 @@ function ManagerAttendanceCard() {
    ];
 
    return (
-      <CardShell>
+      <CardShell cardHeight={cardHeight}>
          <div className="mb-1.5 flex items-baseline gap-1.5">
             <span className="text-3xl font-bold text-gray-900 lg:text-2xl">
                {attendedTodayCount}/{summary.activeStudents}명
@@ -245,8 +259,8 @@ function ManagerAttendanceCard() {
    );
 }
 
-export default function AttendanceCard() {
+export default function AttendanceCard({ cardHeight }: { cardHeight?: number }) {
    const { role } = useAuth();
-   if (role === 'STUDENT') return <StudentAttendanceCard />;
-   return <ManagerAttendanceCard />;
+   if (role === 'STUDENT') return <StudentAttendanceCard cardHeight={cardHeight} />;
+   return <ManagerAttendanceCard cardHeight={cardHeight} />;
 }
