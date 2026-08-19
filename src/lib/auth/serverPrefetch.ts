@@ -19,12 +19,15 @@ export async function serverApiFetch<T>(path: string, accessToken: string): Prom
 }
 
 // 페이지마다 반복되던 "토큰 있으면 프리페치, 없거나 실패하면 undefined로 폴백" 보일러플레이트를
-// 한 곳에 모은다. 실패를 조용히 삼키는 이유는 프리페치가 어디까지나 최적화라서 - 실패해도
-// 클라이언트가 그대로 다시 불러온다
+// 한 곳에 모은다. 실패해도 undefined로 폴백해 클라이언트가 그대로 다시 불러오게 하지만, 원인을
+// 알 수 없으면 프리페치가 매번 조용히 실패해도 눈치챌 방법이 없으므로 서버 콘솔에는 남긴다
 export async function prefetchIfAuthed<T>(
    fetcher: (accessToken: string) => Promise<T>,
 ): Promise<T | undefined> {
    const accessToken = await getServerAccessToken();
    if (!accessToken) return undefined;
-   return fetcher(accessToken).catch(() => undefined);
+   return fetcher(accessToken).catch((error) => {
+      console.error(`[prefetchIfAuthed] ${fetcher.name || 'fetcher'} 실패`, error);
+      return undefined;
+   });
 }

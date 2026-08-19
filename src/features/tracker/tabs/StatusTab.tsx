@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/shadcn/select';
 import Pagination from '@/components/ui/Pagination';
 import SearchInput from '@/components/ui/SearchInput';
+import AnimatedHeight from '@/components/ui/loading/AnimatedHeight';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
 import StatusBadge from '@/features/submissions/components/StatusBadge';
 import { useManagerTrackerData } from '../hooks/useManagerTrackerData';
@@ -42,39 +43,73 @@ const OVERVIEW_STATS = [
 function StatusTabSkeleton() {
    return (
       <div>
-         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xs border border-gray-200 bg-gray-100 sm:grid-cols-4 lg:grid-cols-7">
+         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-gray-200 bg-gray-100 sm:grid-cols-4 lg:grid-cols-7">
             {OVERVIEW_STATS.map((stat) => (
-               <div key={stat.label} className="flex flex-col items-center gap-1.5 bg-white py-4">
-                  <Skeleton width={48} height={11} className="rounded-md" />
-                  <Skeleton width={36} height={20} className="rounded-md" />
-                  <Skeleton width={40} height={10} className="rounded-md" />
+               <div key={stat.label} className="flex flex-col items-center gap-1 bg-white py-4">
+                  {/* min-h로 실제 텍스트 줄 높이(text-xs=16px/text-xl=28px/11px 캡션=13px)를 직접
+                     맞춘다 - flex 컨테이너는 자식이 전부 블록 요소면 font-size만으론 높이가 안 늘어남 */}
+                  <div className="flex min-h-4 items-center">
+                     <Skeleton width={48} height={11} className="rounded-md" />
+                  </div>
+                  <div className="flex min-h-7 items-center">
+                     <Skeleton width={36} height={20} className="rounded-md" />
+                  </div>
+                  <div className="flex min-h-[13px] items-center">
+                     <Skeleton width={40} height={10} className="rounded-md" />
+                  </div>
                </div>
             ))}
          </div>
 
-         <div className="mt-6 rounded-xs border border-gray-200 bg-white p-6">
-            <div className="mb-4 flex items-center justify-between">
-               <Skeleton width={80} height={16} className="rounded-md" />
+         <div className="mt-6 rounded-sm border border-gray-200 bg-white p-6">
+            <div className="flex items-center justify-between">
+               <div className="flex min-h-5 items-center">
+                  <Skeleton width={80} height={16} className="rounded-md" />
+               </div>
                <Skeleton width={140} height={36} className="rounded-xs" />
             </div>
-            <Skeleton width="100%" height={180} className="rounded-md" />
+            <div className="mt-3 flex items-center gap-4">
+               <Skeleton width={48} height={16} className="rounded-md" />
+               <Skeleton width={48} height={16} className="rounded-md" />
+            </div>
+            {/* 실제 차트(AttendanceTrendChart)는 viewBox 900x220 비율의 SVG를 w-full h-auto로
+               그려서 카드 너비에 비례해 커진다 - 고정 px 대신 같은 비율(aspect-ratio)을 써야 화면
+               폭에 관계없이 실제 차트 높이와 맞는다 */}
+            <div className="relative mt-3 aspect-[900/220] w-full overflow-hidden rounded-md bg-muted">
+               <div className="skeleton-shimmer absolute inset-0" />
+            </div>
          </div>
 
          <div className="mt-6 flex flex-wrap items-center gap-2">
             <Skeleton width={128} height={36} className="rounded-xs" />
             <Skeleton width={128} height={36} className="rounded-xs" />
             <Skeleton width={112} height={36} className="rounded-xs" />
-            <Skeleton width={256} height={36} className="ml-auto rounded-xs" />
+            {/* SearchInput 기본 heightClassName은 h-10(40px) - StatusTab은 그 기본값을 그대로 씀 */}
+            <Skeleton width={256} height={40} className="ml-auto rounded-xs" />
          </div>
 
          <div className="mt-4 divide-y divide-[#F3F4F6] overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:hidden">
             {[0, 1, 2, 3, 4].map((i) => (
                <div key={i} className="p-4">
-                  <div className="flex items-center justify-between gap-2">
-                     <Skeleton width="40%" height={14} className="rounded-md" />
-                     <Skeleton width={48} height={20} className="rounded-xs" />
+                  <div className="flex items-start justify-between gap-2">
+                     <div className="min-w-0 flex-1">
+                        <Skeleton width="60%" height={14} className="rounded-md" />
+                        <Skeleton width="40%" height={12} className="mt-0.5 rounded-md" />
+                     </div>
+                     <Skeleton width={48} height={20} className="shrink-0 rounded-xs" />
                   </div>
-                  <Skeleton width="60%" height={6} className="mt-3 rounded-full" />
+                  <div className="mt-2 flex items-center gap-2">
+                     <Skeleton width="100%" height={6} className="rounded-full" />
+                     <Skeleton width={28} height={12} className="shrink-0 rounded-md" />
+                  </div>
+                  <div className="mt-3 grid grid-cols-4 gap-2">
+                     {[0, 1, 2, 3].map((j) => (
+                        <div key={j} className="flex flex-col items-center gap-1">
+                           <Skeleton width={24} height={11} className="rounded-md" />
+                           <Skeleton width={16} height={14} className="rounded-md" />
+                        </div>
+                     ))}
+                  </div>
                </div>
             ))}
          </div>
@@ -85,7 +120,10 @@ function StatusTabSkeleton() {
                   key={i}
                   className="flex items-center gap-4 border-b border-[#F3F4F6] px-6 py-4 last:border-none"
                >
-                  <Skeleton width="18%" height={14} className="rounded-md" />
+                  <div className="w-[18%]">
+                     <Skeleton width="80%" height={14} className="rounded-md" />
+                     <Skeleton width="60%" height={12} className="mt-1 rounded-md" />
+                  </div>
                   <Skeleton width="24%" height={6} className="rounded-full" />
                   <Skeleton width="8%" height={14} className="rounded-md" />
                   <Skeleton width="8%" height={14} className="rounded-md" />
@@ -129,7 +167,9 @@ export default function StatusTab({ onGoToSheetSync, initialData }: StatusTabPro
    const teamOptions = useMemo(
       () =>
          Array.from(
-            new Set(trainees.map((trainee) => trainee.teamName).filter((name): name is string => !!name)),
+            new Set(
+               trainees.map((trainee) => trainee.teamName).filter((name): name is string => !!name),
+            ),
          ),
       [trainees],
    );
@@ -147,17 +187,14 @@ export default function StatusTab({ onGoToSheetSync, initialData }: StatusTabPro
    const totalPages = Math.max(1, Math.ceil(filteredTrainees.length / PAGE_SIZE));
    // 필터 변경이 아닌 이유(재조회 등)로 목록 자체가 줄어들어도 범위 밖 페이지에 머물지 않도록 보정
    const safePage = Math.min(currentPage, totalPages);
-   const pagedTrainees = filteredTrainees.slice(
-      (safePage - 1) * PAGE_SIZE,
-      safePage * PAGE_SIZE,
-   );
+   const pagedTrainees = filteredTrainees.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+   let content: React.ReactNode;
 
    if (isLoading) {
-      return <StatusTabSkeleton />;
-   }
-
-   if (error || !stats) {
-      return (
+      content = <StatusTabSkeleton />;
+   } else if (error || !stats) {
+      content = (
          <div className="flex flex-col items-center gap-3 py-16">
             <p className="text-sm text-gray-400">현황 정보를 불러오지 못했습니다.</p>
             <p className="text-xs text-gray-400">
@@ -181,290 +218,320 @@ export default function StatusTab({ onGoToSheetSync, initialData }: StatusTabPro
             </div>
          </div>
       );
-   }
+   } else {
+      content = (
+         <div>
+            <div className="grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-gray-200 bg-gray-100 sm:grid-cols-4 lg:grid-cols-7">
+               {OVERVIEW_STATS.map((stat) => (
+                  <div key={stat.label} className="flex flex-col items-center gap-1 bg-white py-4">
+                     <span className="text-xs text-gray-400">{stat.label}</span>
+                     <span className="text-xl font-bold text-gray-900">
+                        {stats[stat.valueKey] ?? 0}
+                        {stat.suffix}
+                     </span>
+                     <span className="text-[11px] text-gray-400">{stat.caption}</span>
+                  </div>
+               ))}
+            </div>
 
-   return (
-      <div>
-         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-sm border border-gray-200 bg-gray-100 sm:grid-cols-4 lg:grid-cols-7">
-            {OVERVIEW_STATS.map((stat) => (
-               <div key={stat.label} className="flex flex-col items-center gap-1 bg-white py-4">
-                  <span className="text-xs text-gray-400">{stat.label}</span>
-                  <span className="text-xl font-bold text-gray-900">
-                     {stats[stat.valueKey] ?? 0}
-                     {stat.suffix}
-                  </span>
-                  <span className="text-[11px] text-gray-400">{stat.caption}</span>
+            <div className="mt-6 rounded-sm border border-gray-200 bg-white p-6">
+               <div className="flex items-center justify-between">
+                  <p className="text-sm font-bold text-gray-900">출석 추이</p>
+                  <Select
+                     value={selectedPeriodId != null ? String(selectedPeriodId) : ''}
+                     onValueChange={(value) => changePeriod(value ? Number(value) : null)}
+                  >
+                     <SelectTrigger className="h-9 w-35 rounded-xs bg-white">
+                        <SelectValue placeholder="현재 단위기간">
+                           {(value: string | null) => {
+                              const period = value
+                                 ? periods.find((candidate) => String(candidate.id) === value)
+                                 : undefined;
+                              return period ? `${period.periodNo}단위` : '현재 단위기간';
+                           }}
+                        </SelectValue>
+                     </SelectTrigger>
+                     <SelectContent alignItemWithTrigger={false} align="end" sideOffset={4}>
+                        {periods.map((period) => (
+                           <SelectItem key={period.id} value={String(period.id)}>
+                              {period.periodNo}단위
+                           </SelectItem>
+                        ))}
+                     </SelectContent>
+                  </Select>
                </div>
-            ))}
-         </div>
+               {isLoadingTrend ? (
+                  <p className="py-10 text-center text-sm text-gray-400">불러오는 중...</p>
+               ) : trendError ? (
+                  <div className="flex flex-col items-center gap-2 py-10">
+                     <p className="text-sm text-gray-400">출석 추이를 불러오지 못했습니다.</p>
+                     <button
+                        type="button"
+                        onClick={retryTrend}
+                        className="cursor-pointer rounded-xs border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                     >
+                        다시 시도
+                     </button>
+                  </div>
+               ) : (
+                  <AttendanceTrendChart data={trend} />
+               )}
+            </div>
 
-         <div className="mt-6 rounded-sm border border-gray-200 bg-white p-6">
-            <div className="flex items-center justify-between">
-               <p className="text-sm font-bold text-gray-900">출석 추이</p>
+            <div className="mt-6 flex flex-wrap items-center gap-2">
                <Select
-                  value={selectedPeriodId != null ? String(selectedPeriodId) : ''}
-                  onValueChange={(value) => changePeriod(value ? Number(value) : null)}
+                  value={riskFilter}
+                  onValueChange={(value) => {
+                     setRiskFilter((value as TraineeRiskStatus | 'ALL') ?? 'ALL');
+                     setCurrentPage(1);
+                  }}
                >
-                  <SelectTrigger className="h-9 w-35 rounded-xs bg-white">
-                     <SelectValue placeholder="현재 단위기간">
-                        {(value: string | null) => {
-                           const period = value
-                              ? periods.find((candidate) => String(candidate.id) === value)
-                              : undefined;
-                           return period ? `${period.periodNo}단위` : '현재 단위기간';
-                        }}
+                  <SelectTrigger className="h-9 w-32 rounded-xs bg-white">
+                     <SelectValue placeholder="출결 상태">
+                        {(value: string | null) =>
+                           RISK_FILTER_OPTIONS.find((option) => option.value === value)?.label ??
+                           '출결 상태'
+                        }
                      </SelectValue>
                   </SelectTrigger>
-                  <SelectContent alignItemWithTrigger={false} align="end" sideOffset={4}>
-                     {periods.map((period) => (
-                        <SelectItem key={period.id} value={String(period.id)}>
-                           {period.periodNo}단위
+                  <SelectContent alignItemWithTrigger={false} align="start" sideOffset={4}>
+                     <SelectItem value="ALL">전체</SelectItem>
+                     {RISK_FILTER_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                           {option.label}
                         </SelectItem>
                      ))}
                   </SelectContent>
                </Select>
+
+               <Select
+                  value={dangerOnly}
+                  onValueChange={(value) => {
+                     setDangerOnly((value as 'ALL' | 'AT_RISK') ?? 'ALL');
+                     setCurrentPage(1);
+                  }}
+               >
+                  <SelectTrigger className="h-9 w-32 rounded-xs bg-white">
+                     <SelectValue placeholder="위험여부">
+                        {(value: string | null) => (value === 'AT_RISK' ? '위험군만' : '위험여부')}
+                     </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false} align="start" sideOffset={4}>
+                     <SelectItem value="ALL">전체</SelectItem>
+                     <SelectItem value="AT_RISK">위험군만</SelectItem>
+                  </SelectContent>
+               </Select>
+
+               <Select
+                  value={teamFilter}
+                  onValueChange={(value) => {
+                     setTeamFilter(value ?? 'ALL');
+                     setCurrentPage(1);
+                  }}
+               >
+                  <SelectTrigger className="h-9 w-28 rounded-xs bg-white">
+                     <SelectValue placeholder="팀 전체">
+                        {(value: string | null) => (value === 'ALL' || !value ? '팀 전체' : value)}
+                     </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent alignItemWithTrigger={false} align="start" sideOffset={4}>
+                     <SelectItem value="ALL">전체</SelectItem>
+                     {teamOptions.map((teamName) => (
+                        <SelectItem key={teamName} value={teamName}>
+                           {teamName}
+                        </SelectItem>
+                     ))}
+                  </SelectContent>
+               </Select>
+
+               <SearchInput
+                  onSearch={(value) => {
+                     setSearchText(value);
+                     setCurrentPage(1);
+                  }}
+                  placeholder="훈련생 이름 검색"
+                  className="ml-auto w-64"
+               />
             </div>
-            {isLoadingTrend ? (
-               <p className="py-10 text-center text-sm text-gray-400">불러오는 중...</p>
-            ) : trendError ? (
-               <div className="flex flex-col items-center gap-2 py-10">
-                  <p className="text-sm text-gray-400">출석 추이를 불러오지 못했습니다.</p>
-                  <button
-                     type="button"
-                     onClick={retryTrend}
-                     className="cursor-pointer rounded-xs border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                     다시 시도
-                  </button>
-               </div>
-            ) : (
-               <AttendanceTrendChart data={trend} />
-            )}
-         </div>
 
-         <div className="mt-6 flex flex-wrap items-center gap-2">
-            <Select
-               value={riskFilter}
-               onValueChange={(value) => {
-                  setRiskFilter((value as TraineeRiskStatus | 'ALL') ?? 'ALL');
-                  setCurrentPage(1);
-               }}
-            >
-               <SelectTrigger className="h-9 w-32 rounded-xs bg-white">
-                  <SelectValue placeholder="출결 상태">
-                     {(value: string | null) =>
-                        RISK_FILTER_OPTIONS.find((option) => option.value === value)?.label ?? '출결 상태'
-                     }
-                  </SelectValue>
-               </SelectTrigger>
-               <SelectContent alignItemWithTrigger={false} align="start" sideOffset={4}>
-                  <SelectItem value="ALL">전체</SelectItem>
-                  {RISK_FILTER_OPTIONS.map((option) => (
-                     <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                     </SelectItem>
-                  ))}
-               </SelectContent>
-            </Select>
-
-            <Select
-               value={dangerOnly}
-               onValueChange={(value) => {
-                  setDangerOnly((value as 'ALL' | 'AT_RISK') ?? 'ALL');
-                  setCurrentPage(1);
-               }}
-            >
-               <SelectTrigger className="h-9 w-32 rounded-xs bg-white">
-                  <SelectValue placeholder="위험여부">
-                     {(value: string | null) => (value === 'AT_RISK' ? '위험군만' : '위험여부')}
-                  </SelectValue>
-               </SelectTrigger>
-               <SelectContent alignItemWithTrigger={false} align="start" sideOffset={4}>
-                  <SelectItem value="ALL">전체</SelectItem>
-                  <SelectItem value="AT_RISK">위험군만</SelectItem>
-               </SelectContent>
-            </Select>
-
-            <Select
-               value={teamFilter}
-               onValueChange={(value) => {
-                  setTeamFilter(value ?? 'ALL');
-                  setCurrentPage(1);
-               }}
-            >
-               <SelectTrigger className="h-9 w-28 rounded-xs bg-white">
-                  <SelectValue placeholder="팀 전체">
-                     {(value: string | null) => (value === 'ALL' || !value ? '팀 전체' : value)}
-                  </SelectValue>
-               </SelectTrigger>
-               <SelectContent alignItemWithTrigger={false} align="start" sideOffset={4}>
-                  <SelectItem value="ALL">전체</SelectItem>
-                  {teamOptions.map((teamName) => (
-                     <SelectItem key={teamName} value={teamName}>
-                        {teamName}
-                     </SelectItem>
-                  ))}
-               </SelectContent>
-            </Select>
-
-            <SearchInput
-               onSearch={(value) => {
-                  setSearchText(value);
-                  setCurrentPage(1);
-               }}
-               placeholder="훈련생 이름 검색"
-               className="ml-auto w-64"
-            />
-         </div>
-
-         <div className="mt-4 divide-y divide-[#F3F4F6] overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:hidden">
-            {pagedTrainees.length === 0 ? (
-               <p className="px-6 py-10 text-center text-sm text-gray-400">
-                  조건에 맞는 훈련생이 없습니다.
-               </p>
-            ) : (
-               pagedTrainees.map((trainee, index) => (
-                  <div
-                     key={`${trainee.name}-${index}`}
-                     onClick={() => router.push(`/tracker/${trainee.traineeId}`)}
-                     className="cursor-pointer p-4 transition-colors hover:bg-[#F9FAFB]"
-                  >
-                     <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                           <Link
-                              href={`/tracker/${trainee.traineeId}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="block truncate text-sm font-bold text-gray-900"
-                           >
-                              {trainee.name}
-                           </Link>
-                           {trainee.email && (
-                              <p className="mt-0.5 truncate text-xs text-gray-400">{trainee.email}</p>
-                           )}
-                        </div>
-                        <StatusBadge tone={TRAINEE_RISK_TONES[trainee.riskStatus]} className="shrink-0">
-                           {TRAINEE_RISK_LABELS[trainee.riskStatus]}
-                        </StatusBadge>
-                     </div>
-
-                     <div className="mt-2 flex items-center gap-2">
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100">
-                           <div
-                              className="h-full rounded-full bg-brand-sage"
-                              style={{ width: `${trainee.attendanceRate}%` }}
-                           />
-                        </div>
-                        <span className="whitespace-nowrap text-xs text-gray-700">
-                           {trainee.attendanceRate}%
-                        </span>
-                     </div>
-
-                     <div className="mt-3 grid grid-cols-4 gap-2 text-center">
-                        <div>
-                           <p className="text-[11px] text-gray-400">지각</p>
-                           <p className="mt-0.5 text-sm font-medium text-gray-900">{trainee.lateCount}</p>
-                        </div>
-                        <div>
-                           <p className="text-[11px] text-gray-400">조퇴</p>
-                           <p className="mt-0.5 text-sm font-medium text-gray-900">
-                              {trainee.earlyLeaveCount}
-                           </p>
-                        </div>
-                        <div>
-                           <p className="text-[11px] text-gray-400">외출</p>
-                           <p className="mt-0.5 text-sm font-medium text-gray-900">{trainee.outingCount}</p>
-                        </div>
-                        <div>
-                           <p className="text-[11px] text-gray-400">결석</p>
-                           <p className="mt-0.5 text-sm font-medium text-gray-900">{trainee.absentCount}</p>
-                        </div>
-                     </div>
-                  </div>
-               ))
-            )}
-         </div>
-
-         <div className="mt-4 hidden overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:block">
-            <table className="w-full table-fixed text-left text-sm">
-               <thead>
-                  <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
-                     <th className="w-[24%] px-6 py-3 font-medium">이름</th>
-                     <th className="w-[20%] px-3 py-3 font-medium text-center">출석율</th>
-                     <th className="w-[10%] px-3 py-3 text-center font-medium">지각</th>
-                     <th className="w-[10%] px-3 py-3 text-center font-medium">조퇴</th>
-                     <th className="w-[10%] px-3 py-3 text-center font-medium">외출</th>
-                     <th className="w-[10%] px-3 py-3 text-center font-medium">결석</th>
-                     <th className="w-[12%] px-3 py-3 text-center font-medium">상태</th>
-                     <th className="w-[4%] px-3 py-3" />
-                  </tr>
-               </thead>
-               <tbody>
-                  {pagedTrainees.length === 0 ? (
-                     <tr>
-                        <td colSpan={8} className="px-6 py-10 text-center text-gray-400">
-                           조건에 맞는 훈련생이 없습니다.
-                        </td>
-                     </tr>
-                  ) : (
-                     pagedTrainees.map((trainee, index) => (
-                        <tr
-                           key={`${trainee.name}-${index}`}
-                           onClick={() => router.push(`/tracker/${trainee.traineeId}`)}
-                           className="group cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]"
-                        >
-                           <td className="px-6 py-4 font-medium text-gray-900">
+            <div className="mt-4 divide-y divide-[#F3F4F6] overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:hidden">
+               {pagedTrainees.length === 0 ? (
+                  <p className="px-6 py-10 text-center text-sm text-gray-400">
+                     조건에 맞는 훈련생이 없습니다.
+                  </p>
+               ) : (
+                  pagedTrainees.map((trainee, index) => (
+                     <div
+                        key={`${trainee.name}-${index}`}
+                        onClick={() => router.push(`/tracker/${trainee.traineeId}`)}
+                        className="cursor-pointer p-4 transition-colors hover:bg-[#F9FAFB]"
+                     >
+                        <div className="flex items-start justify-between gap-2">
+                           <div className="min-w-0">
                               <Link
                                  href={`/tracker/${trainee.traineeId}`}
                                  onClick={(e) => e.stopPropagation()}
-                                 title={trainee.name}
-                                 className="block truncate group-hover:underline"
+                                 className="block truncate text-sm font-bold text-gray-900"
                               >
                                  {trainee.name}
                               </Link>
                               {trainee.email && (
-                                 <p
-                                    className="mt-0.5 truncate text-xs font-normal text-gray-400"
-                                    title={trainee.email}
-                                 >
+                                 <p className="mt-0.5 truncate text-xs text-gray-400">
                                     {trainee.email}
                                  </p>
                               )}
-                           </td>
-                           <td className="px-3 py-4">
-                              <div className="flex flex-col items-center gap-1 xl:flex-row xl:justify-center xl:gap-2">
-                                 <div className="h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-gray-100 lg:w-28 xl:w-40">
-                                    <div
-                                       className="h-full rounded-full bg-brand-sage"
-                                       style={{ width: `${trainee.attendanceRate}%` }}
-                                    />
-                                 </div>
-                                 <span className="whitespace-nowrap text-xs text-gray-700 md:text-sm">
-                                    {trainee.attendanceRate}%
-                                 </span>
-                              </div>
-                           </td>
-                           <td className="px-3 py-4 text-center text-gray-700">{trainee.lateCount}</td>
-                           <td className="px-3 py-4 text-center text-gray-700">{trainee.earlyLeaveCount}</td>
-                           <td className="px-3 py-4 text-center text-gray-700">{trainee.outingCount}</td>
-                           <td className="px-3 py-4 text-center text-gray-700">{trainee.absentCount}</td>
-                           <td className="px-3 py-4 text-center">
-                              <StatusBadge tone={TRAINEE_RISK_TONES[trainee.riskStatus]}>
-                                 {TRAINEE_RISK_LABELS[trainee.riskStatus]}
-                              </StatusBadge>
-                           </td>
-                           <td className="px-3 py-4 text-right text-gray-300">
-                              <ChevronRight size={16} />
+                           </div>
+                           <StatusBadge
+                              tone={TRAINEE_RISK_TONES[trainee.riskStatus]}
+                              className="shrink-0"
+                           >
+                              {TRAINEE_RISK_LABELS[trainee.riskStatus]}
+                           </StatusBadge>
+                        </div>
+
+                        <div className="mt-2 flex items-center gap-2">
+                           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100">
+                              <div
+                                 className="h-full rounded-full bg-brand-sage"
+                                 style={{ width: `${trainee.attendanceRate}%` }}
+                              />
+                           </div>
+                           <span className="whitespace-nowrap text-xs text-gray-700">
+                              {trainee.attendanceRate}%
+                           </span>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+                           <div>
+                              <p className="text-[11px] text-gray-400">지각</p>
+                              <p className="mt-0.5 text-sm font-medium text-gray-900">
+                                 {trainee.lateCount}
+                              </p>
+                           </div>
+                           <div>
+                              <p className="text-[11px] text-gray-400">조퇴</p>
+                              <p className="mt-0.5 text-sm font-medium text-gray-900">
+                                 {trainee.earlyLeaveCount}
+                              </p>
+                           </div>
+                           <div>
+                              <p className="text-[11px] text-gray-400">외출</p>
+                              <p className="mt-0.5 text-sm font-medium text-gray-900">
+                                 {trainee.outingCount}
+                              </p>
+                           </div>
+                           <div>
+                              <p className="text-[11px] text-gray-400">결석</p>
+                              <p className="mt-0.5 text-sm font-medium text-gray-900">
+                                 {trainee.absentCount}
+                              </p>
+                           </div>
+                        </div>
+                     </div>
+                  ))
+               )}
+            </div>
+
+            <div className="mt-4 hidden overflow-hidden rounded-sm border border-[#E5E7EB] bg-white md:block">
+               <table className="w-full table-fixed text-left text-sm">
+                  <thead>
+                     <tr className="border-b border-[#E5E7EB] bg-[#F9FAFB] text-[#6B7280]">
+                        <th className="w-[24%] px-6 py-3 font-medium">이름</th>
+                        <th className="w-[20%] px-3 py-3 font-medium text-center">출석율</th>
+                        <th className="w-[10%] px-3 py-3 text-center font-medium">지각</th>
+                        <th className="w-[10%] px-3 py-3 text-center font-medium">조퇴</th>
+                        <th className="w-[10%] px-3 py-3 text-center font-medium">외출</th>
+                        <th className="w-[10%] px-3 py-3 text-center font-medium">결석</th>
+                        <th className="w-[12%] px-3 py-3 text-center font-medium">상태</th>
+                        <th className="w-[4%] px-3 py-3" />
+                     </tr>
+                  </thead>
+                  <tbody>
+                     {pagedTrainees.length === 0 ? (
+                        <tr>
+                           <td colSpan={8} className="px-6 py-10 text-center text-gray-400">
+                              조건에 맞는 훈련생이 없습니다.
                            </td>
                         </tr>
-                     ))
-                  )}
-               </tbody>
-            </table>
-         </div>
+                     ) : (
+                        pagedTrainees.map((trainee, index) => (
+                           <tr
+                              key={`${trainee.name}-${index}`}
+                              onClick={() => router.push(`/tracker/${trainee.traineeId}`)}
+                              className="group cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]"
+                           >
+                              <td className="px-6 py-4 font-medium text-gray-900">
+                                 <Link
+                                    href={`/tracker/${trainee.traineeId}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    title={trainee.name}
+                                    className="block truncate group-hover:underline"
+                                 >
+                                    {trainee.name}
+                                 </Link>
+                                 {trainee.email && (
+                                    <p
+                                       className="mt-0.5 truncate text-xs font-normal text-gray-400"
+                                       title={trainee.email}
+                                    >
+                                       {trainee.email}
+                                    </p>
+                                 )}
+                              </td>
+                              <td className="px-3 py-4">
+                                 <div className="flex flex-col items-center gap-1 xl:flex-row xl:justify-center xl:gap-2">
+                                    <div className="h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-gray-100 lg:w-28 xl:w-40">
+                                       <div
+                                          className="h-full rounded-full bg-brand-sage"
+                                          style={{ width: `${trainee.attendanceRate}%` }}
+                                       />
+                                    </div>
+                                    <span className="whitespace-nowrap text-xs text-gray-700 md:text-sm">
+                                       {trainee.attendanceRate}%
+                                    </span>
+                                 </div>
+                              </td>
+                              <td className="px-3 py-4 text-center text-gray-700">
+                                 {trainee.lateCount}
+                              </td>
+                              <td className="px-3 py-4 text-center text-gray-700">
+                                 {trainee.earlyLeaveCount}
+                              </td>
+                              <td className="px-3 py-4 text-center text-gray-700">
+                                 {trainee.outingCount}
+                              </td>
+                              <td className="px-3 py-4 text-center text-gray-700">
+                                 {trainee.absentCount}
+                              </td>
+                              <td className="px-3 py-4 text-center">
+                                 <StatusBadge tone={TRAINEE_RISK_TONES[trainee.riskStatus]}>
+                                    {TRAINEE_RISK_LABELS[trainee.riskStatus]}
+                                 </StatusBadge>
+                              </td>
+                              <td className="px-3 py-4 text-right text-gray-300">
+                                 <ChevronRight size={16} />
+                              </td>
+                           </tr>
+                        ))
+                     )}
+                  </tbody>
+               </table>
+            </div>
 
-         <div className="mt-6">
-            <Pagination currentPage={safePage} totalPages={totalPages} onPageChange={setCurrentPage} />
+            <div className="mt-6">
+               <Pagination
+                  currentPage={safePage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+               />
+            </div>
          </div>
-      </div>
+      );
+   }
+
+   return (
+      <AnimatedHeight transitionKey={isLoading ? 'loading' : error || !stats ? 'error' : 'content'}>
+         {content}
+      </AnimatedHeight>
    );
 }

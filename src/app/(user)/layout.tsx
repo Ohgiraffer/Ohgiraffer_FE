@@ -31,7 +31,10 @@ export default async function UserLayout({ children }: { children: React.ReactNo
                               <Header />
                               <div className="flex flex-1 overflow-hidden">
                                  <Menubar />
-                                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#F7F8FA]">
+                                 {/* scrollbar-gutter: stable - 콘텐츠 높이가 바뀌어 스크롤바가
+                                    나타났다 사라졌다 할 때마다 콘텐츠 너비가 같이 출렁이는 걸 막는다.
+                                    스크롤이 필요 없을 때도 스크롤바 자리만큼 항상 여백을 남겨둔다 */}
+                                 <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#F7F8FA] [scrollbar-gutter:stable]">
                                     {children}
                                  </main>
                               </div>

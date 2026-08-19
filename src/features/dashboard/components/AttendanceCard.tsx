@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ClipboardCheck, TriangleAlert } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthContext';
+import AnimatedHeight from '@/components/ui/loading/AnimatedHeight';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
 import {
    getAttendanceDashboardSummary,
@@ -31,12 +32,20 @@ function CardShell({ children }: { children: React.ReactNode }) {
                상세
             </Link>
          </div>
-         {children}
+         <AnimatedHeight>{children}</AnimatedHeight>
       </div>
    );
 }
 
-function LoadingOrError({ hasError, onRetry }: { hasError: boolean; onRetry: () => void }) {
+function LoadingOrError({
+   hasError,
+   onRetry,
+   rowCount,
+}: {
+   hasError: boolean;
+   onRetry: () => void;
+   rowCount: number;
+}) {
    if (hasError) {
       return (
          <div className="flex flex-col items-center gap-2 py-6">
@@ -53,13 +62,20 @@ function LoadingOrError({ hasError, onRetry }: { hasError: boolean; onRetry: () 
    }
    return (
       <div>
-         <Skeleton width={90} height={28} className="mb-1.5 rounded-md" />
+         {/* text-3xl/lg:text-2xl 줄 높이(36px/32px)를 min-h로 직접 맞춘다 - flex 컨테이너는
+            font-size/line-height만으로는 실제 높이가 안 늘어나서(자식이 전부 블록 요소라 텍스트
+            공백이 없으면 line box가 안 생김), min-h를 명시로 줘야 한다 */}
+         <div className="mb-1.5 flex min-h-9 items-center gap-1.5 lg:min-h-8">
+            <Skeleton width={90} height={28} className="rounded-md" />
+            <Skeleton width={48} height={14} className="rounded-md" />
+         </div>
          <Skeleton width="100%" height={6} className="mb-4 rounded-full lg:mb-2" />
-         <ul className="flex flex-col gap-2 lg:gap-1">
-            {[0, 1, 2, 3].map((i) => (
-               <li key={i} className="flex items-center gap-2">
+         <ul className="mb-4 flex flex-col gap-2 lg:mb-2 lg:gap-1">
+            {Array.from({ length: rowCount }, (_, i) => (
+               <li key={i} className="flex min-h-5 items-center gap-2">
                   <Skeleton width={8} height={8} className="shrink-0 rounded-full" />
                   <Skeleton width="55%" height={14} className="rounded-md" />
+                  <Skeleton width={28} height={14} className="ml-auto shrink-0 rounded-md" />
                </li>
             ))}
          </ul>
@@ -104,11 +120,13 @@ function StudentAttendanceCard() {
       };
    }, [retryKey]);
 
+   // 아래 stats 배열 항목 수(5개)와 맞춰야 스켈레톤→실제 데이터 전환 시 카드 높이가 안 변한다
    if (isLoading || hasError || !summary) {
       return (
          <CardShell>
             <LoadingOrError
                hasError={hasError}
+               rowCount={5}
                onRetry={() => {
                   setIsLoading(true);
                   setHasError(false);
@@ -131,7 +149,9 @@ function StudentAttendanceCard() {
    return (
       <CardShell>
          <div className="mb-1.5 flex items-baseline gap-1.5">
-            <span className="text-3xl font-bold text-gray-900 lg:text-2xl">{summary.attendanceRate}%</span>
+            <span className="text-3xl font-bold text-gray-900 lg:text-2xl">
+               {summary.attendanceRate}%
+            </span>
             <span className="text-sm text-gray-400">출석률</span>
          </div>
          <div className="mb-4 h-1.5 w-full overflow-hidden rounded-full bg-gray-100 lg:mb-2">
@@ -173,11 +193,13 @@ function ManagerAttendanceCard() {
       };
    }, [retryKey]);
 
+   // 아래 stats 배열 항목 수(4개)와 맞춰야 스켈레톤→실제 데이터 전환 시 카드 높이가 안 변한다
    if (isLoading || hasError || !summary) {
       return (
          <CardShell>
             <LoadingOrError
                hasError={hasError}
+               rowCount={4}
                onRetry={() => {
                   setIsLoading(true);
                   setHasError(false);
@@ -197,7 +219,8 @@ function ManagerAttendanceCard() {
    const cautionStudents = summary.cautionStudents ?? 0;
    const warningStudents = summary.warningStudents ?? 0;
    const riskStudents = summary.riskStudents ?? 0;
-   const attendedRate = summary.activeStudents > 0 ? (attendedTodayCount / summary.activeStudents) * 100 : 0;
+   const attendedRate =
+      summary.activeStudents > 0 ? (attendedTodayCount / summary.activeStudents) * 100 : 0;
    const stats: StatDot[] = [
       { label: '정상', value: `${normalStudents}명`, colorClassName: 'bg-brand-sage' },
       { label: '주의', value: `${cautionStudents}명`, colorClassName: 'bg-brand-gold' },
