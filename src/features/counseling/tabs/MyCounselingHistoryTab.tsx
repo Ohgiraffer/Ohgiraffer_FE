@@ -1,15 +1,23 @@
 'use client';
 
+import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
+import Pagination from '@/components/ui/Pagination';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
 import CounselingStatusBadge from '../components/CounselingStatusBadge';
 import CounselingDetailModal from '../components/CounselingDetailModal';
 import { useMyCounselingHistory } from '../hooks/useMyCounselingHistory';
 
+const PAGE_SIZE = 8;
+
 // 훈련생 "내 상담 이력" 탭 - 예정·완료 상담 목록, 행을 클릭하면 상세 모달
 export default function MyCounselingHistoryTab() {
    const { items, isLoading, loadError, detail, openDetail, closeDetail } =
       useMyCounselingHistory();
+   const [currentPage, setCurrentPage] = useState(1);
+
+   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+   const pagedItems = items.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
    return (
       <div>
@@ -55,7 +63,7 @@ export default function MyCounselingHistoryTab() {
                <>
                   {/* 좁은 화면 - 카드형 목록 */}
                   <div className="divide-y divide-[#F3F4F6] md:hidden">
-                     {items.map((item) => (
+                     {pagedItems.map((item) => (
                         <div
                            key={item.consultationId}
                            onClick={() => openDetail(item.consultationId)}
@@ -85,13 +93,15 @@ export default function MyCounselingHistoryTab() {
                         </tr>
                      </thead>
                      <tbody>
-                        {items.map((item, index) => (
+                        {pagedItems.map((item, index) => (
                            <tr
                               key={item.consultationId}
                               onClick={() => openDetail(item.consultationId)}
                               className="cursor-pointer border-b border-[#F3F4F6] last:border-b-0 hover:bg-[#F9FAFB]"
                            >
-                              <td className="px-8 py-4 text-center text-gray-500">{index + 1}</td>
+                              <td className="px-8 py-4 text-center text-gray-500">
+                                 {(currentPage - 1) * PAGE_SIZE + index + 1}
+                              </td>
                               <td className="px-10 py-4 font-medium text-gray-900">{item.topic}</td>
                               <td className="px-6 py-4 text-gray-700">{item.counselorName}</td>
                               <td className="px-15 py-4 text-center text-gray-500">
@@ -106,6 +116,14 @@ export default function MyCounselingHistoryTab() {
                   </table>
                </>
             )}
+         </div>
+
+         <div className="mt-6">
+            <Pagination
+               currentPage={currentPage}
+               totalPages={totalPages}
+               onPageChange={setCurrentPage}
+            />
          </div>
 
          {detail && <CounselingDetailModal detail={detail} onClose={closeDetail} />}
