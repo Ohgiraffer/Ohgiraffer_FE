@@ -1,4 +1,9 @@
 import { getVerifiedRole } from '@/lib/auth/serverAuth';
+import { prefetchIfAuthed } from '@/lib/auth/serverPrefetch';
+import {
+   getServerStaffCounselingData,
+   getServerStudentCounselingData,
+} from '@/features/counseling/getServerCounselingData';
 import StaffCounselingView from '@/features/counseling/components/StaffCounselingView';
 import StudentCounselingView from '@/features/counseling/components/StudentCounselingView';
 import CounselingPageClient from '@/features/counseling/components/CounselingPageClient';
@@ -16,7 +21,15 @@ export default async function CounselingPage() {
             {isStaff ? '상담 관리' : '상담 신청 및 이력 조회'}
          </h1>
 
-         <div className="mt-5">{isStaff ? <StaffCounselingView /> : <StudentCounselingView />}</div>
+         <div className="mt-5">
+            {isStaff ? (
+               <StaffCounselingView initialData={await prefetchIfAuthed(getServerStaffCounselingData)} />
+            ) : (
+               <StudentCounselingView
+                  initialData={await prefetchIfAuthed(getServerStudentCounselingData)}
+               />
+            )}
+         </div>
       </div>
    );
 }

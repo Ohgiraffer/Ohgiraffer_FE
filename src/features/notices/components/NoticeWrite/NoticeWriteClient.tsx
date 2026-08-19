@@ -31,16 +31,31 @@ const NoticeEditorArea = dynamic(() => import('./NoticeEditorArea'), {
    loading: () => <NoticeEditorAreaSkeleton />,
 });
 
+// NoticeEditorToolbar + EditorContent(h-[375px])와 동일한 구조의 자리표시
 function NoticeEditorAreaSkeleton() {
    return (
       <div>
-         <div className="flex items-center gap-3 border-b border-[#E5E7EB] bg-[#F9FAFB] px-4 py-1.5">
-            <Skeleton width={140} height={28} className="rounded-xs" />
-            <Skeleton width={100} height={28} className="rounded-xs" />
+         <div className="flex items-center justify-between border-b border-[#E5E7EB] bg-[#F9FAFB] px-4 py-1.5">
+            <div className="flex items-center gap-3">
+               <div className="flex items-center gap-1 border-r border-[#E5E7EB] pr-3">
+                  {[0, 1, 2].map((i) => (
+                     <Skeleton key={i} width={28} height={28} className="rounded-xs" />
+                  ))}
+               </div>
+               <div className="flex items-center gap-1 border-r border-[#E5E7EB] pr-3">
+                  {[0, 1, 2].map((i) => (
+                     <Skeleton key={i} width={44} height={26} className="rounded-xs" />
+                  ))}
+               </div>
+               <div className="flex items-center gap-1">
+                  {[0, 1, 2].map((i) => (
+                     <Skeleton key={i} width={28} height={28} className="rounded-xs" />
+                  ))}
+               </div>
+            </div>
+            <Skeleton width={110} height={30} className="rounded-xs" />
          </div>
-         <div className="px-6 py-5">
-            <Skeleton width="100%" height={375} className="rounded-md" />
-         </div>
+         <Skeleton width="100%" height={375} />
       </div>
    );
 }

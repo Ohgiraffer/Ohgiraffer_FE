@@ -1,4 +1,7 @@
 import { getVerifiedRole } from '@/lib/auth/serverAuth';
+import { prefetchIfAuthed } from '@/lib/auth/serverPrefetch';
+import { getServerManagerTrackerData } from '@/features/tracker/getServerManagerTrackerData';
+import { getServerStudentTrackerData } from '@/features/tracker/getServerStudentTrackerData';
 import ManagerTrackerBoard from '@/features/tracker/components/ManagerTrackerBoard';
 import StudentTracker from '@/features/tracker/components/StudentTracker';
 import TrackerPageClient from '@/features/tracker/components/TrackerPageClient';
@@ -9,7 +12,12 @@ export default async function AttendancePage() {
    const auth = await getVerifiedRole();
 
    if (auth) {
-      return auth.role === 'STUDENT' ? <StudentTracker /> : <ManagerTrackerBoard />;
+      if (auth.role === 'STUDENT') {
+         const initialData = await prefetchIfAuthed(getServerStudentTrackerData);
+         return <StudentTracker initialData={initialData} />;
+      }
+      const initialData = await prefetchIfAuthed(getServerManagerTrackerData);
+      return <ManagerTrackerBoard initialData={initialData} />;
    }
 
    return <TrackerPageClient />;

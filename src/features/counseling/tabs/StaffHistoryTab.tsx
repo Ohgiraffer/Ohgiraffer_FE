@@ -9,6 +9,8 @@ import {
    SelectValue,
 } from '@/components/ui/shadcn/select';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
+import InlineProgressBar from '@/components/ui/loading/InlineProgressBar';
+import AnimatedHeight from '@/components/ui/loading/AnimatedHeight';
 import StaffConsultationRow from '../components/StaffConsultationRow';
 import {
    HISTORY_PAGE_SIZE,
@@ -16,6 +18,7 @@ import {
    type ConsultationStatusFilter,
    type CounselorRoleFilter,
 } from '../hooks/useStaffCounselingHistory';
+import type { ServerStaffCounselingData } from '../getServerCounselingData';
 
 const ROLE_FILTER_OPTIONS: Array<{ value: CounselorRoleFilter; label: string }> = [
    { value: 'ALL', label: '전체' },
@@ -30,21 +33,11 @@ const STATUS_FILTER_OPTIONS: Array<{ value: ConsultationStatusFilter; label: str
    { value: 'CANCELLED', label: '취소' },
 ];
 
-// StaffConsultationRow(카드/구분선 두 variant 공용) 자리표시
-function StaffConsultationRowSkeleton({
-   index = 0,
-   variant = 'divider',
-}: {
-   index?: number;
-   variant?: 'card' | 'divider';
-}) {
+// StaffConsultationRow(구분선 variant) 자리표시 - "전체 상담 이력" 목록 전용
+function StaffConsultationRowSkeleton({ index = 0 }: { index?: number }) {
    return (
       <div
-         className={`flex items-center justify-between ${
-            variant === 'card'
-               ? 'rounded-xs border border-[#E5E7EB] bg-[#F9FAFB] px-5 py-3'
-               : 'px-6 py-3'
-         }`}
+         className="flex items-center justify-between px-6 py-3"
          style={{ '--row-delay': `${index * 0.15}s` } as React.CSSProperties}
       >
          <div className="flex items-center gap-4">
@@ -62,8 +55,12 @@ function StaffConsultationRowSkeleton({
    );
 }
 
+interface StaffHistoryTabProps {
+   initialData?: ServerStaffCounselingData;
+}
+
 // 운영진 "상담 이력 조회" 탭
-export default function StaffHistoryTab() {
+export default function StaffHistoryTab({ initialData }: StaffHistoryTabProps) {
    const {
       upcoming,
       pagedUpcoming,
@@ -83,7 +80,7 @@ export default function StaffHistoryTab() {
       setRoleFilter,
       statusFilter,
       setStatusFilter,
-   } = useStaffCounselingHistory();
+   } = useStaffCounselingHistory(initialData);
 
    const handleRoleFilterChange = (value: CounselorRoleFilter | null) => {
       if (!value) return;
@@ -101,34 +98,45 @@ export default function StaffHistoryTab() {
             <h3 className="text-sm font-semibold text-gray-900">
                다가오는 상담 — {upcoming.length}건
             </h3>
-            {isLoadingUpcoming ? (
-               <div className="mt-3 flex flex-col gap-2">
-                  {[0, 1, 2].map((i) => (
-                     <StaffConsultationRowSkeleton key={i} index={i} variant="card" />
-                  ))}
-               </div>
-            ) : hasUpcomingError ? (
-               <p className="py-10 text-center text-sm text-brand-red">
-                  다가오는 상담을 불러오지 못했습니다.
-               </p>
-            ) : upcoming.length === 0 ? (
-               <p className="py-10 text-center text-sm text-gray-400">다가오는 상담이 없습니다.</p>
-            ) : (
-               <>
-                  <div className="mt-3 flex flex-col gap-2">
-                     {pagedUpcoming.map((item) => (
-                        <StaffConsultationRow key={item.consultationId} item={item} variant="card" />
-                     ))}
+            <AnimatedHeight
+               transitionKey={
+                  isLoadingUpcoming ? 'loading' : hasUpcomingError ? 'error' : 'content'
+               }
+            >
+               {isLoadingUpcoming ? (
+                  <div className="flex flex-col items-center justify-center gap-2 py-8">
+                     <InlineProgressBar />
+                     <p className="text-xs text-gray-400">다가오는 상담을 불러오는 중...</p>
                   </div>
-                  <div className="mt-3">
-                     <Pagination
-                        currentPage={upcomingPage}
-                        totalPages={upcomingTotalPages}
-                        onPageChange={setUpcomingPage}
-                     />
-                  </div>
-               </>
-            )}
+               ) : hasUpcomingError ? (
+                  <p className="py-10 text-center text-sm text-brand-red">
+                     다가오는 상담을 불러오지 못했습니다.
+                  </p>
+               ) : upcoming.length === 0 ? (
+                  <p className="py-10 text-center text-sm text-gray-400">
+                     다가오는 상담이 없습니다.
+                  </p>
+               ) : (
+                  <>
+                     <div className="mt-3 flex flex-col gap-2">
+                        {pagedUpcoming.map((item) => (
+                           <StaffConsultationRow
+                              key={item.consultationId}
+                              item={item}
+                              variant="card"
+                           />
+                        ))}
+                     </div>
+                     <div className="mt-3">
+                        <Pagination
+                           currentPage={upcomingPage}
+                           totalPages={upcomingTotalPages}
+                           onPageChange={setUpcomingPage}
+                        />
+                     </div>
+                  </>
+               )}
+            </AnimatedHeight>
          </div>
 
          <div className="flex items-center mt-6 gap-2">

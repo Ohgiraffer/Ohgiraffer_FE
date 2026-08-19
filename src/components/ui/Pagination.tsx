@@ -40,8 +40,11 @@ export default function Pagination({ currentPage, totalPages, onPageChange }: Pa
                   key={page}
                   type="button"
                   onClick={() => onPageChange(page)}
-                  className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm text-sm font-medium transition-colors ${
-                     isActive ? 'bg-brand-green text-white' : 'text-gray-700 hover:bg-gray-50'
+                  // 활성 페이지 배경색은 트랜지션을 주지 않는다 - transition-colors를 걸면 페이지를
+                  // 바꿀 때 이전 버튼(초록->없음)과 새 버튼(없음->초록)이 동시에 서서히 색이 바뀌면서
+                  // 초록색이 버튼 사이를 미끄러지듯 옮겨가는 잔상처럼 보인다
+                  className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-sm text-sm font-medium ${
+                     isActive ? 'bg-brand-green text-white' : 'text-gray-700 hover:bg-[#EAF3EC]'
                   }`}
                >
                   {page}

@@ -6,6 +6,7 @@ import SheetSyncTab from '../tabs/SheetSyncTab';
 import SyncHistoryTab from '../tabs/SyncHistoryTab';
 import { useEvaluationSheetSync } from '../hooks/useEvaluationSheetSync';
 import { useSyncHistory } from '../hooks/useSyncHistory';
+import type { ServerEvaluationsData } from '../getServerEvaluationsData';
 
 type TabKey = 'sheet-sync' | 'history';
 
@@ -19,12 +20,18 @@ function resolveInitialTab(requestedTab: string | null): TabKey {
    return (matched ?? TABS[0]).key;
 }
 
-export default function EvaluationsPageClient() {
+interface EvaluationsPageClientProps {
+   // evaluations/page.tsx가 서버에서 미리 불러와 넘겨주는 초기 데이터 - 없으면(캐시 히트, 검증 실패
+   // 등) 지금처럼 클라이언트에서 직접 불러온다
+   initialData?: ServerEvaluationsData;
+}
+
+export default function EvaluationsPageClient({ initialData }: EvaluationsPageClientProps) {
    const router = useRouter();
    const requestedTab = useSearchParams().get('tab');
    const [activeTab, setActiveTab] = useState<TabKey>(() => resolveInitialTab(requestedTab));
    const { isConnected, spreadsheetUrl, columnMapping, isLoading, loadError, handleSaveMapping } =
-      useEvaluationSheetSync();
+      useEvaluationSheetSync(initialData?.initialSheetLink);
    const {
       history,
       isLoadingHistory,
@@ -34,7 +41,7 @@ export default function EvaluationsPageClient() {
       runSync,
       isNotifying,
       notifyStaff,
-   } = useSyncHistory();
+   } = useSyncHistory(initialData?.initialSyncLogs);
 
    const changeTab = (tab: TabKey) => {
       setActiveTab(tab);

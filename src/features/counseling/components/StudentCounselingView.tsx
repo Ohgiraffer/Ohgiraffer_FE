@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import ApplyCounselingTab from '../tabs/ApplyCounselingTab';
 import MyCounselingHistoryTab from '../tabs/MyCounselingHistoryTab';
+import type { ServerStudentCounselingData } from '../getServerCounselingData';
 
 type StudentTab = 'apply' | 'history';
 
@@ -11,8 +12,12 @@ const TABS: Array<{ key: StudentTab; label: string }> = [
    { key: 'history', label: '내 상담 이력' },
 ];
 
+interface StudentCounselingViewProps {
+   initialData?: ServerStudentCounselingData;
+}
+
 // 훈련생 "상담 신청 및 이력 조회" - 탭 바 + 탭 전환
-export default function StudentCounselingView() {
+export default function StudentCounselingView({ initialData }: StudentCounselingViewProps) {
    const [activeTab, setActiveTab] = useState<StudentTab>('apply');
 
    return (
@@ -35,7 +40,7 @@ export default function StudentCounselingView() {
          </div>
 
          <div className="mt-6">
-            {activeTab === 'apply' && <ApplyCounselingTab />}
+            {activeTab === 'apply' && <ApplyCounselingTab initialData={initialData} />}
             {activeTab === 'history' && <MyCounselingHistoryTab />}
          </div>
       </div>

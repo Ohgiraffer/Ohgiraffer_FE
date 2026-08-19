@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import {
    getMyAttendanceMonthly,
@@ -11,16 +11,35 @@ import {
    getStudentLeaveSickCount,
 } from '@/services/attendance.service';
 import { mapRiskLevel, type AttendanceDayRecord, type StudentAttendanceOverview } from '../types';
+import type { ServerStudentTrackerData } from '../getServerStudentTrackerData';
 
 // userId를 주면 운영진용 특정 훈련생 조회(/attendance/summary/{userId} 등), 안 주면 본인 조회
-// API(/attendance/summary 등)를 쓴다 - 훈련생 본인 화면과 훈련생 상세 페이지의 출결 탭이 공용으로 쓴다
-export function useAttendanceOverview(userId?: number) {
+// API(/attendance/summary 등)를 쓴다 - 훈련생 본인 화면과 훈련생 상세 페이지의 출결 탭이 공용으로 쓴다.
+// initial은 본인 조회(userId 없음) 화면(StudentTracker)에서만 서버가 미리 넘겨준다
+export function useAttendanceOverview(userId?: number, initial?: ServerStudentTrackerData) {
    const [overview, setOverview] = useState<Omit<StudentAttendanceOverview, 'todayStatus' | 'checkInTime'> | null>(
-      null,
+      initial
+         ? {
+              remainingVacation: initial.initialLeaveSick.remainingLeaveDays,
+              remainingSickLeave: initial.initialLeaveSick.remainingSickDays,
+              attendanceRate: initial.initialSummary.attendanceRate,
+              present: initial.initialSummary.presentDays,
+              late: initial.initialSummary.lateCount,
+              earlyLeave: initial.initialSummary.earlyLeaveCount,
+              outing: initial.initialSummary.outingCount,
+              absent: initial.initialSummary.absentDays,
+              vacation: initial.initialSummary.leaveDays,
+              sickLeave: initial.initialSummary.sickDays,
+              riskStatus: mapRiskLevel(initial.initialSummary.riskLevel),
+              periodRates: initial.initialSummary.periodRates,
+           }
+         : null,
    );
-   const [isLoadingOverview, setIsLoadingOverview] = useState(true);
+   const [isLoadingOverview, setIsLoadingOverview] = useState(!initial);
    const [overviewError, setOverviewError] = useState(false);
    const [overviewRetryKey, setOverviewRetryKey] = useState(0);
+   // 서버가 이미 초기 개요 데이터를 넘겨줬으면, 마운트 시점의 첫 조회 한 번은 건너뛴다
+   const skipInitialOverviewFetchRef = useRef(initial != null);
 
    const [currentDate, setCurrentDate] = useState(() => new Date());
    const [records, setRecords] = useState<AttendanceDayRecord[]>([]);
@@ -49,6 +68,10 @@ export function useAttendanceOverview(userId?: number) {
    }
 
    useEffect(() => {
+      if (skipInitialOverviewFetchRef.current) {
+         skipInitialOverviewFetchRef.current = false;
+         return;
+      }
       let isMounted = true;
       Promise.all([
          userId != null ? getStudentAttendanceSummary(userId) : getMyAttendanceSummary(),

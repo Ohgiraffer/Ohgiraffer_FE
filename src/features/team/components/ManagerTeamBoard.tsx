@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { Clock, Plus } from 'lucide-react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import AnimatedHeight from '@/components/ui/loading/AnimatedHeight';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { toast } from '@/lib/toast';
 import { ApiError } from '@/lib/http';
@@ -114,13 +115,21 @@ export default function ManagerTeamBoard({
    const [isLoading, setIsLoading] = useState(!initialTeams);
    const [hasError, setHasError] = useState(false);
    const [reloadKey, setReloadKey] = useState(0);
-   // 서버가 이미 initialActivePeriodId 몫의 팀 데이터를 넘겨줬으면, 그 값으로 시작하자마자
-   // 같은 기간을 또 불러오지 않게 재조회 이펙트의 첫 실행 한 번은 건너뛴다
-   const skipNextFetchRef = useRef(initialTeams != null);
+   // 한 번이라도 데이터를 받은 적이 있으면(기간 전환/재조회), 로딩 중에도 스켈레톤으로 갈아치우지
+   // 않고 기존 콘텐츠를 흐리게 유지한다 - 최초 진입(데이터가 아예 없을 때)에만 스켈레톤을 보여준다.
+   // 안 그러면 팀/팀원 수가 기간마다 달라 스켈레톤(고정 크기) <-> 실제 콘텐츠 사이를 오갈 때마다
+   // 높이가 출렁여 덜컥거려 보인다
+   const [hasLoadedOnce, setHasLoadedOnce] = useState(initialTeams != null);
+   // 마운트 시 첫 번째 effect 실행이 "프리페치된 값을 조용히 재검증"하는 건지, 그 이후(기간
+   // 전환/재시도)는 "사용자가 직접 트리거"한 건지 구분한다 - 전자가 실패했을 땐 이미 화면에
+   // 유효한 프리페치 데이터가 떠 있으니 에러 화면으로 덮지 않는다
+   const isInitialFetchRef = useRef(true);
 
    // 팀 목록 자체도 초안: 실제 팀(teamId >= 0) + 이번 세션에 추가했지만 아직 저장 안 한 팀(teamId < 0)
    const [draftTeams, setDraftTeams] = useState<DraftTeam[]>(() =>
-      initialTeams ? buildDraftStateFromServer(initialTeams, initialUnassigned ?? []).draftTeams : [],
+      initialTeams
+         ? buildDraftStateFromServer(initialTeams, initialUnassigned ?? []).draftTeams
+         : [],
    );
    // 삭제 예정인 "실제" 팀 id만 (새로 추가했다가 지운 팀은 draftTeams에서 그냥 제거, 여기 안 넣음)
    const [deletedTeamIds, setDeletedTeamIds] = useState<number[]>([]);
@@ -139,19 +148,21 @@ export default function ManagerTeamBoard({
    const isSavingRef = useRef(false);
    const [isDeletingPeriod, setIsDeletingPeriod] = useState(false);
 
-   // 2) 선택된 기간의 팀/미배정 목록
+   // 2) 선택된 기간의 팀/미배정 목록 - initialTeams가 있어도(프리페치 성공) 마운트 시 한 번은
+   // 항상 다시 조회한다. 팀 배정은 다른 관리자가 방금 바꿨을 수도 있는 값이라, 프리페치된 값을
+   // 그대로 믿고 끝내지 않고 화면엔 즉시 그 값을 보여주면서 백그라운드로 조용히 재검증한다
+   // (isLoading을 안 건드리므로 스켈레톤/흐림 없이 조용히 갱신됨)
    useEffect(() => {
       if (activePeriodId == null) return;
-      if (skipNextFetchRef.current) {
-         skipNextFetchRef.current = false;
-         return;
-      }
       let isMounted = true;
+      const isInitialFetch = isInitialFetchRef.current;
+      isInitialFetchRef.current = false;
       // isLoading/hasError는 이 effect가 아니라,
       // activePeriodId/reloadKey를 바꾸는 이벤트 핸들러 쪽(switchPeriod/reloadTeams)에서 미리 세팅
       Promise.all([getTeams(activePeriodId), getUnassignedStudents(activePeriodId)])
          .then(([teamsResult, unassignedResult]) => {
             if (!isMounted) return;
+            setHasLoadedOnce(true);
             setServerTeams(teamsResult);
             setUnassigned(unassignedResult);
             const { draftTeams, draftAssignment } = buildDraftStateFromServer(
@@ -163,7 +174,15 @@ export default function ManagerTeamBoard({
             setDraftAssignment(draftAssignment);
          })
          .catch(() => {
-            if (isMounted) setHasError(true);
+            if (!isMounted) return;
+            // 최초 마운트의 조용한 재검증이 실패한 거라면(프리페치된 값이 이미 화면에 떠 있음)
+            // 에러 화면으로 덮지 않고 토스트만 띄운다. 기간 전환/재시도처럼 사용자가 직접
+            // 트리거한 조회 실패는 그 기간의 데이터를 아직 못 받은 것이므로 에러 화면을 보여준다
+            if (isInitialFetch && initialTeams != null) {
+               toast.error('최신 팀 정보를 불러오지 못했습니다. 새로고침해주세요.');
+            } else {
+               setHasError(true);
+            }
          })
          .finally(() => {
             if (isMounted) setIsLoading(false);
@@ -171,7 +190,7 @@ export default function ManagerTeamBoard({
       return () => {
          isMounted = false;
       };
-   }, [activePeriodId, reloadKey]);
+   }, [activePeriodId, reloadKey, initialTeams]);
 
    const memberInfoByUserId = useMemo(() => {
       const map = new Map<number, MemberInfo>();
@@ -232,7 +251,8 @@ export default function ManagerTeamBoard({
       return memberDirty;
    }, [deletedTeamIds, draftTeams, serverTeams, memberInfoByUserId, draftAssignment]);
 
-   const { guardedAction, isLeaveConfirmOpen, onConfirmLeave, onCancelLeave } = useLeaveGuard(isDirty);
+   const { guardedAction, isLeaveConfirmOpen, onConfirmLeave, onCancelLeave } =
+      useLeaveGuard(isDirty);
 
    const moveDraft = (userId: number, targetTeamId: number | null) => {
       setDraftAssignment((prev) => ({ ...prev, [userId]: targetTeamId }));
@@ -248,7 +268,7 @@ export default function ManagerTeamBoard({
       [periods, activePeriodId],
    );
 
-   // activePeriodId/reloadKey를 바꿔 재조회 effect를 트리거하는 곳들은, 
+   // activePeriodId/reloadKey를 바꿔 재조회 effect를 트리거하는 곳들은,
    // effect 본문이 아니라 여기(호출 시점)에서 로딩 상태를 미리 세팅(effect 안에서 동기 setState를 피하기 위함)
    const switchPeriod = (periodId: number) => {
       setIsLoading(true);
@@ -299,9 +319,13 @@ export default function ManagerTeamBoard({
       setEditingPeriod(null);
       queryClient.setQueryData<TeamPeriod[]>(['teamPeriods'], (prev = []) => {
          const exists = prev.some((p) => p.teamPeriodId === period.teamPeriodId);
-         return exists
+         const next = exists
             ? prev.map((p) => (p.teamPeriodId === period.teamPeriodId ? period : p))
             : [...prev, period];
+         // getTeamPeriods()의 서버 재조회 결과와 동일하게 시작일 기준으로 정렬해둔다 - 그냥
+         // 뒤에 붙이기만 하면(특히 이미 있는 기간보다 앞선 기간을 나중에 추가한 경우) 탭 순서가
+         // 생성 순으로 어긋난다
+         return [...next].sort((a, b) => a.startDate.localeCompare(b.startDate));
       });
       if (!wasEditing) {
          guardedAction(() => switchPeriod(period.teamPeriodId));
@@ -380,7 +404,7 @@ export default function ManagerTeamBoard({
       setIsSaving(true);
 
       // payload 구성까지 try 안에 넣어야 함
-      // 밖에 있으면 여기서 예외가 났을 때 finally를 못 타서 isSavingRef가 true로 눌러붙어, 
+      // 밖에 있으면 여기서 예외가 났을 때 finally를 못 타서 isSavingRef가 true로 눌러붙어,
       // 이후로는 저장 버튼을 눌러도 조용히 아무 반응이 없어짐
       try {
          const teamsPayload: TeamConfigurationTeamInput[] = draftTeams.map((t) => ({
@@ -444,7 +468,9 @@ export default function ManagerTeamBoard({
    if (periodsError) {
       return (
          <div className="flex-1 bg-[#F7F8FA] px-10 py-8">
-            <p className="py-16 text-center text-sm text-gray-400">기간 정보를 불러오지 못했습니다.</p>
+            <p className="py-16 text-center text-sm text-gray-400">
+               기간 정보를 불러오지 못했습니다.
+            </p>
          </div>
       );
    }
@@ -507,73 +533,91 @@ export default function ManagerTeamBoard({
                   />
                </div>
 
-               {isLoading ? (
-                  <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
-                     <Skeleton width="100%" height={280} className="rounded-xs" />
-                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                        {[0, 1, 2].map((i) => (
-                           <Skeleton key={i} width="100%" height={220} className="rounded-xs" />
-                        ))}
+               <AnimatedHeight>
+                  {isLoading && !hasLoadedOnce ? (
+                     <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
+                        <Skeleton width="100%" height={280} className="rounded-xs" />
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                           {[0, 1, 2].map((i) => (
+                              <Skeleton key={i} width="100%" height={220} className="rounded-xs" />
+                           ))}
+                        </div>
                      </div>
-                  </div>
-               ) : hasError ? (
-                  <div className="flex flex-col items-center gap-3 py-16">
-                     <p className="text-sm text-gray-400">팀 정보를 불러오지 못했습니다.</p>
-                     <button
-                        type="button"
-                        onClick={reloadTeams}
-                        className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  ) : hasError ? (
+                     <div className="flex flex-col items-center gap-3 py-16">
+                        <p className="text-sm text-gray-400">팀 정보를 불러오지 못했습니다.</p>
+                        <button
+                           type="button"
+                           onClick={reloadTeams}
+                           className="cursor-pointer rounded-xs border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        >
+                           다시 시도
+                        </button>
+                     </div>
+                  ) : (
+                     // 기간 전환 중(isLoading)에는 스켈레톤으로 갈아치우지 않고 기존 콘텐츠를 흐리게
+                     // 유지한다 - 새 데이터가 오면 바로 이 자리에서 갱신되므로 크기 출렁임이 없다
+                     <div
+                        className={`mt-5 grid grid-cols-1 gap-4 transition-opacity duration-200 lg:grid-cols-[260px_1fr] ${
+                           isLoading ? 'pointer-events-none opacity-50' : ''
+                        }`}
                      >
-                        다시 시도
-                     </button>
-                  </div>
-               ) : (
-                  <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
-                     <UnassignedPanel
-                        students={membersByTeamId.unassignedList.map((info) => ({
-                           userId: info.userId,
-                           name: info.name,
-                           email: info.email,
-                           profileImgUrl: info.profileImgUrl,
-                        }))}
-                        teams={draftTeams}
-                        isDragOver={dragOverTarget === 'unassigned'}
-                        onDragOverChange={(isOver) => setDragOverTarget(isOver ? 'unassigned' : null)}
-                        onDropUser={(userId) => moveDraft(userId, null)}
-                        onDragStartUser={() => {}}
-                        onMoveUserToTeam={(userId, targetTeamId) => moveDraft(userId, targetTeamId)}
-                     />
-
-                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                        {draftTeams.map((team) => (
-                           <TeamCard
-                              key={team.teamId}
-                              team={team}
-                              members={(membersByTeamId.byTeam.get(team.teamId) ?? []).map((info) => ({
-                                 userId: info.userId,
-                                 name: info.name,
-                                 email: info.email,
-                                 profileImgUrl: info.profileImgUrl,
-                              }))}
-                              allTeams={draftTeams}
-                              isDragOver={dragOverTarget === team.teamId}
-                              onDragOverChange={(isOver) => setDragOverTarget(isOver ? team.teamId : null)}
-                              onRename={handleRename}
-                              onDeleteTeam={handleDeleteTeam}
-                              onDropUser={(userId) => moveDraft(userId, team.teamId)}
-                              onDragStartUser={() => {}}
-                              onMoveUserToTeam={(userId, targetTeamId) => moveDraft(userId, targetTeamId)}
-                              onUnassignUser={(userId) => moveDraft(userId, null)}
-                           />
-                        ))}
-
-                        <TeamAddCard
-                           existingNames={draftTeams.map((t) => t.name)}
-                           onCreate={handleCreateTeam}
+                        <UnassignedPanel
+                           students={membersByTeamId.unassignedList.map((info) => ({
+                              userId: info.userId,
+                              name: info.name,
+                              email: info.email,
+                              profileImgUrl: info.profileImgUrl,
+                           }))}
+                           teams={draftTeams}
+                           isDragOver={dragOverTarget === 'unassigned'}
+                           onDragOverChange={(isOver) =>
+                              setDragOverTarget(isOver ? 'unassigned' : null)
+                           }
+                           onDropUser={(userId) => moveDraft(userId, null)}
+                           onDragStartUser={() => {}}
+                           onMoveUserToTeam={(userId, targetTeamId) =>
+                              moveDraft(userId, targetTeamId)
+                           }
                         />
+
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                           {draftTeams.map((team) => (
+                              <TeamCard
+                                 key={team.teamId}
+                                 team={team}
+                                 members={(membersByTeamId.byTeam.get(team.teamId) ?? []).map(
+                                    (info) => ({
+                                       userId: info.userId,
+                                       name: info.name,
+                                       email: info.email,
+                                       profileImgUrl: info.profileImgUrl,
+                                    }),
+                                 )}
+                                 allTeams={draftTeams}
+                                 isDragOver={dragOverTarget === team.teamId}
+                                 onDragOverChange={(isOver) =>
+                                    setDragOverTarget(isOver ? team.teamId : null)
+                                 }
+                                 onRename={handleRename}
+                                 onDeleteTeam={handleDeleteTeam}
+                                 onDropUser={(userId) => moveDraft(userId, team.teamId)}
+                                 onDragStartUser={() => {}}
+                                 onMoveUserToTeam={(userId, targetTeamId) =>
+                                    moveDraft(userId, targetTeamId)
+                                 }
+                                 onUnassignUser={(userId) => moveDraft(userId, null)}
+                              />
+                           ))}
+
+                           <TeamAddCard
+                              existingNames={draftTeams.map((t) => t.name)}
+                              onCreate={handleCreateTeam}
+                           />
+                        </div>
                      </div>
-                  </div>
-               )}
+                  )}
+               </AnimatedHeight>
             </>
          )}
 
