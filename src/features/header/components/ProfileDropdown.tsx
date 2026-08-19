@@ -4,13 +4,11 @@ import { ChevronDown, LogOut, User } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthContext';
 import { ROLE_LABELS } from '@/services/auth.service';
 import ProfileImageModal from './ProfileImageModal';
 
 export default function ProfileDropdown() {
-   const router = useRouter();
    const { me, role, updateProfileImageUrl, logout } = useAuth();
    const [isMenuOpen, setIsMenuOpen] = useState(false);
    const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -31,12 +29,15 @@ export default function ProfileDropdown() {
       setIsLoggingOut(true);
       try {
          await logout();
+         // logout()이 role을 null로 비우는 순간 AuthGuard의 이펙트가 알아서 /login으로
+         // 보내준다 - 여기서 또 router.push('/login')을 부르면 두 네비게이션이 겹쳐서
+         // 화면이 한 번 더 깜빡인다(같은 목적지로 두 번 이동)
       } catch {
-         // 이미 로그아웃되었거나(401) 토큰 문제여도 클라이언트 상태는 정리 후 로그인 페이지로
+         // 이미 로그아웃되었거나(401) 토큰 문제여도 클라이언트 상태는 정리되므로 AuthGuard가
+         // 마찬가지로 /login으로 보내준다
       } finally {
          setIsLoggingOut(false);
          setIsMenuOpen(false);
-         router.push('/login');
       }
    };
 

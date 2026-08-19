@@ -34,41 +34,59 @@ export default function AnimatedHeight({
    });
 
    useEffect(() => {
+      const wrapperEl = wrapperRef.current;
       const el = contentRef.current;
-      if (!el) return;
+      if (!el || !wrapperEl) return;
+
+      // overflow-hidden은 높이가 실제로 바뀌는 그 순간에만 걸어둔다 - 계속 걸어두면 안쪽에
+      // sticky 요소가 있을 때(overflow-hidden인 조상 기준으로 갇혀버려) 전혀 동작하지 않는다.
+      // 트랜지션이 끝나면 풀어준다
+      const handleTransitionEnd = (e: TransitionEvent) => {
+         if (e.target === wrapperEl && e.propertyName === 'height') {
+            wrapperEl.style.overflow = '';
+         }
+      };
+      wrapperEl.addEventListener('transitionend', handleTransitionEnd);
 
       const observer = new ResizeObserver((entries) => {
          const entry = entries[0];
          if (!entry) return;
 
+         let changed = true;
          if (tracksKeyRef.current) {
-            const changed = currentKeyRef.current !== lastSeenKeyRef.current;
+            changed = currentKeyRef.current !== lastSeenKeyRef.current;
             lastSeenKeyRef.current = currentKeyRef.current;
+         }
+
+         wrapperEl.style.overflow = 'hidden';
+
+         if (!changed) {
             // key가 안 바뀐 변화(페이지네이션 등)는 이번 갱신 한 번만 트랜지션을 꺼서 즉시
             // 스냅시키고, 다음 프레임에 다시 켠다 - React state로 클래스를 같이 토글하면 "트랜지션이
             // 걸리는 시점"과 "높이가 바뀌는 시점"이 같은 커밋에 몰려서 브라우저가 애니메이션할
             // 이전 프레임을 못 잡고 그냥 순간 이동해버리기 때문에, DOM에 직접 duration을 0으로
-            // 박아 넣어야 한다
-            const wrapperEl = wrapperRef.current;
-            if (!changed && wrapperEl) {
-               wrapperEl.style.transitionDuration = '0s';
+            // 박아 넣어야 한다. 이 경우는 transitionend가 안 걸리니(duration 0) overflow도 직접 푼다
+            wrapperEl.style.transitionDuration = '0s';
+            requestAnimationFrame(() => {
                requestAnimationFrame(() => {
-                  requestAnimationFrame(() => {
-                     wrapperEl.style.transitionDuration = '';
-                  });
+                  wrapperEl.style.transitionDuration = '';
+                  wrapperEl.style.overflow = '';
                });
-            }
+            });
          }
          setHeight(entry.contentRect.height);
       });
       observer.observe(el);
-      return () => observer.disconnect();
+      return () => {
+         observer.disconnect();
+         wrapperEl.removeEventListener('transitionend', handleTransitionEnd);
+      };
    }, []);
 
    return (
       <div
          ref={wrapperRef}
-         className={`overflow-hidden transition-[height] duration-200 ease-out ${className}`}
+         className={`transition-[height] duration-200 ease-out ${className}`}
          style={{ height }}
       >
          {/* flow-root로 새 BFC를 만든다 - 안 그러면 children의 첫/마지막 자식 margin이 이 div

@@ -138,6 +138,9 @@ export default function StudentTeamView({
                   periods={periods}
                   activePeriodId={activePeriodId}
                   onSelect={(periodId) => {
+                     // ManagerTeamBoard와 동일한 이유 - 이미 선택된 기간이면 activePeriodId가
+                     // 안 바뀌어 조회 effect가 재실행되지 않고, isLoadingTeams가 계속 true로 남는다
+                     if (periodId === activePeriodId) return;
                      setIsLoadingTeams(true);
                      setTeamsError(false);
                      setActivePeriodId(periodId);
