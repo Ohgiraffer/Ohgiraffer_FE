@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Bot, Plus } from 'lucide-react';
-import ChatRoomList from './ChatRoomList/ChatRoomList';
+import ChatRoomList, { type ChatRoomListTab } from './ChatRoomList/ChatRoomList';
 import ChatConversation from './ChatConversation/ChatConversation';
 import NewChatModal from './ChatRoomList/NewChatModal';
 import ThreadPanel from './ChatConversation/ThreadPanel';
@@ -34,6 +34,10 @@ export default function ChatPanel({
    reloadUnreadCount,
 }: ChatPanelProps) {
    const [activeRoom, setActiveRoom] = useState<ChatChannel | null>(null);
+   // 방 상세로 들어가면 ChatRoomList가 통째로 언마운트됐다가 뒤로 나올 때 다시 마운트되므로,
+   // 탭 상태를 그 안에 두면 매번 기본값(1:1)으로 리셋된다 - 이 컴포넌트는 방을 열고 닫아도
+   // 계속 살아있으니 여기서 들고 있다가 내려준다
+   const [roomListTab, setRoomListTab] = useState<ChatRoomListTab>('direct');
    // AI 비서 채널의 실제 channelId - 목록에서 클릭해 들어오든 상단 버튼으로 들어오든 항상 같은
    // 기준으로 "지금 연 방이 AI 비서인지"를 판단하기 위해 한 번 조회해 캐싱해둔다(버튼 클릭 시에도 갱신)
    const [botChannelId, setBotChannelId] = useState<string | null>(null);
@@ -208,6 +212,8 @@ export default function ChatPanel({
                   channels={channels}
                   isLoading={isLoadingChannels}
                   onSelectRoom={handleSelectRoom}
+                  tab={roomListTab}
+                  onTabChange={setRoomListTab}
                />
             </>
          )}

@@ -55,7 +55,10 @@ export default function UnassignedPanel({
             if (Number.isSafeInteger(userId) && userId > 0) onDropUser(userId);
          }}
          className={cn(
-            'h-fit rounded-sm border bg-white p-4 transition-colors',
+            // 오른쪽 팀 카드 그리드는 팀이 많아지면 여러 줄로 늘어나 이 패널보다 훨씬 길어질 수
+            // 있다 - sticky로 스크롤해도 계속 보이게 하고, self-start로 그리드 기본 stretch에
+            // 눌려 늘어나지 않고 자기 콘텐츠 높이(h-fit)만큼만 차지하게 한다
+            'sticky top-5 h-fit self-start rounded-sm border bg-white p-4 transition-colors',
             isDragOver ? 'border-brand-green bg-[#F0F4F2]' : 'border-[#E5E7EB]',
          )}
       >
@@ -74,7 +77,9 @@ export default function UnassignedPanel({
             compact
          />
 
-         <div className="mt-3 flex flex-col gap-1.5">
+         {/* 미배정 인원이 많아지면 패널이 옆 팀 카드 그리드보다 한없이 길어지므로, 목록 자체에
+            최대 높이를 주고 그 안에서만 스크롤되게 한다 */}
+         <div className="mt-3 flex max-h-100 flex-col gap-1.5 overflow-y-auto">
             {filtered.length === 0 ? (
                <p className="py-6 text-center text-xs text-gray-300">
                   {students.length === 0 ? '미배정 훈련생이 없습니다' : '검색 결과가 없습니다'}
@@ -100,7 +105,9 @@ export default function UnassignedPanel({
                            iconSize={16}
                            borderClassName="border border-gray-200"
                         />
-                        <span className="truncate text-sm text-gray-700">{student.name || '이름 없음'}</span>
+                        <span className="truncate text-sm text-gray-700">
+                           {student.name || '이름 없음'}
+                        </span>
                      </div>
                      <MemberActionMenu
                         currentTeamId={null}
