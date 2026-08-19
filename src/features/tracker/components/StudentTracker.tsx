@@ -42,6 +42,7 @@ export default function StudentTracker({ initialData }: StudentTrackerProps) {
       currentDate,
       setCurrentDate,
       records,
+      isLoadingRecords,
       recordsError,
    } = useAttendanceOverview(undefined, initialData);
 
@@ -139,7 +140,12 @@ export default function StudentTracker({ initialData }: StudentTrackerProps) {
          <div className="mt-5 grid grid-cols-1 divide-y divide-gray-100 rounded-sm border border-gray-200 bg-white sm:grid-cols-[1fr_2fr] sm:divide-x sm:divide-y-0">
             <div className="p-6">
                <p className="text-sm text-gray-400">오늘 출결 상태</p>
-               {overview.todayStatus ? (
+               {/* todayStatus/checkInTime은 overview와 달리 프리페치 대상이 아니라 월별 기록
+                  조회(isLoadingRecords)가 끝나야 채워진다 - 그 전에 미리 "기록 없음"을 보여주면
+                  실제로 이미 출결했는데도 잠깐 잘못된 정보가 보인다 */}
+               {isLoadingRecords ? (
+                  <Skeleton width={90} height={24} className="mt-2 rounded-xs" />
+               ) : overview.todayStatus ? (
                   <span
                      className={`mt-2 inline-block rounded-xs px-2.5 py-1 text-xs font-medium ${
                         TODAY_STATUS_BADGE_CLASSES[
@@ -155,9 +161,13 @@ export default function StudentTracker({ initialData }: StudentTrackerProps) {
                   </span>
                )}
                <p className="mt-3 text-lg font-bold text-gray-900">
-                  {overview.checkInTime
-                     ? `입실 ${overview.checkInTime.slice(0, 5)}`
-                     : '입실 기록 없음'}
+                  {isLoadingRecords ? (
+                     <Skeleton width={120} height={22} className="rounded-md" />
+                  ) : overview.checkInTime ? (
+                     `입실 ${overview.checkInTime.slice(0, 5)}`
+                  ) : (
+                     '입실 기록 없음'
+                  )}
                </p>
                <div className="mt-3 flex gap-2">
                   <span className="rounded-xs bg-gray-100 px-2 py-1 text-xs text-gray-600">

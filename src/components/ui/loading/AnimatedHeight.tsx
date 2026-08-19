@@ -71,7 +71,12 @@ export default function AnimatedHeight({
          className={`overflow-hidden transition-[height] duration-200 ease-out ${className}`}
          style={{ height }}
       >
-         <div ref={contentRef}>{children}</div>
+         {/* flow-root로 새 BFC를 만든다 - 안 그러면 children의 첫/마지막 자식 margin이 이 div
+            바깥으로 상쇄돼서(margin collapse) ResizeObserver가 재는 높이보다 실제 차지하는
+            공간이 더 커질 수 있고, overflow-hidden 때문에 그 차이만큼 내용이 잘려 보인다 */}
+         <div ref={contentRef} className="flow-root">
+            {children}
+         </div>
       </div>
    );
 }

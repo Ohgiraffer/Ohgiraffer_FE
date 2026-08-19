@@ -18,7 +18,9 @@ import type { ServerManagerTrackerData } from '../getServerManagerTrackerData';
 // /attendance/list는 소속 팀을 포함하지 않아서, 이미 사용 중인 /user/list(getUserList)에서
 // 같은 userId의 훈련생을 찾아 teamName을 채운다
 export function useManagerTrackerData(initial?: ServerManagerTrackerData) {
-   const [stats, setStats] = useState<AttendanceDashboardSummary | null>(initial?.initialStats ?? null);
+   const [stats, setStats] = useState<AttendanceDashboardSummary | null>(
+      initial?.initialStats ?? null,
+   );
    const [attendanceList, setAttendanceList] = useState<AttendanceListItem[] | null>(
       initial?.initialAttendanceList ?? null,
    );
@@ -59,6 +61,10 @@ export function useManagerTrackerData(initial?: ServerManagerTrackerData) {
    const [isRetrying, setIsRetrying] = useState(false);
    const isMountedRef = useRef(true);
    useEffect(() => {
+      // StrictMode 개발 모드는 마운트 시 setup -> cleanup -> setup 순서로 두 번 실행한다.
+      // 첫 cleanup이 false로 내려버린 뒤 두 번째 setup에서 다시 true로 되돌리지 않으면,
+      // 이후 retry()가 isMountedRef.current를 영원히 false로 착각해 isRetrying이 안 꺼진다
+      isMountedRef.current = true;
       return () => {
          isMountedRef.current = false;
       };

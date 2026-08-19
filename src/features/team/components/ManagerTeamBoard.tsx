@@ -120,6 +120,10 @@ export default function ManagerTeamBoard({
    // 안 그러면 팀/팀원 수가 기간마다 달라 스켈레톤(고정 크기) <-> 실제 콘텐츠 사이를 오갈 때마다
    // 높이가 출렁여 덜컥거려 보인다
    const [hasLoadedOnce, setHasLoadedOnce] = useState(initialTeams != null);
+   // 마운트 시 첫 번째 effect 실행이 "프리페치된 값을 조용히 재검증"하는 건지, 그 이후(기간
+   // 전환/재시도)는 "사용자가 직접 트리거"한 건지 구분한다 - 전자가 실패했을 땐 이미 화면에
+   // 유효한 프리페치 데이터가 떠 있으니 에러 화면으로 덮지 않는다
+   const isInitialFetchRef = useRef(true);
 
    // 팀 목록 자체도 초안: 실제 팀(teamId >= 0) + 이번 세션에 추가했지만 아직 저장 안 한 팀(teamId < 0)
    const [draftTeams, setDraftTeams] = useState<DraftTeam[]>(() =>
@@ -151,6 +155,8 @@ export default function ManagerTeamBoard({
    useEffect(() => {
       if (activePeriodId == null) return;
       let isMounted = true;
+      const isInitialFetch = isInitialFetchRef.current;
+      isInitialFetchRef.current = false;
       // isLoading/hasError는 이 effect가 아니라,
       // activePeriodId/reloadKey를 바꾸는 이벤트 핸들러 쪽(switchPeriod/reloadTeams)에서 미리 세팅
       Promise.all([getTeams(activePeriodId), getUnassignedStudents(activePeriodId)])
@@ -168,7 +174,15 @@ export default function ManagerTeamBoard({
             setDraftAssignment(draftAssignment);
          })
          .catch(() => {
-            if (isMounted) setHasError(true);
+            if (!isMounted) return;
+            // 최초 마운트의 조용한 재검증이 실패한 거라면(프리페치된 값이 이미 화면에 떠 있음)
+            // 에러 화면으로 덮지 않고 토스트만 띄운다. 기간 전환/재시도처럼 사용자가 직접
+            // 트리거한 조회 실패는 그 기간의 데이터를 아직 못 받은 것이므로 에러 화면을 보여준다
+            if (isInitialFetch && initialTeams != null) {
+               toast.error('최신 팀 정보를 불러오지 못했습니다. 새로고침해주세요.');
+            } else {
+               setHasError(true);
+            }
          })
          .finally(() => {
             if (isMounted) setIsLoading(false);
@@ -176,7 +190,7 @@ export default function ManagerTeamBoard({
       return () => {
          isMounted = false;
       };
-   }, [activePeriodId, reloadKey]);
+   }, [activePeriodId, reloadKey, initialTeams]);
 
    const memberInfoByUserId = useMemo(() => {
       const map = new Map<number, MemberInfo>();

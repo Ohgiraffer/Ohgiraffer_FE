@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getTeamPeriods, getTeams } from '@/services/team.service';
+import { toast } from '@/lib/toast';
 import ChatAvatar from '@/features/chat/components/ChatAvatar';
 import AnimatedHeight from '@/components/ui/loading/AnimatedHeight';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
@@ -58,6 +59,10 @@ export default function StudentTeamView({
    // 기존 콘텐츠를 흐리게 유지한다 - 팀 수가 기간마다 달라 스켈레톤(고정 크기) <-> 실제 콘텐츠 사이를
    // 오갈 때마다 높이가 출렁여 덜컥거려 보이는 걸 막는다
    const [hasLoadedOnce, setHasLoadedOnce] = useState(initialTeams != null);
+   // 마운트 시 첫 번째 effect 실행이 "프리페치된 값을 조용히 재검증"하는 건지, 그 이후(기간
+   // 전환/재시도)는 "사용자가 직접 트리거"한 건지 구분한다 - 전자가 실패했을 땐 이미 화면에
+   // 유효한 프리페치 데이터가 떠 있으니 에러 화면으로 덮지 않는다
+   const isInitialFetchRef = useRef(true);
 
    // initialTeams가 있어도(프리페치 성공) 마운트 시 한 번은 항상 다시 조회한다 - 팀 배정은 다른
    // 관리자가 방금 바꿨을 수도 있는 값이라, 프리페치된 값을 그대로 믿고 끝내지 않고 화면엔 즉시
@@ -67,6 +72,8 @@ export default function StudentTeamView({
       // 이 분기는 실제 렌더링 상황에서는 도달하지 않는다(§ManagerTeamBoard.tsx와 동일한 이유)
       if (activePeriodId == null) return;
       let isMounted = true;
+      const isInitialFetch = isInitialFetchRef.current;
+      isInitialFetchRef.current = false;
       // isLoadingTeams/teamsError는 effect 밖(handleSelectPeriod/handleRetry)에서 미리 세팅한다
       getTeams(activePeriodId)
          .then((result) => {
@@ -75,7 +82,14 @@ export default function StudentTeamView({
             setTeams(result);
          })
          .catch(() => {
-            if (isMounted) setTeamsError(true);
+            if (!isMounted) return;
+            // 최초 마운트의 조용한 재검증이 실패한 거라면(프리페치된 값이 이미 화면에 떠 있음)
+            // 에러 화면으로 덮지 않고 토스트만 띄운다
+            if (isInitialFetch && initialTeams != null) {
+               toast.error('최신 팀 정보를 불러오지 못했습니다. 새로고침해주세요.');
+            } else {
+               setTeamsError(true);
+            }
          })
          .finally(() => {
             if (isMounted) setIsLoadingTeams(false);
@@ -83,7 +97,7 @@ export default function StudentTeamView({
       return () => {
          isMounted = false;
       };
-   }, [activePeriodId, retryKey]);
+   }, [activePeriodId, retryKey, initialTeams]);
 
    if (isLoadingPeriods) {
       return (

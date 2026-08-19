@@ -27,7 +27,15 @@ export async function prefetchIfAuthed<T>(
    const accessToken = await getServerAccessToken();
    if (!accessToken) return undefined;
    return fetcher(accessToken).catch((error) => {
-      console.error(`[prefetchIfAuthed] ${fetcher.name || 'fetcher'} 실패`, error);
+      // ApiError의 errors/data 필드는 백엔드 검증 상세를 그대로 담고 있을 수 있어 로그에는
+      // status/code/message만 남긴다
+      const detail =
+         error instanceof ApiError
+            ? `${error.status} ${error.code} ${error.message}`
+            : error instanceof Error
+              ? error.message
+              : String(error);
+      console.error(`[prefetchIfAuthed] ${fetcher.name || 'fetcher'} 실패: ${detail}`);
       return undefined;
    });
 }
