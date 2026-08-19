@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { formatSyncedAt } from '../formatSyncedAt';
 import type { SyncHistoryEntry } from '../types';
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 8;
 
 type Props = {
    history: SyncHistoryEntry[];
