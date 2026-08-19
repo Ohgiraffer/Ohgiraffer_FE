@@ -9,7 +9,15 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
 import { getNoticeSummary, type NoticeSummaryItem } from '@/services/notice.service';
 
-export default function NoticeCard() {
+// 카드 높이가 캘린더 절반으로 고정돼 있어 스크롤 없이 다 보여줄 수 있는 만큼만 그린다
+const VISIBLE_NOTICE_LIMIT = 5;
+
+interface NoticeCardProps {
+   // 캘린더 높이의 절반으로 카드 높이를 고정한다. 아직 측정 전(undefined)이면 자연스러운 높이로 그린다
+   cardHeight?: number;
+}
+
+export default function NoticeCard({ cardHeight }: NoticeCardProps) {
    const [notices, setNotices] = useState<NoticeSummaryItem[]>([]);
    const [isLoading, setIsLoading] = useState(true);
    const [hasError, setHasError] = useState(false);
@@ -32,9 +40,14 @@ export default function NoticeCard() {
       };
    }, [retryKey]);
 
+   const visibleNotices = notices.slice(0, VISIBLE_NOTICE_LIMIT);
+
    return (
-      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-6">
-         <div className="mb-4 flex items-center justify-between lg:mb-4">
+      <div
+         className="flex h-full flex-col rounded-sm border border-gray-200 bg-white p-6 lg:p-6"
+         style={cardHeight ? { height: cardHeight } : undefined}
+      >
+         <div className="mb-4 flex shrink-0 items-center justify-between lg:mb-4">
             <h2 className="flex items-center gap-1.5 -ml-1 text-sm font-bold text-gray-900">
                <Megaphone size={16} className="text-gray-400" />
                공지사항
@@ -44,56 +57,64 @@ export default function NoticeCard() {
             </Link>
          </div>
 
-         {isLoading ? (
-            <ul className="flex flex-col gap-1">
-               {[0, 1, 2].map((i) => (
-                  <li key={i} className="flex items-center justify-between gap-3 py-2 lg:py-3">
-                     <Skeleton width="65%" height={14} className="rounded-md" />
-                     <Skeleton width={48} height={12} className="rounded-md" />
-                  </li>
-               ))}
-            </ul>
-         ) : hasError ? (
-            <div className="flex flex-col items-center gap-2 py-6">
-               <p className="text-sm text-gray-400">공지사항을 불러오지 못했습니다.</p>
-               <button
-                  type="button"
-                  onClick={() => {
-                     setIsLoading(true);
-                     setHasError(false);
-                     setRetryKey((key) => key + 1);
-                  }}
-                  className="cursor-pointer rounded-xs border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
-               >
-                  다시 시도
-               </button>
-            </div>
-         ) : notices.length === 0 ? (
-            <p className="break-keep py-6 text-center text-sm text-gray-400">표시할 공지사항이 없습니다</p>
-         ) : (
-            <ul className="flex flex-col gap-1">
-               {notices.map((notice) => (
-                  <li key={notice.noticeId}>
-                     <Link
-                        href={`/notices/${notice.noticeId}`}
-                        className={cn(
-                           'flex items-center justify-between gap-3 py-2 text-sm text-gray-600 lg:py-3',
-                           notice.pinned &&
-                              '-ml-2 border-l-2 border-brand-red pl-2 font-medium text-gray-900',
-                        )}
-                     >
-                        <span className="flex min-w-0 items-center gap-1.5">
-                           {notice.pinned && <Pin size={12} className="shrink-0 text-brand-red" />}
-                           <span className="truncate">{notice.title}</span>
-                        </span>
-                        <span className="shrink-0 text-xs text-gray-400">
-                           {format(new Date(notice.createdAt), 'M월 d일', { locale: ko })}
-                        </span>
-                     </Link>
-                  </li>
-               ))}
-            </ul>
-         )}
+         {/* height는 헤더+패딩까지 포함한 카드 전체(바깥 div)에 고정으로 건다 - 안쪽 콘텐츠에만
+            걸면 헤더/패딩만큼 카드 실제 높이가 캘린더 절반보다 더 커진다 */}
+         <div className="min-h-0 flex-1">
+            {isLoading ? (
+               <ul className="flex flex-col gap-1">
+                  {[0, 1, 2].map((i) => (
+                     <li key={i} className="flex items-center justify-between gap-3 py-2 lg:py-3">
+                        <Skeleton width="65%" height={14} className="rounded-md" />
+                        <Skeleton width={48} height={12} className="rounded-md" />
+                     </li>
+                  ))}
+               </ul>
+            ) : hasError ? (
+               <div className="flex flex-col items-center gap-2 py-6">
+                  <p className="text-sm text-gray-400">공지사항을 불러오지 못했습니다.</p>
+                  <button
+                     type="button"
+                     onClick={() => {
+                        setIsLoading(true);
+                        setHasError(false);
+                        setRetryKey((key) => key + 1);
+                     }}
+                     className="cursor-pointer rounded-xs border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                     다시 시도
+                  </button>
+               </div>
+            ) : visibleNotices.length === 0 ? (
+               <p className="break-keep py-6 text-center text-sm text-gray-400">
+                  표시할 공지사항이 없습니다
+               </p>
+            ) : (
+               <ul className="flex flex-col gap-1">
+                  {visibleNotices.map((notice) => (
+                     <li key={notice.noticeId}>
+                        <Link
+                           href={`/notices/${notice.noticeId}`}
+                           className={cn(
+                              '-mx-2 flex items-center justify-between gap-3 rounded-xs px-2 py-2 text-sm text-gray-600 hover:bg-gray-50 lg:py-3',
+                              notice.pinned &&
+                                 'border-l-2 border-brand-red font-medium text-gray-900',
+                           )}
+                        >
+                           <span className="flex min-w-0 items-center gap-1.5">
+                              {notice.pinned && (
+                                 <Pin size={12} className="shrink-0 text-brand-red" />
+                              )}
+                              <span className="truncate">{notice.title}</span>
+                           </span>
+                           <span className="shrink-0 text-xs text-gray-400">
+                              {format(new Date(notice.createdAt), 'M월 d일', { locale: ko })}
+                           </span>
+                        </Link>
+                     </li>
+                  ))}
+               </ul>
+            )}
+         </div>
       </div>
    );
 }
