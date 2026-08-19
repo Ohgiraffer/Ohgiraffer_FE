@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/shadcn/select';
 import { Skeleton } from '@/components/ui/loading/Skeleton';
 import InlineProgressBar from '@/components/ui/loading/InlineProgressBar';
+import AnimatedHeight from '@/components/ui/loading/AnimatedHeight';
 import StaffConsultationRow from '../components/StaffConsultationRow';
 import {
    HISTORY_PAGE_SIZE,
@@ -97,33 +98,45 @@ export default function StaffHistoryTab({ initialData }: StaffHistoryTabProps) {
             <h3 className="text-sm font-semibold text-gray-900">
                다가오는 상담 — {upcoming.length}건
             </h3>
-            {isLoadingUpcoming ? (
-               <div className="flex flex-col items-center justify-center gap-2 py-8">
-                  <InlineProgressBar />
-                  <p className="text-xs text-gray-400">다가오는 상담을 불러오는 중...</p>
-               </div>
-            ) : hasUpcomingError ? (
-               <p className="py-10 text-center text-sm text-brand-red">
-                  다가오는 상담을 불러오지 못했습니다.
-               </p>
-            ) : upcoming.length === 0 ? (
-               <p className="py-10 text-center text-sm text-gray-400">다가오는 상담이 없습니다.</p>
-            ) : (
-               <>
-                  <div className="mt-3 flex flex-col gap-2">
-                     {pagedUpcoming.map((item) => (
-                        <StaffConsultationRow key={item.consultationId} item={item} variant="card" />
-                     ))}
+            <AnimatedHeight
+               transitionKey={
+                  isLoadingUpcoming ? 'loading' : hasUpcomingError ? 'error' : 'content'
+               }
+            >
+               {isLoadingUpcoming ? (
+                  <div className="flex flex-col items-center justify-center gap-2 py-8">
+                     <InlineProgressBar />
+                     <p className="text-xs text-gray-400">다가오는 상담을 불러오는 중...</p>
                   </div>
-                  <div className="mt-3">
-                     <Pagination
-                        currentPage={upcomingPage}
-                        totalPages={upcomingTotalPages}
-                        onPageChange={setUpcomingPage}
-                     />
-                  </div>
-               </>
-            )}
+               ) : hasUpcomingError ? (
+                  <p className="py-10 text-center text-sm text-brand-red">
+                     다가오는 상담을 불러오지 못했습니다.
+                  </p>
+               ) : upcoming.length === 0 ? (
+                  <p className="py-10 text-center text-sm text-gray-400">
+                     다가오는 상담이 없습니다.
+                  </p>
+               ) : (
+                  <>
+                     <div className="mt-3 flex flex-col gap-2">
+                        {pagedUpcoming.map((item) => (
+                           <StaffConsultationRow
+                              key={item.consultationId}
+                              item={item}
+                              variant="card"
+                           />
+                        ))}
+                     </div>
+                     <div className="mt-3">
+                        <Pagination
+                           currentPage={upcomingPage}
+                           totalPages={upcomingTotalPages}
+                           onPageChange={setUpcomingPage}
+                        />
+                     </div>
+                  </>
+               )}
+            </AnimatedHeight>
          </div>
 
          <div className="flex items-center mt-6 gap-2">
