@@ -38,7 +38,12 @@ function formatDueLabel(dueTimeIso: string) {
    return isToday(due) ? format(due, 'HH:mm') : format(due, 'M/d');
 }
 
-export default function TodoCard() {
+interface TodoCardProps {
+   // 캘린더 높이의 절반으로 카드 높이를 고정한다. 아직 측정 전(undefined)이면 자연스러운 높이로 그린다
+   cardHeight?: number;
+}
+
+export default function TodoCard({ cardHeight }: TodoCardProps) {
    const { role } = useAuth();
 
    const [todos, setTodos] = useState<TodoItem[]>([]);
@@ -64,89 +69,106 @@ export default function TodoCard() {
    }, [retryKey]);
 
    // 0건인 항목은 굳이 보여줄 필요가 없어 목록에서 제외
-   const visibleTodos = todos.filter((todo) => todo.sourceDomain !== 'EVALUATION' && todo.count > 0);
+   const visibleTodos = todos.filter(
+      (todo) => todo.sourceDomain !== 'EVALUATION' && todo.count > 0,
+   );
 
    return (
-      <div className="h-full rounded-sm border border-gray-200 bg-white p-6 lg:p-6">
-         <div className="mb-4 flex items-center justify-between lg:mb-4">
+      <div
+         className="flex h-full flex-col rounded-sm border border-gray-200 bg-white p-6 lg:p-6"
+         style={cardHeight ? { height: cardHeight } : undefined}
+      >
+         <div className="mb-4 flex shrink-0 items-center justify-between lg:mb-4">
             <h2 className="flex items-center gap-1.5 -ml-1 text-sm font-bold text-gray-900">
                <ListChecks size={16} className="text-gray-400" />
                할일 관리
             </h2>
          </div>
 
-         {isLoading ? (
-            <ul>
-               {[0, 1, 2].map((i) => (
-                  <li
-                     key={i}
-                     className="flex items-center justify-between gap-3 border-b border-gray-100 py-2 last:border-none lg:py-3"
+         {/* height는 헤더+패딩까지 포함한 카드 전체(바깥 div)에 고정으로 건다 - 안쪽 콘텐츠에만
+            걸면 헤더/패딩만큼 카드 실제 높이가 캘린더 절반보다 더 커진다. 도메인 종류가 최대
+            5개라 목록 자체가 이미 그 안에서 자연스럽게 한정돼 있다 */}
+         <div className="min-h-0 flex-1">
+            {isLoading ? (
+               <ul>
+                  {[0, 1, 2].map((i) => (
+                     <li
+                        key={i}
+                        className="flex items-center justify-between gap-3 border-b border-gray-100 py-2 last:border-none lg:py-3"
+                     >
+                        <Skeleton width="55%" height={14} className="rounded-md" />
+                        <Skeleton width={40} height={18} className="rounded-xs" />
+                     </li>
+                  ))}
+               </ul>
+            ) : hasError ? (
+               <div className="flex flex-col items-center gap-2 py-6">
+                  <p className="text-sm text-gray-400">할 일을 불러오지 못했습니다.</p>
+                  <button
+                     type="button"
+                     onClick={() => {
+                        setIsLoading(true);
+                        setHasError(false);
+                        setRetryKey((key) => key + 1);
+                     }}
+                     className="cursor-pointer rounded-xs border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
                   >
-                     <Skeleton width="55%" height={14} className="rounded-md" />
-                     <Skeleton width={40} height={18} className="rounded-xs" />
-                  </li>
-               ))}
-            </ul>
-         ) : hasError ? (
-            <div className="flex flex-col items-center gap-2 py-6">
-               <p className="text-sm text-gray-400">할 일을 불러오지 못했습니다.</p>
-               <button
-                  type="button"
-                  onClick={() => {
-                     setIsLoading(true);
-                     setHasError(false);
-                     setRetryKey((key) => key + 1);
-                  }}
-                  className="cursor-pointer rounded-xs border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
-               >
-                  다시 시도
-               </button>
-            </div>
-         ) : visibleTodos.length === 0 ? (
-            <p className="break-keep py-6 text-center text-sm text-gray-400">표시할 항목이 없습니다</p>
-         ) : (
-            <ul>
-               {visibleTodos.map((todo) => {
-                  const domain = todo.sourceDomain as TodoSourceDomain;
-                  const meta = DOMAIN_META[domain] ?? DEFAULT_DOMAIN_META;
-                  const label = (role && LABEL_OVERRIDES[role]?.[domain]) || todo.type;
-                  // 상담 예정이 1건뿐이면(훈련생은 본인 일정이라 최대 1건, 운영진도 1건일 때) 건수보다
-                  // 그 상담이 언제인지가 더 유용하다 - 오늘이면 시각, 아니면 날짜로 보여준다
-                  const showDueDateOrTime = domain === 'CONSULTATION' && todo.count === 1;
+                     다시 시도
+                  </button>
+               </div>
+            ) : visibleTodos.length === 0 ? (
+               <p className="break-keep py-6 text-center text-sm text-gray-400">
+                  표시할 항목이 없습니다
+               </p>
+            ) : (
+               <ul>
+                  {visibleTodos.map((todo) => {
+                     const domain = todo.sourceDomain as TodoSourceDomain;
+                     const meta = DOMAIN_META[domain] ?? DEFAULT_DOMAIN_META;
+                     const label = (role && LABEL_OVERRIDES[role]?.[domain]) || todo.type;
+                     // 상담 예정이 1건뿐이면(훈련생은 본인 일정이라 최대 1건, 운영진도 1건일 때) 건수보다
+                     // 그 상담이 언제인지가 더 유용하다 - 오늘이면 시각, 아니면 날짜로 보여준다
+                     const showDueDateOrTime = domain === 'CONSULTATION' && todo.count === 1;
 
-                  return (
-                     <li key={todo.sourceDomain} className="border-b border-gray-100 last:border-none">
-                        <Link
-                           href={meta.href}
-                           className="flex items-center justify-between gap-3 py-2 hover:bg-gray-50 lg:py-3"
+                     return (
+                        <li
+                           key={todo.sourceDomain}
+                           className="border-b border-gray-100 last:border-none"
                         >
-                           <span className="min-w-0 flex-1 truncate text-sm text-gray-700">{label}</span>
-                           <span className="flex shrink-0 items-center gap-2">
-                              {showDueDateOrTime ? (
-                                 todo.nearestDueTime ? (
+                           <Link
+                              href={meta.href}
+                              className="flex items-center justify-between gap-3 py-2 hover:bg-gray-50 lg:py-3"
+                           >
+                              <span className="min-w-0 flex-1 truncate text-sm text-gray-700">
+                                 {label}
+                              </span>
+                              <span className="flex shrink-0 items-center gap-2">
+                                 {showDueDateOrTime ? (
+                                    todo.nearestDueTime ? (
+                                       <span
+                                          className={`rounded-xs px-2 py-0.5 text-xs font-medium text-white ${meta.badgeClassName}`}
+                                       >
+                                          {formatDueLabel(todo.nearestDueTime)}
+                                       </span>
+                                    ) : (
+                                       <span className="text-xs text-gray-400">예정 없음</span>
+                                    )
+                                 ) : (
                                     <span
                                        className={`rounded-xs px-2 py-0.5 text-xs font-medium text-white ${meta.badgeClassName}`}
                                     >
-                                       {formatDueLabel(todo.nearestDueTime)}
+                                       {todo.count}건
                                     </span>
-                                 ) : (
-                                    <span className="text-xs text-gray-400">예정 없음</span>
-                                 )
-                              ) : (
-                                 <span
-                                    className={`rounded-xs px-2 py-0.5 text-xs font-medium text-white ${meta.badgeClassName}`}
-                                 >
-                                    {todo.count}건
-                                 </span>
-                              )}
-                              <ChevronRight size={14} className="text-gray-300" />
-                           </span>
-                        </Link>
-                     </li>
-                  );
-               })}
-            </ul>
-         )}
+                                 )}
+                                 <ChevronRight size={14} className="text-gray-300" />
+                              </span>
+                           </Link>
+                        </li>
+                     );
+                  })}
+               </ul>
+            )}
+         </div>
       </div>
    );
 }

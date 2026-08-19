@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import TodayScheduleCard from './TodayScheduleCard';
 import AttendanceCard from './AttendanceCard';
@@ -12,7 +12,7 @@ import { mapCalendarEvent } from '../calendarEventUtils';
 import type { CalendarEvent } from '../types';
 import type { Holiday } from '@/services/holiday.service';
 
-// react-big-calendar는 대시보드 첫 화면에서만 쓰이는 무거운 라이브러리라, 클라이언트 JS는 별도 청크로 분리한다. 
+// react-big-calendar는 대시보드 첫 화면에서만 쓰이는 무거운 라이브러리라, 클라이언트 JS는 별도 청크로 분리한다.
 // 다만 ssr:false는 아니다 - LCP 요소가 이 캘린더라 서버가 미리 렌더링해서 초기 HTML에 포함시켜야 한다
 // (ssr:false였을 때는 청크 로드가 끝나야만 그려져서 LCP가 늦어졌음)
 const DashboardCalendar = dynamic(() => import('./DashboardCalendar'), {
@@ -57,12 +57,39 @@ export default function DashboardGrid({ holidays, initialYear, initialMonth }: D
    const [monthEventsError, setMonthEventsError] = useState(false);
    const [refreshKey, setRefreshKey] = useState(0);
 
+   // 캘린더 실제 렌더링 높이를 재서 4개 카드의 높이를 그 절반으로 고정한다(스크롤 없이 - 오늘
+   // 일정/공지사항은 목록 자체를 최대 5개로 잘라서 넘치지 않게 함). 캘린더는 두 행(today+
+   // attendance / notice+todo)에 걸쳐 있어서 카드 1개 높이는 캘린더 전체가 아니라 절반이어야
+   // 두 행을 합친 높이가 캘린더 높이와 맞아떨어진다. react-big-calendar는 월마다 주 수(4~6주)가
+   // 달라 높이가 바뀔 수 있어 한 번만 재지 않고 ResizeObserver로 계속 추적한다
+   const calendarWrapperRef = useRef<HTMLDivElement>(null);
+   const [cardHeight, setCardHeight] = useState<number>();
+
+   useEffect(() => {
+      const el = calendarWrapperRef.current;
+      if (!el) return;
+      const observer = new ResizeObserver((entries) => {
+         const height = entries[0]?.contentRect.height;
+         if (!height || !el.parentElement) return;
+         // 두 행 사이에도 그리드 gap(row-gap)이 한 번 끼어 있다 - 그 gap을 빼지 않고 그냥
+         // 절반씩 나누면 "카드 높이 * 2 + gap"이 캘린더 높이보다 gap만큼 더 길어진다
+         const rowGap = parseFloat(getComputedStyle(el.parentElement).rowGap) || 0;
+         setCardHeight((height - rowGap) / 2);
+      });
+      observer.observe(el);
+      return () => observer.disconnect();
+   }, []);
+
    useEffect(() => {
       let isMounted = true;
       getCalendarEvents(initialYear, initialMonth)
          .then((items) => {
             if (!isMounted) return;
-            setMonthEvents(items.map(mapCalendarEvent).filter((event): event is CalendarEvent => event !== null));
+            setMonthEvents(
+               items
+                  .map(mapCalendarEvent)
+                  .filter((event): event is CalendarEvent => event !== null),
+            );
             setMonthEventsError(false);
          })
          .catch(() => {
@@ -88,7 +115,13 @@ export default function DashboardGrid({ holidays, initialYear, initialMonth }: D
 
    return (
       <div className="dashboard-grid grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-[2fr_0.9fr_0.9fr]">
-         <div className="min-w-0 [grid-area:calendar]">
+         {/* self-start - 기본값(stretch)이면 이 그리드 셀이 행 높이에 맞춰 늘어나는데, 지금
+            행 높이는 카드들의 고정 height(캘린더 높이의 절반)로 정해진다. 그러면 "캘린더 높이를
+            재서 카드 높이를 정하고 → 그 카드 높이가 행 높이를 정하고 → 그 행 높이가 다시 캘린더
+            높이로 측정되는" 순환 참조가 생겨 높이가 렌더될 때마다 계속 불어난다. self-start로
+            이 셀을 행 높이 스트레치에서 빼면 캘린더는 항상 자기 콘텐츠(react-big-calendar의
+            고정 600px + 헤더)만큼의 고유 높이로 안정적으로 측정된다 */}
+         <div ref={calendarWrapperRef} className="min-w-0 self-start [grid-area:calendar]">
             <DashboardCalendar
                holidays={holidays}
                initialYear={initialYear}
@@ -105,16 +138,17 @@ export default function DashboardGrid({ holidays, initialYear, initialMonth }: D
                events={monthEvents}
                hasError={monthEventsError}
                onRetry={refetchMonthEvents}
+               cardHeight={cardHeight}
             />
          </div>
          <div className="min-w-0 [grid-area:attendance]">
-            <AttendanceCard />
+            <AttendanceCard cardHeight={cardHeight} />
          </div>
          <div className="min-w-0 [grid-area:notice]">
-            <NoticeCard />
+            <NoticeCard cardHeight={cardHeight} />
          </div>
          <div className="min-w-0 [grid-area:todo]">
-            <TodoCard />
+            <TodoCard cardHeight={cardHeight} />
          </div>
       </div>
    );
