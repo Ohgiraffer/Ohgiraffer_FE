@@ -145,8 +145,10 @@ export function useOnboardingWizard() {
                });
                setBootcampId(newBootcampId);
                setSavedOrgInfo(orgInfo);
-               
-               updateBootcampId(newBootcampId);
+               // 전역 AuthContext의 bootcampId는 여기서 세팅하지 않는다 - 그 값이 곧
+               // "온보딩 완료" 판정 기준(OnboardingWizardClient/RequireOnboardingGuard)으로
+               // 재사용되고 있어서, 1단계만 마친 시점에 세팅하면 2~4단계를 건너뛰고 바로
+               // 사이트로 튕겨나간다. 실제 온보딩이 끝나는 completeOnboarding에서만 세팅한다
             } else if (savedOrgInfo) {
                const diff = getOrgInfoDiff(savedOrgInfo, orgInfo);
                if (Object.keys(diff).length > 0) {
@@ -208,6 +210,9 @@ export function useOnboardingWizard() {
             warningPercent: Number(warningCriteria.warningRate),
             expulsionPercent: Number(warningCriteria.expulsionRiskRate),
          });
+
+         // 온보딩이 실제로 끝난 시점 - 여기서만 전역 bootcampId를 세팅해 사이트 진입을 허용한다
+         updateBootcampId(bootcampId);
 
          toast.success(
             `${orgInfo.orgName} - ${orgInfo.courseName}이(가) 성공적으로 등록되었습니다.`,
